@@ -311,60 +311,126 @@ def opencode_start() -> None:
     print(build_opencode_serve_command())
 
 
+@worker_app.command("hermes-status")
+def worker_hermes_status() -> None:
+    """Check Hermes CLI availability and write status artifact."""
+    from agentcomos.worker.availability import check_hermes_availability
+    from rich import print
+    status = check_hermes_availability()
+    print(status)
+
+
 @worker_app.command("start")
 def worker_start(
     invocation: Path = typer.Option(..., "--invocation", help="Path to worker_invocation.yaml"),
     fake: bool = typer.Option(False, "--fake", help="Run fake Hermes worker in tmux"),
+    real: bool = typer.Option(False, "--real", help="Run real Hermes worker in tmux"),
 ) -> None:
     """Start a worker job from a Worker Invocation."""
-    from agentcomos.worker.runner import start_worker
-
-    try:
-        start_worker(invocation, fake=fake)
-    except ValueError as e:
-        raise typer.BadParameter(str(e))
+    if real:
+        from agentcomos.worker.real_runtime import start_real_worker
+        try:
+            start_real_worker(invocation)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    elif fake:
+        from agentcomos.worker.fake_runtime import start_fake_worker
+        try:
+            start_fake_worker(invocation, fake=fake)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    else:
+        raise typer.BadParameter("Must specify either --fake or --real")
 
 
 @worker_app.command("status")
 def worker_status(job: str = typer.Option(..., "--job", help="Worker job ID")) -> None:
     """Read worker job status without mutating artifacts."""
-    from agentcomos.worker.runner import status_worker
+    from agentcomos.worker.jobs import find_worker_job, detect_job_runtime
 
-    try:
-        status_worker(job)
-    except ValueError as e:
-        raise typer.BadParameter(str(e))
+    found = find_worker_job(job)
+    if not found:
+        raise typer.BadParameter(f"Worker job not found: {job}")
+    _, job_data = found
+
+    runtime_type = detect_job_runtime(job_data)
+    if runtime_type == "real":
+        from agentcomos.worker.real_runtime import status_real_worker
+        try:
+            status_real_worker(job)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    elif runtime_type == "fake":
+        from agentcomos.worker.fake_runtime import status_fake_worker
+        try:
+            status_fake_worker(job)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    else:
+        raise typer.BadParameter(f"Cannot determine runtime type for worker job {job}")
 
 
 @worker_app.command("collect")
 def worker_collect(job: str = typer.Option(..., "--job", help="Worker job ID")) -> None:
     """Collect worker outputs and update job status when complete."""
-    from agentcomos.worker.runner import collect_worker
+    from agentcomos.worker.jobs import find_worker_job, detect_job_runtime
 
-    try:
-        collect_worker(job)
-    except ValueError as e:
-        raise typer.BadParameter(str(e))
+    found = find_worker_job(job)
+    if not found:
+        raise typer.BadParameter(f"Worker job not found: {job}")
+    _, job_data = found
+
+    runtime_type = detect_job_runtime(job_data)
+    if runtime_type == "real":
+        from agentcomos.worker.real_runtime import collect_real_worker
+        try:
+            collect_real_worker(job)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    elif runtime_type == "fake":
+        from agentcomos.worker.fake_runtime import collect_fake_worker
+        try:
+            collect_fake_worker(job)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    else:
+        raise typer.BadParameter(f"Cannot determine runtime type for worker job {job}")
 
 
 @worker_app.command("kill")
 def worker_kill(job: str = typer.Option(..., "--job", help="Worker job ID")) -> None:
     """Kill a worker tmux session when available."""
-    from agentcomos.worker.runner import kill_worker
+    from agentcomos.worker.jobs import find_worker_job, detect_job_runtime
 
-    try:
-        kill_worker(job)
-    except ValueError as e:
-        raise typer.BadParameter(str(e))
+    found = find_worker_job(job)
+    if not found:
+        raise typer.BadParameter(f"Worker job not found: {job}")
+    _, job_data = found
+
+    runtime_type = detect_job_runtime(job_data)
+    if runtime_type == "real":
+        from agentcomos.worker.real_runtime import kill_real_worker
+        try:
+            kill_real_worker(job)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    elif runtime_type == "fake":
+        from agentcomos.worker.fake_runtime import kill_fake_worker
+        try:
+            kill_fake_worker(job)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    else:
+        raise typer.BadParameter(f"Cannot determine runtime type for worker job {job}")
 
 
 @worker_app.command("list")
 def worker_list(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
     """List worker jobs for a run."""
-    from agentcomos.worker.runner import list_workers
+    from agentcomos.worker.fake_runtime import list_fake_workers
 
     try:
-        list_workers(run)
+        list_fake_workers(run)
     except ValueError as e:
         raise typer.BadParameter(str(e))
 
@@ -372,10 +438,11 @@ def worker_list(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
 @worker_app.command("recover")
 def worker_recover(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
     """Recover worker jobs for a run from existing artifacts."""
-    from agentcomos.worker.runner import recover_workers
-
+    from agentcomos.worker.fake_runtime import recover_fake_workers
+    from agentcomos.worker.real_runtime import recover_real_workers
     try:
-        recover_workers(run)
+        recover_fake_workers(run)
+        recover_real_workers(run)
     except ValueError as e:
         raise typer.BadParameter(str(e))
 
