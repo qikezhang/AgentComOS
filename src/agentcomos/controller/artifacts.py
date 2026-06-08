@@ -48,9 +48,12 @@ def build_delivery_packet(run_id: str) -> None:
     packet = {
         "packet_id": f"DP-{run_id}",
         "run_id": run_id,
-        "produced_by": "controller",
+        "produced_by": [
+            "controller",
+            "fake_opencode"
+        ],
         "status": "completed",
-        "summary": "G1 fake controller run completed.",
+        "summary": "G2 fake OpenCode runtime completed.",
         "artifacts": [
             "run_status.yaml",
             "events.jsonl",
@@ -58,7 +61,22 @@ def build_delivery_packet(run_id: str) -> None:
         ],
         "risks": [],
         "next_actions": [
-            "Ready for Codex G1 review."
+            "Ready for Codex G2 review."
         ]
     }
+    
+    # Conditionally add opencode outputs
+    job_id = f"OCJ-{run_id}-001"
+    job_path = get_run_dir(run_id) / "opencode_jobs" / f"{job_id}.yaml"
+    plan_path = get_run_dir(run_id) / "opencode_outputs" / "opencode_project_plan.yaml"
+    
+    if job_path.exists():
+        packet["artifacts"].append(f"opencode_jobs/{job_id}.yaml")
+    if plan_path.exists():
+        packet["artifacts"].append("opencode_outputs/opencode_project_plan.yaml")
+        
     path.write_text(yaml.dump(packet, sort_keys=False), encoding="utf-8")
+    
+    # Ensure delivery.updated event is appended as required by G2
+    from agentcomos.controller.events import append_event
+    append_event(run_id, "delivery.updated", {"packet_id": packet["packet_id"]})

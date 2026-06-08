@@ -135,6 +135,9 @@ app.add_typer(run_app, name="run")
 controller_app = typer.Typer(help="Controller operations")
 app.add_typer(controller_app, name="controller")
 
+opencode_app = typer.Typer(help="OpenCode runtime operations")
+app.add_typer(opencode_app, name="opencode")
+
 @run_app.command("create")
 def run_create(intent: Path = typer.Option(..., help="Path to operating_intent.yaml")) -> None:
     """Create a new run from an operating intent."""
@@ -168,6 +171,49 @@ def controller_recover(run: str = typer.Option(..., help="Run ID")) -> None:
     from agentcomos.controller.runner import handle_controller_recover
     try:
         handle_controller_recover(run)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@opencode_app.command("submit")
+def opencode_submit(run: str = typer.Option(..., help="Run ID"), fake: bool = typer.Option(False, "--fake", help="Fake execution")) -> None:
+    """Submit an OpenCode job."""
+    from agentcomos.opencode.fake_runtime import submit_fake_job
+    if fake:
+        try:
+            job_id = submit_fake_job(run)
+            print(f"Fake job submitted: {job_id}")
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    else:
+        raise typer.BadParameter("Real OpenCode runtime not implemented in G2")
+
+@opencode_app.command("status")
+def opencode_status(job: str = typer.Option(..., help="Job ID")) -> None:
+    """Check the status of an OpenCode job."""
+    from agentcomos.opencode.fake_runtime import status_fake_job
+    parts = job.split("-")
+    if len(parts) >= 3:
+        run_id = "-".join(parts[1:-1])
+    else:
+        raise typer.BadParameter("Invalid job ID format. Expected OCJ-<run_id>-<retry>")
+    
+    try:
+        status_fake_job(run_id, job)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@opencode_app.command("collect")
+def opencode_collect(job: str = typer.Option(..., help="Job ID")) -> None:
+    """Collect completed OpenCode job outputs."""
+    from agentcomos.opencode.fake_runtime import collect_fake_job
+    parts = job.split("-")
+    if len(parts) >= 3:
+        run_id = "-".join(parts[1:-1])
+    else:
+        raise typer.BadParameter("Invalid job ID format. Expected OCJ-<run_id>-<retry>")
+    
+    try:
+        collect_fake_job(run_id, job)
     except ValueError as e:
         raise typer.BadParameter(str(e))
 

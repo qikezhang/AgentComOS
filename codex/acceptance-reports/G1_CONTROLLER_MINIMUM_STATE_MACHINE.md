@@ -160,6 +160,10 @@ Residual test note:
 
 - A direct unit test for deleting `run_status.yaml` and asserting recover restores the state would make the suite stronger, but manual acceptance passed and this is not blocking for G1.
 
+## Codex Findings
+
+None.
+
 ## Blocking Issues
 
 None.
