@@ -27,3 +27,17 @@ def write_job(run_id: str, job_id: str, job_data: dict) -> None:
 
 def get_job_id(run_id: str, retry_num: int = 1) -> str:
     return f"OCJ-{run_id}-{retry_num:03d}"
+
+def detect_job_runtime(job: dict) -> str:
+    runtime = job.get("runtime")
+    if runtime == "real_opencode":
+        return "real"
+    if runtime == "fake_opencode":
+        return "fake"
+    if job.get("attempted_real_opencode") is True:
+        return "real"
+    if job.get("fake_runtime") is True:
+        return "fake"
+    if job.get("real_opencode_used") is True:
+        return "real"
+    return "unknown"

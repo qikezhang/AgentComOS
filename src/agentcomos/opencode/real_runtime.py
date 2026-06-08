@@ -74,3 +74,9 @@ def recover_real_job(run_id: str, job_id: str) -> None:
     if not job:
         raise ValueError(f"Job {job_id} not found in run {run_id}")
 
+def status_real_job(run_id: str, job_id: str) -> None:
+    job = read_job(run_id, job_id)
+    if not job:
+        raise ValueError(f"Job {job_id} not found in run {run_id}")
+    import yaml
+    print(yaml.dump(job, sort_keys=False))

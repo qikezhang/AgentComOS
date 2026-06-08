@@ -209,22 +209,7 @@ def opencode_status(job: str | None = typer.Option(None, help="Job ID")) -> None
         print(status)
         return
 
-    from agentcomos.opencode.fake_runtime import status_fake_job
-    parts = job.split("-")
-    if len(parts) >= 3:
-        run_id = "-".join(parts[1:-1])
-    else:
-        raise typer.BadParameter("Invalid job ID format. Expected OCJ-<run_id>-<retry>")
-    
-    try:
-        status_fake_job(run_id, job)
-    except ValueError as e:
-        raise typer.BadParameter(str(e))
-
-@opencode_app.command("collect")
-def opencode_collect(job: str = typer.Option(..., help="Job ID")) -> None:
-    """Collect completed OpenCode job outputs."""
-    from agentcomos.opencode.jobs import read_job
+    from agentcomos.opencode.jobs import read_job, detect_job_runtime
     parts = job.split("-")
     if len(parts) >= 3:
         run_id = "-".join(parts[1:-1])
@@ -232,24 +217,60 @@ def opencode_collect(job: str = typer.Option(..., help="Job ID")) -> None:
         raise typer.BadParameter("Invalid job ID format. Expected OCJ-<run_id>-<retry>")
     
     job_data = read_job(run_id, job)
-    if job_data and job_data.get("real_opencode_used"):
+    if not job_data:
+        raise typer.BadParameter(f"Job not found: {job}")
+        
+    runtime_type = detect_job_runtime(job_data)
+    if runtime_type == "real":
+        from agentcomos.opencode.real_runtime import status_real_job
+        try:
+            status_real_job(run_id, job)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    elif runtime_type == "fake":
+        from agentcomos.opencode.fake_runtime import status_fake_job
+        try:
+            status_fake_job(run_id, job)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    else:
+        raise typer.BadParameter(f"Cannot determine runtime type for job {job}")
+
+@opencode_app.command("collect")
+def opencode_collect(job: str = typer.Option(..., help="Job ID")) -> None:
+    """Collect completed OpenCode job outputs."""
+    from agentcomos.opencode.jobs import read_job, detect_job_runtime
+    parts = job.split("-")
+    if len(parts) >= 3:
+        run_id = "-".join(parts[1:-1])
+    else:
+        raise typer.BadParameter("Invalid job ID format. Expected OCJ-<run_id>-<retry>")
+    
+    job_data = read_job(run_id, job)
+    if not job_data:
+        raise typer.BadParameter(f"Job not found: {job}")
+        
+    runtime_type = detect_job_runtime(job_data)
+    if runtime_type == "real":
         from agentcomos.opencode.real_runtime import collect_real_job
         try:
             collect_real_job(run_id, job)
             print(f"Real job collected or in read-only mode: {job}")
         except ValueError as e:
             raise typer.BadParameter(str(e))
-    else:
+    elif runtime_type == "fake":
         from agentcomos.opencode.fake_runtime import collect_fake_job
         try:
             collect_fake_job(run_id, job)
         except ValueError as e:
             raise typer.BadParameter(str(e))
+    else:
+        raise typer.BadParameter(f"Cannot determine runtime type for job {job}")
 
 @opencode_app.command("recover")
 def opencode_recover(job: str = typer.Option(..., help="Job ID")) -> None:
     """Recover an OpenCode job."""
-    from agentcomos.opencode.jobs import read_job
+    from agentcomos.opencode.jobs import read_job, detect_job_runtime
     parts = job.split("-")
     if len(parts) >= 3:
         run_id = "-".join(parts[1:-1])
@@ -257,15 +278,21 @@ def opencode_recover(job: str = typer.Option(..., help="Job ID")) -> None:
         raise typer.BadParameter("Invalid job ID format. Expected OCJ-<run_id>-<retry>")
     
     job_data = read_job(run_id, job)
-    if job_data and job_data.get("real_opencode_used"):
+    if not job_data:
+        raise typer.BadParameter(f"Job not found: {job}")
+        
+    runtime_type = detect_job_runtime(job_data)
+    if runtime_type == "real":
         from agentcomos.opencode.real_runtime import recover_real_job
         try:
             recover_real_job(run_id, job)
             print(f"Real job recovered: {job}")
         except ValueError as e:
             raise typer.BadParameter(str(e))
-    else:
+    elif runtime_type == "fake":
         raise typer.BadParameter("Fake recover not implemented or required")
+    else:
+        raise typer.BadParameter(f"Cannot determine runtime type for job {job}")
 
 
 @opencode_app.command("start")
