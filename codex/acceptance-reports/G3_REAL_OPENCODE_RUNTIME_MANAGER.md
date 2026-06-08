@@ -6,6 +6,34 @@
 
 failed
 
+## Supplemental Root Cause Note
+
+2026-06-08 documentation clarification: the blocking failure is a runtime job routing bug, not an OpenCode availability bug.
+
+Root cause:
+
+```text
+The implementation treated real_opencode_used as a job type routing field.
+```
+
+Correct classification:
+
+```text
+real_opencode_used is an execution result field only.
+runtime and attempted_real_opencode are routing fields.
+```
+
+For an unavailable real OpenCode job:
+
+```yaml
+runtime: real_opencode
+attempted_real_opencode: true
+real_opencode_used: false
+status: unavailable
+```
+
+`collect`, `status`, and `recover` must still route to the real OpenCode handler. `real_opencode_used: false` only means the real OpenCode command did not successfully execute; it does not make the job fake. See `docs/27_RUNTIME_JOB_ROUTING_RULES.md`.
+
 ## Audit Metadata
 
 - Audit time: 2026-06-08 22:21:25 CST (+0800)
@@ -92,6 +120,8 @@ With no local `opencode` binary:
 - `agentcomos opencode status --job OCJ-OI-TECHAI8-001-001`: passed and printed the real job YAML.
 
 Blocking detail: `agentcomos opencode collect --job OCJ-OI-TECHAI8-001-001` and `agentcomos opencode recover --job OCJ-OI-TECHAI8-001-001` failed for the unavailable real job. The job is real by `runtime: real_opencode` and `attempted_real_opencode: true`, but CLI routing checks only `real_opencode_used`; because unavailable jobs now correctly set `real_opencode_used: false`, the CLI falls through to fake collect/recover.
+
+Root cause classification: `real_opencode_used` was used as a routing field, but it is only an execution result field. The routing fields for this job are `runtime: real_opencode` and `attempted_real_opencode: true`; both require the real OpenCode handler.
 
 Observed failures:
 
@@ -196,6 +226,14 @@ Tracked `.agentcomos/runs/OI-TECHAI8-001/*` files were restored after cleanup so
 1. CLI `agentcomos opencode collect --job <real_unavailable_job>` fails for unavailable real jobs because routing uses `real_opencode_used` instead of `runtime: real_opencode` or `attempted_real_opencode: true`.
 2. CLI `agentcomos opencode recover --job <real_unavailable_job>` fails for the same routing reason.
 3. There is no CLI-level test covering unavailable real job collect/recover routing, so the regression is not caught by `make test`.
+
+Required regression coverage before G3 can pass:
+
+- Unavailable real job with `real_opencode_used: false` still routes to real status handler.
+- Unavailable real job with `attempted_real_opencode: true` still routes to real collect handler.
+- `runtime` field has priority over `real_opencode_used`.
+- Unknown runtime fails safely and does not default to fake.
+- Fake job still routes to fake handler.
 
 ## Non-blocking Issues
 

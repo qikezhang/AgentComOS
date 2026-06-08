@@ -139,6 +139,18 @@ hard timeout -> failed
 no session ledger -> fail
 ```
 
+Runtime routing acceptance：
+
+```text
+unavailable real job with real_opencode_used=false must still route to real status handler
+unavailable real job with attempted_real_opencode=true must still route to real collect handler
+runtime field has priority over real_opencode_used
+unknown runtime must fail safely and must not default to fake
+fake job must still route to fake handler
+```
+
+Routing rule reference：`docs/27_RUNTIME_JOB_ROUTING_RULES.md`
+
 ## G4 — tmux Hermes Worker Pool Fake E2E
 
 Commands：

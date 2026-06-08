@@ -103,6 +103,47 @@ stalled -> retrying
 retrying -> queued
 ```
 
+## 4.1 Runtime Job Routing
+
+Controller and CLI runtime commands must route job `collect`, `status`, and `recover` by routing fields, as specified in `docs/27_RUNTIME_JOB_ROUTING_RULES.md`.
+
+Routing fields:
+
+```text
+runtime
+attempted_real_opencode
+future: attempted_real_hermes
+future: worker_runtime
+```
+
+Execution result fields are not routing fields:
+
+```text
+real_opencode_used
+real_hermes_used
+fake_runtime
+```
+
+Status fields are not routing fields:
+
+```text
+status
+failure_reason
+blocked_reason
+unavailable_reason
+```
+
+OpenCode routing rule:
+
+```text
+runtime: real_opencode -> real OpenCode handler
+attempted_real_opencode: true -> real OpenCode handler
+runtime: fake_opencode -> fake OpenCode handler
+unknown runtime identity -> fail safely, do not default to fake
+```
+
+`real_opencode_used: false` must never be interpreted as fake job identity. It only records that the real OpenCode tool did not successfully execute.
+
 ## 5. Worker Job State Machine
 
 ```text
