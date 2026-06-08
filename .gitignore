@@ -12,6 +12,9 @@ build/
 logs/
 .env
 
+.agentcomos/runs/
+.agentcomos/runtime/
+
 # OS/editor
 .DS_Store
 .idea/
