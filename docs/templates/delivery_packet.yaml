@@ -1,0 +1,20 @@
+packet_id: "DP-[run_id]"
+run_id: "[run_id]"
+produced_by:
+  - controller
+  - evidence_builder
+status: "completed"
+summary: "Delivery packet generated from evidence."
+artifacts:
+  - run_status.yaml
+  - events.jsonl
+  - timeline.yaml
+  - evidence_packet/manifest.yaml
+  - evidence_packet/events_summary.yaml
+  - evidence_packet/runtime_summary.yaml
+  - evidence_packet/artifact_index.yaml
+  - evidence_packet/validation_summary.yaml
+  - gm_report.md
+risks: []
+next_actions:
+  - "Ready for Codex review."

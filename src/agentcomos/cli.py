@@ -448,5 +448,51 @@ def worker_recover(run: str = typer.Option(..., "--run", help="Run ID")) -> None
 
 
 
+
+evidence_app = typer.Typer(help="Evidence operations")
+app.add_typer(evidence_app, name="evidence")
+
+delivery_app = typer.Typer(help="Delivery operations")
+app.add_typer(delivery_app, name="delivery")
+
+gm_app = typer.Typer(help="GM operations")
+app.add_typer(gm_app, name="gm")
+
+@evidence_app.command("build")
+def evidence_build(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    from agentcomos.evidence.builder import build_evidence_packet
+    try:
+        build_evidence_packet(run)
+        print("Evidence built.")
+    except Exception as e:
+        raise typer.BadParameter(str(e))
+
+@evidence_app.command("status")
+def evidence_status(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    from agentcomos.evidence.builder import get_evidence_status
+    print(get_evidence_status(run))
+
+@delivery_app.command("build")
+def delivery_build(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    from agentcomos.delivery.builder import build_delivery_packet
+    try:
+        build_delivery_packet(run)
+        print("Delivery built.")
+    except Exception as e:
+        raise typer.BadParameter(str(e))
+
+@delivery_app.command("status")
+def delivery_status(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    from agentcomos.delivery.builder import get_delivery_status
+    print(get_delivery_status(run))
+
+@gm_app.command("report")
+def gm_report_cmd(run: str = typer.Option(..., "--run", help="Run ID"), format: str = typer.Option("markdown", "--format", help="Format: markdown or yaml")) -> None:
+    from agentcomos.gm.report import generate_gm_report
+    try:
+        generate_gm_report(run, format=format)
+        print("GM report generated.")
+    except Exception as e:
+        raise typer.BadParameter(str(e))
 if __name__ == "__main__":
     app()

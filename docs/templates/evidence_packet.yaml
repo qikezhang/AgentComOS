@@ -1,0 +1,21 @@
+run_id: "[run_id]"
+phase: "G6_EVIDENCE_DELIVERY_GM_REPORT"
+generated_by: "controller"
+status: "completed"
+created_at: "[timestamp]"
+inputs:
+  - run_status.yaml
+  - events.jsonl
+  - timeline.yaml
+evidence_files:
+  - events_summary.yaml
+  - runtime_summary.yaml
+  - artifact_index.yaml
+  - validation_summary.yaml
+validation:
+  run_status_present: true
+  events_present: true
+  timeline_present: true
+  delivery_packet_present: true
+  gm_report_present: true
+  no_runtime_artifacts_committed: true
