@@ -1,0 +1,13 @@
+task_id: TF-DEV-001
+classification: normal_development_task
+risk_level: low
+is_trivial: false
+decision_required: false
+feynman_required: false
+automation_stage: development_explicit
+decision_trigger: none
+feynman_trigger: none
+reasons:
+  - development phase defaults to explicit opt-in
+  - user did not request Decision Market or Feynman
+中文备注: 开发初期示例：非极简单任务也可以不自动启用抽卡和费曼，避免复杂度失控。

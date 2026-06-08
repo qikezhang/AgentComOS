@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": true,
+  "title": "FeynmanCheck",
+  "required": [
+    "check_id",
+    "created_by",
+    "level",
+    "target",
+    "required_outputs"
+  ],
+  "properties": {
+    "check_id": {
+      "type": "string",
+      "pattern": "^FYN-[A-Z0-9-]+$"
+    },
+    "created_by": {
+      "enum": [
+        "opencode",
+        "controller"
+      ]
+    },
+    "level": {
+      "enum": [
+        "skip",
+        "lite",
+        "standard",
+        "full"
+      ]
+    },
+    "target": {
+      "type": "string"
+    },
+    "reviewers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "veto_blocks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

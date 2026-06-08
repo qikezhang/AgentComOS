@@ -1,0 +1,13 @@
+task_id: TF-AUTO-001
+classification: growth_strategy
+risk_level: medium
+is_trivial: false
+decision_required: true
+feynman_required: true
+automation_stage: industrial_auto
+decision_trigger: system_auto
+feynman_trigger: system_auto
+reasons:
+  - multiple possible strategies
+  - medium risk and user-visible impact
+中文备注: 工业化阶段示例：系统自动判断启用抽卡和费曼。

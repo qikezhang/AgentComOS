@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "snapshot_id",
+    "created_by",
+    "status",
+    "checks"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "snapshot_id": {
+      "type": "string"
+    },
+    "created_by": {
+      "type": "string",
+      "enum": [
+        "controller"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "green",
+        "yellow",
+        "red"
+      ]
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "minItems": 1
+    }
+  }
+}

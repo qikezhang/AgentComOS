@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "component",
+    "version",
+    "change_set",
+    "created_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "component": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "change_set": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

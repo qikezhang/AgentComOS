@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": true,
+  "title": "LoopExecutionRequest",
+  "required": [
+    "request_id",
+    "created_by",
+    "executed_by",
+    "source",
+    "queue_type",
+    "batch_policy",
+    "required_outputs"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "pattern": "^LER-[A-Z0-9-]+$"
+    },
+    "created_by": {
+      "const": "opencode"
+    },
+    "executed_by": {
+      "const": "controller"
+    },
+    "source": {
+      "type": "object"
+    },
+    "queue_type": {
+      "enum": [
+        "manual",
+        "dynamic"
+      ]
+    },
+    "batch_policy": {
+      "type": "object",
+      "required": [
+        "max_parallel_workers",
+        "max_tasks_per_batch",
+        "max_iterations"
+      ]
+    },
+    "required_outputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

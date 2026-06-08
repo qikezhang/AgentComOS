@@ -1,0 +1,51 @@
+{
+  "worker_id": "finance_reconciliation_worker",
+  "version": "0.1.0",
+  "tier": 1,
+  "owner": "opencode",
+  "runtime": "hermes_tmux",
+  "purpose": "Core Worker Starter Pack capability: finance reconciliation worker.",
+  "allowed_called_by": [
+    "opencode"
+  ],
+  "forbidden_called_by": [
+    "gm",
+    "user",
+    "controller_direct_decision"
+  ],
+  "inputs": {
+    "required": [
+      "task_contract",
+      "runtime_context_bundle",
+      "relevant_manual_capsule",
+      "evidence_refs"
+    ]
+  },
+  "outputs": {
+    "required": [
+      "result.yaml",
+      "reasoning_summary.md",
+      "unknown_facts.yaml",
+      "failure_report.md",
+      "DONE.md"
+    ]
+  },
+  "rubric": [
+    "goal_alignment",
+    "evidence_quality",
+    "risk_control",
+    "output_schema_compliance",
+    "manual_consistency"
+  ],
+  "failure_modes": [
+    "ignored required inputs",
+    "missing evidence",
+    "violated manual",
+    "missing DONE.md"
+  ],
+  "evolution_policy": {
+    "eval_required": true,
+    "ratchet_required": true,
+    "rollback_if_score_drops": true
+  }
+}

@@ -1,0 +1,9 @@
+run_id: OI-TECHAI8-001
+status: loop_running
+current_phase: loop_execution
+updated_at: '2026-06-08T10:12:00-07:00'
+active_jobs:
+- OCJ-OI-TECHAI8-001-PLAN
+- HWJ-TF-001
+blockers:
+- affiliate availability evidence missing

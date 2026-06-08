@@ -1,0 +1,20 @@
+services:
+  agentcomos-runtime:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.runtime-tmux
+    volumes:
+      - ..:/workspace
+      - agentcomos_state:/workspace/.agentcomos
+      - agentcomos_logs:/workspace/logs
+    working_dir: /workspace
+    tty: true              # 必须：等价 docker run -it 的 TTY 条件
+    stdin_open: true       # 必须：保持 stdin 打开，方便 tmux attach/debug
+    environment:
+      TERM: xterm-256color # 必须：TERM/terminfo 正常
+      AGENTCOMOS_RUNTIME_PROFILE: docker-tmux-runtime
+    restart: unless-stopped
+    command: ["bash", "-lc", "tmux start-server; tail -f /dev/null"] # 必须：容器常驻
+volumes:
+  agentcomos_state:
+  agentcomos_logs:

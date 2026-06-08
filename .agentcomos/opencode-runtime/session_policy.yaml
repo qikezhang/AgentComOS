@@ -1,0 +1,5 @@
+plan: fresh
+build: fork_or_continue
+review: fresh
+release_judge: fresh
+export_after_each_phase: true

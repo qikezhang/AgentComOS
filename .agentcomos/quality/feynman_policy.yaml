@@ -1,0 +1,19 @@
+{
+  "default": "required_for_non_trivial",
+  "levels": {
+    "skip": "only_trivial",
+    "lite": "normal_low_risk",
+    "standard": "uncertain_or_product_or_worker_or_manual",
+    "full": "release_deploy_payment_legal_security_gm_change"
+  },
+  "can_skip_feynman_if_all_true": [
+    "trivial_task",
+    "deterministic_action",
+    "reversible",
+    "no_user_visible_change",
+    "no_policy_change",
+    "no_worker_change",
+    "no_manual_change",
+    "no_release_risk"
+  ]
+}

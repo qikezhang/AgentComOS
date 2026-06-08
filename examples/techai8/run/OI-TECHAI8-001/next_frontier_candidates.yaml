@@ -1,0 +1,5 @@
+source_batch: LB-TECHAI8-2026-0608-001
+candidates:
+- task_id: TF-021
+  title: Add outbound click tracking
+  reason: Need affiliate click ledger before publication

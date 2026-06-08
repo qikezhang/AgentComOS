@@ -1,0 +1,10 @@
+proposal_id: DM-TECHAI8-001-P01
+total_score: 88
+dimension_scores:
+  goal_alignment: 95
+  expected_value: 90
+  feasibility: 82
+  risk_control: 84
+blocking_issues: []
+judge_notes:
+- Strong revenue alignment; requires affiliate verification.

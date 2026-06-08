@@ -1,0 +1,13 @@
+job_id: HWJ-TF-001
+run_id: OI-TECHAI8-001
+batch_id: LB-TECHAI8-2026-0608-001
+worker_id: seo_research_worker
+runtime: hermes_tmux
+tmux_session: agentcomos_OI-TECHAI8-001_seo_research_worker_TF001
+invocation_file: .agentcomos/runs/OI-TECHAI8-001/worker_invocations/HWI-TF-001.yaml
+output_dir: .agentcomos/runs/OI-TECHAI8-001/worker_outputs/TF-001/
+status: running
+timeouts:
+  soft_timeout_minutes: 30
+  hard_timeout_minutes: 90
+  no_output_timeout_minutes: 10

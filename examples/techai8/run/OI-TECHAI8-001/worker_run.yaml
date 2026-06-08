@@ -1,0 +1,5 @@
+run_id: WR-SEO-001
+worker_id: seo_research_worker
+worker_version: 0.1.0
+task_id: TF-001
+score: 82

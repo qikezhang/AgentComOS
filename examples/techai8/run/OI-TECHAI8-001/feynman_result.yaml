@@ -1,0 +1,10 @@
+check_id: FYN-TECHAI8-001
+target: DM-TECHAI8-001-SYNTH
+level: standard
+decision: accept_with_conditions
+findings:
+- Plan is aligned to revenue goal
+- Affiliate evidence remains incomplete
+required_revisions:
+- Run affiliate availability audit
+vetoes: []

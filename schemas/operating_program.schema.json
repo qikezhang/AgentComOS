@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "program_id",
+    "owner_agent",
+    "implementation_agent",
+    "goal",
+    "milestones"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "program_id": {
+      "type": "string"
+    },
+    "owner_agent": {
+      "type": "string",
+      "enum": [
+        "gm"
+      ]
+    },
+    "implementation_agent": {
+      "type": "string",
+      "enum": [
+        "opencode"
+      ]
+    },
+    "goal": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "metric",
+        "target",
+        "success_condition"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string"
+        },
+        "target": {},
+        "success_condition": {
+          "type": "string"
+        }
+      }
+    },
+    "milestones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "target_day": {
+            "type": "integer"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

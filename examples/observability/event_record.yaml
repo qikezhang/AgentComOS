@@ -1,0 +1,8 @@
+event_id: EVT-OI-TECHAI8-001-0001
+run_id: OI-TECHAI8-001
+type: run.created
+timestamp: '2026-06-08T00:00:00Z'
+actor: controller
+payload:
+  state: created
+中文备注: 数据驱动开发要求所有关键动作都进入事件日志。

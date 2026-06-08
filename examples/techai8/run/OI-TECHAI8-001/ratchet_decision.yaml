@@ -1,0 +1,4 @@
+decision_id: RATCHET-001
+target: seo_research_worker
+decision: keep
+score_delta: 2.0

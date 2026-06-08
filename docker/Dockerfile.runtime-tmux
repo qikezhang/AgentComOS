@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+# 中文备注：tmux 在 Docker 中运行必须满足：安装 tmux、TERM/terminfo 正常、容器常驻、运行时提供 TTY。
+ENV TERM=xterm-256color
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update     && apt-get install -y --no-install-recommends        bash git tmux ncurses-term curl ca-certificates docker-cli procps     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN pip install -e .
+
+# OpenCode 和 Hermes 的安装步骤在生产镜像派生层中 pin 具体版本。
+# 这里保留 contract image，用于验证 tmux runtime 条件。
+CMD ["bash", "-lc", "tmux start-server; echo 'AgentComOS docker-tmux-runtime is alive'; tail -f /dev/null"]

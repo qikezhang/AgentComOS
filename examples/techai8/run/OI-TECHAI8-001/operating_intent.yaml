@@ -1,0 +1,17 @@
+{
+  "intent_id": "OI-TECHAI8-001",
+  "created_by": "gm",
+  "source": "discord",
+  "goal": "Grow techai8.com to $100/day revenue with AI news and AI tool pages.",
+  "success_criteria": [
+    "14-day average daily_revenue_usd >= 100",
+    "tracking and evidence in place",
+    "no unverified affiliate claims published"
+  ],
+  "constraints": [
+    "GM does not call Workers",
+    "OpenCode creates Worker Invocations",
+    "no production publish without release gate"
+  ],
+  "risk_level": "medium"
+}

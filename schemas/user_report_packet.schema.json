@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": true,
+  "title": "UserReportPacket",
+  "required": [
+    "packet_id",
+    "receiver",
+    "summary",
+    "completed",
+    "running",
+    "blocked",
+    "risks",
+    "recommended_message_to_user"
+  ],
+  "properties": {
+    "packet_id": {
+      "type": "string",
+      "pattern": "^URP-[A-Z0-9-]+$"
+    },
+    "receiver": {
+      "const": "gm"
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "status",
+        "headline"
+      ]
+    },
+    "completed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "running": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "recommended_message_to_user": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

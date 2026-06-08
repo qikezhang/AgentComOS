@@ -1,0 +1,42 @@
+{
+  "managed_objects": [
+    "agentcomos-core",
+    "gm",
+    "opencode-project-kit",
+    "worker",
+    "skill",
+    "manual",
+    "operating-program",
+    "environment-kb",
+    "model-runtime-policy",
+    "decision-market-policy",
+    "loop-execution-policy",
+    "project-repo-release"
+  ],
+  "excluded_objects": [
+    "analytics_raw_events",
+    "search_console_raw_data",
+    "ad_platform_raw_details",
+    "affiliate_raw_clickstream",
+    "product_database",
+    "log_streams",
+    "large_crawler_data"
+  ],
+  "version_bumps": {
+    "patch": [
+      "docs small fix",
+      "prompt small fix",
+      "rubric threshold tweak"
+    ],
+    "minor": [
+      "new worker",
+      "new manual section",
+      "new operating loop"
+    ],
+    "major": [
+      "schema breaking change",
+      "GM system rewrite",
+      "permission model change"
+    ]
+  }
+}

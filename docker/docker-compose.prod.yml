@@ -1,0 +1,11 @@
+services:
+  controller:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.controller
+    env_file: ../.env
+    restart: unless-stopped
+    volumes:
+      - agentcomos-data:/app/.agentcomos
+volumes:
+  agentcomos-data:

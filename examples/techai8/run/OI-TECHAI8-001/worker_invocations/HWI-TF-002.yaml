@@ -1,0 +1,36 @@
+invocation_id: HWI-TF-002
+created_by: opencode
+called_by: opencode
+executed_by: controller
+output_receiver: opencode
+gm_direct_access: false
+worker_id: conversion_audit_worker
+worker_version: 0.1.0
+runtime: hermes_tmux
+task:
+  task_id: TF-002
+  goal: Audit CTA and affiliate conversion path for techai8.com revenue pages.
+  task_type: conversion_audit
+inputs:
+  - task_contract.yaml
+  - runtime_context_bundle.yaml
+  - relevant_manual_capsule.yaml
+  - evidence_refs.yaml
+output_dir: .agentcomos/runs/OI-TECHAI8-001/worker_outputs/TF-002/
+required_outputs:
+  - result.yaml
+  - reasoning_summary.md
+  - unknown_facts.yaml
+  - failure_report.md
+  - DONE.md
+stop_conditions:
+  - required_outputs_exist
+  - unknown_facts_listed
+  - no_blocking_error
+  - max_runtime_reached
+forbidden:
+  - edit_project_files
+  - merge_git
+  - deploy
+  - call_gm
+  - call_user

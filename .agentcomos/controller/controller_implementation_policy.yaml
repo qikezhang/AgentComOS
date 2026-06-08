@@ -1,0 +1,16 @@
+policy_id: controller_implementation_policy
+version: 0.1.0
+priority: P0
+中文备注: Controller 必须最先实现，以保证后续系统落地可控。
+minimum_commands:
+  - agentcomos run create
+  - agentcomos run status
+  - agentcomos controller tick
+  - agentcomos controller recover
+minimum_artifacts:
+  - run_status.yaml
+  - events.jsonl
+  - evidence_packet/manifest.yaml
+  - delivery_packet.yaml
+idempotency_required: true
+fake_runtime_first: true

@@ -1,0 +1,12 @@
+batch_id: LB-TECHAI8-2026-0608-001
+completed_tasks:
+- TF-001
+failed_tasks: []
+blocked_tasks:
+- TF-002
+accepted_outputs:
+- seo_opportunity_map.yaml
+new_frontier_candidates:
+- task_id: TF-021
+  title: Add outbound click tracking
+  reason: CTA audit requires measurable affiliate clicks

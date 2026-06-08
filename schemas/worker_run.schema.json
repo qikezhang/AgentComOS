@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "run_id",
+    "worker_id",
+    "worker_version",
+    "task_id",
+    "score"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "worker_id": {
+      "type": "string"
+    },
+    "worker_version": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "score": {
+      "type": "number"
+    }
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "invocation_id",
+    "created_by",
+    "called_by",
+    "executed_by",
+    "output_receiver",
+    "worker_id",
+    "worker_version",
+    "runtime",
+    "task",
+    "inputs",
+    "output_dir",
+    "required_outputs",
+    "stop_conditions",
+    "forbidden",
+    "gm_direct_access"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "invocation_id": {
+      "type": "string"
+    },
+    "created_by": {
+      "type": "string",
+      "enum": [
+        "opencode"
+      ]
+    },
+    "called_by": {
+      "type": "string",
+      "enum": [
+        "opencode"
+      ]
+    },
+    "executed_by": {
+      "type": "string",
+      "enum": [
+        "controller"
+      ]
+    },
+    "output_receiver": {
+      "type": "string",
+      "enum": [
+        "opencode"
+      ]
+    },
+    "gm_direct_access": {
+      "type": "boolean",
+      "const": false
+    },
+    "worker_id": {
+      "type": "string"
+    },
+    "worker_version": {
+      "type": "string"
+    },
+    "runtime": {
+      "type": "string",
+      "enum": [
+        "hermes_tmux"
+      ]
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "task_id",
+        "goal",
+        "task_type"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "goal": {
+          "type": "string"
+        },
+        "task_type": {
+          "type": "string"
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "output_dir": {
+      "type": "string",
+      "pattern": "worker_outputs/"
+    },
+    "required_outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "stop_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "forbidden": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  }
+}

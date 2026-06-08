@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": true,
+  "title": "WorkerSpec",
+  "required": [
+    "worker_id",
+    "version",
+    "tier",
+    "owner",
+    "runtime",
+    "purpose",
+    "allowed_called_by",
+    "forbidden_called_by",
+    "inputs",
+    "outputs",
+    "rubric",
+    "evolution_policy"
+  ],
+  "properties": {
+    "worker_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "tier": {
+      "type": "integer"
+    },
+    "owner": {
+      "const": "opencode"
+    },
+    "runtime": {
+      "const": "hermes_tmux"
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "allowed_called_by": {
+      "type": "array",
+      "contains": {
+        "const": "opencode"
+      }
+    },
+    "forbidden_called_by": {
+      "type": "array"
+    },
+    "inputs": {
+      "type": "object"
+    },
+    "outputs": {
+      "type": "object"
+    },
+    "rubric": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evolution_policy": {
+      "type": "object"
+    }
+  }
+}

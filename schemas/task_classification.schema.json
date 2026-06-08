@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "task_id",
+    "classification",
+    "risk_level",
+    "is_trivial",
+    "decision_required",
+    "feynman_required",
+    "automation_stage",
+    "decision_trigger",
+    "feynman_trigger"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "classification": {
+      "type": "string"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "is_trivial": {
+      "type": "boolean"
+    },
+    "decision_required": {
+      "type": "boolean"
+    },
+    "feynman_required": {
+      "type": "boolean"
+    },
+    "automation_stage": {
+      "type": "string",
+      "enum": [
+        "development_explicit",
+        "transition_assisted",
+        "industrial_auto"
+      ]
+    },
+    "decision_trigger": {
+      "type": "string",
+      "enum": [
+        "none",
+        "user_explicit",
+        "task_policy",
+        "gm_confirmed_system_suggestion",
+        "system_auto",
+        "forced_high_risk"
+      ]
+    },
+    "feynman_trigger": {
+      "type": "string",
+      "enum": [
+        "none",
+        "user_explicit",
+        "task_policy",
+        "gm_confirmed_system_suggestion",
+        "system_auto",
+        "forced_high_risk"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    },
+    "中文备注": {
+      "type": "string"
+    }
+  }
+}

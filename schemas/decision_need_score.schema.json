@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "task_id",
+    "score",
+    "mode",
+    "breakdown"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "skip",
+        "mini",
+        "standard",
+        "full"
+      ]
+    },
+    "breakdown": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "uncertainty": {
+          "type": "number"
+        },
+        "number_of_possible_paths": {
+          "type": "number"
+        },
+        "expected_impact": {
+          "type": "number"
+        },
+        "reversibility_risk": {
+          "type": "number"
+        },
+        "manual_or_worker_change": {
+          "type": "number"
+        },
+        "user_visible_change": {
+          "type": "number"
+        }
+      }
+    },
+    "why_not_skip": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    }
+  }
+}

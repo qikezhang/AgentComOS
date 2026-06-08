@@ -1,0 +1,15 @@
+plan_id: DM-TECHAI8-001-SYNTH
+strategy:
+  primary: AI tool revenue pages
+  secondary: AI news traffic layer
+  monetization: affiliate + ads + sponsor
+selected_elements:
+- from: affiliate_revenue_operator
+  element: Tool comparisons as revenue core
+rejected_elements:
+- element: Pure AI news site
+  reason: weak revenue intent
+required_validation_tasks:
+- affiliate availability audit
+- keyword opportunity audit
+- CTA tracking implementation

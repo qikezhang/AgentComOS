@@ -1,0 +1,39 @@
+{
+  "worker_selection_policy": {
+    "rules": [
+      {
+        "if_task_type": "risk_review",
+        "use_worker": "risk_audit_worker"
+      },
+      {
+        "if_task_type": "evidence_check",
+        "use_worker": "evidence_audit_worker"
+      },
+      {
+        "if_task_type": "release_decision",
+        "use_worker": "release_judge_worker"
+      },
+      {
+        "if_task_type": "growth_diagnosis",
+        "use_worker": "growth_diagnosis_worker"
+      },
+      {
+        "if_task_type": "worker_failure",
+        "use_workers": [
+          "failure_attribution_worker",
+          "worker_evaluator_worker"
+        ]
+      },
+      {
+        "if_task_type": "decision_market",
+        "use_workers": [
+          "proposal_builder_worker",
+          "proposal_scorer_worker",
+          "critic_worker",
+          "synthesis_worker",
+          "final_decision_judge_worker"
+        ]
+      }
+    ]
+  }
+}

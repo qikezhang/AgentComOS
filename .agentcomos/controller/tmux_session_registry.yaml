@@ -1,0 +1,3 @@
+sessions: []
+naming: agentcomos_<run_id>_<worker_id>_<task_id>
+managed_by: controller

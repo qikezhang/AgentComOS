@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "failure_id",
+    "category",
+    "recommended_action"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "failure_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "worker_defect",
+        "execution_error",
+        "task_input_defect",
+        "environment_defect",
+        "external_uncertainty",
+        "manual_conflict"
+      ]
+    },
+    "recommended_action": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  }
+}

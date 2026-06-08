@@ -1,0 +1,7 @@
+target_id: RB-GROWTH-MANUAL-001
+component: manual/growth-manual
+version: v2026.06.08
+created_for: CS-2026-0608-001
+restore_steps:
+- git checkout previous manual version
+- rerun manual contradiction audit

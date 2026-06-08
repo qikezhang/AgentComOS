@@ -1,0 +1,20 @@
+bundle_id: RCB-OI-TECHAI8-001
+timezone: America/Los_Angeles
+current_date: '2026-06-08'
+tool_versions:
+  python: unknown
+  node: unknown
+  docker: unknown
+project_commands:
+- make test
+- make validate-examples
+allowed_commands:
+- pytest
+- make
+- opencode
+- hermes
+- tmux
+forbidden_commands:
+- rm -rf /
+- git push --force
+unknown_facts_policy: probe_or_mark_unknown_never_guess

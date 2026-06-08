@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "message_id",
+    "run_id",
+    "channel",
+    "message_type",
+    "body"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "message_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "discord",
+        "internal"
+      ]
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "status_report",
+        "approval_request",
+        "credential_request",
+        "daily_brief",
+        "incident_alert"
+      ]
+    },
+    "body": {
+      "type": "string"
+    },
+    "requires_user_action": {
+      "type": "boolean"
+    },
+    "中文备注": {
+      "type": "string"
+    }
+  }
+}

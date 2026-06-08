@@ -1,0 +1,16 @@
+{
+  "decision_id": "DM-TECHAI8-001",
+  "created_by": "opencode",
+  "task_id": "TF-ROOT",
+  "question": "What operating strategy should techai8.com use to reach $100/day revenue?",
+  "decision_need_score": 76,
+  "mode": "standard",
+  "profiles": [
+    "seo_growth_operator",
+    "affiliate_revenue_operator",
+    "ai_news_editor",
+    "technical_operator",
+    "risk_and_compliance_reviewer",
+    "contrarian_operator"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "bundle_id",
+    "timezone",
+    "current_date",
+    "tool_versions",
+    "project_commands",
+    "allowed_commands",
+    "forbidden_commands",
+    "unknown_facts_policy"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "bundle_id": {
+      "type": "string"
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "current_date": {
+      "type": "string"
+    },
+    "tool_versions": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "project_commands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "allowed_commands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    },
+    "forbidden_commands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    },
+    "unknown_facts_policy": {
+      "type": "string"
+    }
+  }
+}

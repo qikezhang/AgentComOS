@@ -1,0 +1,9 @@
+services:
+  controller:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.controller
+    env_file: ../.env
+    volumes:
+      - ..:/app
+    command: ["agentcomos", "doctor"]

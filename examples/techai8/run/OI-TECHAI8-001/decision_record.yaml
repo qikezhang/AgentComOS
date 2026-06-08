@@ -1,0 +1,10 @@
+decision_id: DM-TECHAI8-001
+question: How should techai8.com grow to 100 USD/day?
+decision_type: revenue_growth_strategy
+proposals_generated: 7
+final_decision: DM-TECHAI8-001-FINAL
+revisit_policy:
+  revisit_after_days: 14
+  revisit_if:
+  - affiliate availability failed
+  - organic clicks stall

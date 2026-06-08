@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "packet_id",
+    "produced_by",
+    "receiver",
+    "source_intent",
+    "status",
+    "summary"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "packet_id": {
+      "type": "string"
+    },
+    "produced_by": {
+      "type": "string",
+      "enum": [
+        "opencode"
+      ]
+    },
+    "receiver": {
+      "type": "string",
+      "enum": [
+        "gm"
+      ]
+    },
+    "source_intent": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "completed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "minItems": 0
+    },
+    "recommended_next_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    }
+  }
+}

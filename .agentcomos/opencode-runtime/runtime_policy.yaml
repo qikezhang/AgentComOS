@@ -1,0 +1,3 @@
+mode: persistent_server
+server_url: http://127.0.0.1:4096
+start_command: opencode serve --hostname 127.0.0.1 --port 4096

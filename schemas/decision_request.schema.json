@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": true,
+  "title": "DecisionRequest",
+  "required": [
+    "decision_id",
+    "created_by",
+    "task_id",
+    "decision_need_score",
+    "mode",
+    "question"
+  ],
+  "properties": {
+    "decision_id": {
+      "type": "string",
+      "pattern": "^DM-[A-Z0-9-]+$"
+    },
+    "created_by": {
+      "const": "opencode"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "question": {
+      "type": "string"
+    },
+    "decision_need_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "mode": {
+      "enum": [
+        "skip",
+        "mini",
+        "standard",
+        "full"
+      ]
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

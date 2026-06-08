@@ -1,0 +1,22 @@
+{
+  "request_id": "LER-TECHAI8-001",
+  "created_by": "opencode",
+  "executed_by": "controller",
+  "source": {
+    "run_id": "OI-TECHAI8-001",
+    "operating_program": "OP-TECHAI8-REVENUE-100D",
+    "task_frontier_graph": "TF-GRAPH-TECHAI8-001"
+  },
+  "queue_type": "dynamic",
+  "batch_policy": {
+    "max_parallel_workers": 3,
+    "max_tasks_per_batch": 9,
+    "max_iterations": 5
+  },
+  "required_outputs": [
+    "loop_batch_results/",
+    "batch_feynman_review.yaml",
+    "next_frontier_candidates.yaml",
+    "loop_summary.yaml"
+  ]
+}

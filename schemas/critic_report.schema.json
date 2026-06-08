@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "critic",
+    "proposal_id",
+    "decision",
+    "findings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "critic": {
+      "type": "string"
+    },
+    "proposal_id": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "accept",
+        "revise",
+        "reject"
+      ]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "minItems": 1
+    }
+  }
+}

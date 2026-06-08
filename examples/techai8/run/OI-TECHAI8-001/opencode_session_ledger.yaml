@@ -1,0 +1,9 @@
+run_id: OI-TECHAI8-001
+server_url: http://127.0.0.1:4096
+sessions:
+- phase: plan
+  agent: agentcomos-planner
+  session_id: ses_plan_001
+  status: completed
+  export_file: opencode_outputs/plan.session.json
+  stdout_log: opencode_outputs/plan.stdout.jsonl

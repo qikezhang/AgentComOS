@@ -1,0 +1,7 @@
+id: CS-2026-0608-001
+run_id: OI-TECHAI8-001
+affected_components:
+- manual: growth-manual
+- program: techai8-revenue-100d
+risk_level: medium
+evidence_packet: examples/techai8/run/OI-TECHAI8-001/evidence_packet/

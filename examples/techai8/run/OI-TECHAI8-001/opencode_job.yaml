@@ -1,0 +1,10 @@
+job_id: OCJ-OI-TECHAI8-001-PLAN
+run_id: OI-TECHAI8-001
+phase: plan
+runtime: opencode
+status: completed
+session_id: ses_plan_001
+expected_outputs:
+- opencode_project_plan.yaml
+started_at: '2026-06-08T08:00:00-07:00'
+last_output_at: '2026-06-08T08:05:00-07:00'

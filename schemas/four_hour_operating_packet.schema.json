@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "packet_id",
+    "program_id",
+    "created_by",
+    "decision"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "packet_id": {
+      "type": "string"
+    },
+    "program_id": {
+      "type": "string"
+    },
+    "created_by": {
+      "type": "string",
+      "enum": [
+        "gm"
+      ]
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "continue",
+        "pause",
+        "remediate",
+        "escalate",
+        "create_opencode_task"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    }
+  }
+}

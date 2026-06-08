@@ -1,0 +1,24 @@
+proposal_id: DM-TECHAI8-001-P01
+profile: affiliate_revenue_operator
+summary: Use AI tool revenue pages as the monetization core and AI news as a traffic
+  layer.
+core_strategy:
+- Build AI tool profile schema
+- Create comparison pages
+- Add CTA tracking
+assumptions:
+- id: A1
+  text: AI tool search traffic has commercial intent
+  confidence: medium
+  evidence_needed: keyword and click data
+expected_impact:
+  traffic: medium
+  revenue: high
+risks:
+- Affiliate availability not yet verified
+required_tasks:
+- affiliate availability audit
+- CTA tracking implementation
+success_metrics:
+- affiliate_clicks_7d
+- revenue_per_1000_pageviews

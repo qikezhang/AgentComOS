@@ -1,0 +1,20 @@
+policy_id: event_log_policy
+version: 0.1.0
+required_event_log: events.jsonl
+required_event_fields:
+  - event_id
+  - run_id
+  - type
+  - timestamp
+  - actor
+required_event_types:
+  - run.created
+  - run.state_changed
+  - context.generated
+  - opencode.job.created
+  - opencode.job.completed
+  - worker.job.started
+  - worker.job.completed
+  - evidence.built
+  - delivery.built
+  - gm.report.generated

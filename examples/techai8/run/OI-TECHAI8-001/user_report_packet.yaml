@@ -1,0 +1,28 @@
+{
+  "packet_id": "URP-OI-TECHAI8-001-001",
+  "receiver": "gm",
+  "summary": {
+    "status": "yellow",
+    "headline": "First growth batch is in progress; affiliate evidence is the main gap."
+  },
+  "completed": [
+    "Decision Market completed",
+    "Task Frontier seeded",
+    "6/9 tasks completed in current loop batch"
+  ],
+  "running": [
+    "2 Hermes Workers still running in tmux"
+  ],
+  "blocked": [
+    "No production publish until affiliate availability is verified"
+  ],
+  "risks": [
+    {
+      "severity": "medium",
+      "issue": "affiliate availability missing"
+    }
+  ],
+  "recommended_message_to_user": [
+    "当前不需要你操作。后续可能需要 affiliate 账号或收款信息。"
+  ]
+}

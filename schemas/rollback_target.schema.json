@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "target_id",
+    "component",
+    "version",
+    "created_for",
+    "restore_steps"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "target_id": {
+      "type": "string"
+    },
+    "component": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "created_for": {
+      "type": "string"
+    },
+    "restore_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  }
+}

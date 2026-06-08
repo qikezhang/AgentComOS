@@ -1,0 +1,6 @@
+evaluation_id: WEV-SEO-001
+worker_id: seo_research_worker
+score_breakdown:
+  evidence_quality: 80
+  goal_alignment: 90
+decision: keep

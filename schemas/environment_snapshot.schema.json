@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "snapshot_id",
+    "timezone",
+    "tool_versions",
+    "project_commands"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "snapshot_id": {
+      "type": "string"
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "tool_versions": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "project_commands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  }
+}

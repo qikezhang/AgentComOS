@@ -1,0 +1,9 @@
+{
+  "name": "agentcomos-v2.8",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "test": "pytest -q",
+    "doctor": "agentcomos doctor"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "decision_id",
+    "target",
+    "decision",
+    "score_delta"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "decision_id": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "keep",
+        "revert",
+        "stop"
+      ]
+    },
+    "score_delta": {
+      "type": "number"
+    }
+  }
+}

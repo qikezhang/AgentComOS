@@ -1,0 +1,11 @@
+proposal_id: MUP-TECHAI8-GROWTH-001
+target_manual: growth-manual
+claim: AI tool comparison pages should be treated as revenue pages, while AI news
+  pages should primarily act as traffic and internal-link entry points.
+evidence_refs:
+- decision_record.yaml
+- proposal_score.yaml
+confidence: medium
+proposed_section: Revenue Page Patterns
+risks:
+- Evidence is still limited to planning artifacts until traffic data arrives.

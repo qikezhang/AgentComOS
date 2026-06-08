@@ -1,0 +1,25 @@
+{
+  "check_id": "FYN-TECHAI8-001",
+  "created_by": "opencode",
+  "level": "standard",
+  "target": "DM-TECHAI8-001-SYNTH",
+  "reviewers": [
+    "technical_feasibility",
+    "business_value",
+    "risk",
+    "evidence_quality"
+  ],
+  "veto_blocks": [
+    "fabricated_fact",
+    "missing_required_output",
+    "no_evidence",
+    "violates_manual",
+    "unsafe_action",
+    "not_linked_to_goal"
+  ],
+  "required_outputs": [
+    "feynman_review.yaml",
+    "required_revisions.yaml",
+    "vetoes.yaml"
+  ]
+}

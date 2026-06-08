@@ -1,0 +1,22 @@
+run_id: OI-TECHAI8-001
+required_artifacts:
+- original_intent.yaml
+- opencode_project_plan.yaml
+- decision_market_record.yaml
+- runtime_context_bundle.yaml
+- manual_context/relevant_manual_capsules.yaml
+- environment_evidence/env_snapshot.yaml
+- worker_outputs/
+- loop_execution/batch_result.yaml
+- git_evidence/changed_files.txt
+- reviews/evidence_audit.yaml
+- release/release_judge_decision.yaml
+optional_artifacts:
+- screenshots/
+- raw_logs/
+artifacts:
+- decision_market_record.yaml
+- feynman_result.yaml
+- loop_batch.yaml
+- batch_result.yaml
+- runtime_context_bundle.yaml

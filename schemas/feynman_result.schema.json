@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "check_id",
+    "target",
+    "level",
+    "decision",
+    "findings",
+    "required_revisions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "check_id": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "lite",
+        "standard",
+        "full"
+      ]
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "accept",
+        "accept_with_conditions",
+        "retry",
+        "revise",
+        "reject",
+        "founder_approval_required"
+      ]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    },
+    "required_revisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    },
+    "vetoes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0
+    }
+  }
+}

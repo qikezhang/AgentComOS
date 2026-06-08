@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "capsule_id",
+    "source_manuals",
+    "claims",
+    "excluded_claims"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "capsule_id": {
+      "type": "string"
+    },
+    "source_manuals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "minItems": 0
+    },
+    "excluded_claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "minItems": 0
+    }
+  }
+}

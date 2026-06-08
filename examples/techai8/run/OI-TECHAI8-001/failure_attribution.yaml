@@ -1,0 +1,4 @@
+failure_id: FA-TECHAI8-001
+category: external_uncertainty
+recommended_action:
+- Run affiliate availability audit before publication

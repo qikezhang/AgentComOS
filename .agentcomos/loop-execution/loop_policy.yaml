@@ -1,0 +1,21 @@
+{
+  "default_batch_policy": {
+    "max_parallel_workers": 3,
+    "max_tasks_per_batch": 9,
+    "max_iterations": 5
+  },
+  "budget": {
+    "max_runtime_hours": 4,
+    "max_total_tasks_created": 200,
+    "max_open_tasks": 100,
+    "max_failed_tasks": 5
+  },
+  "stop_conditions": [
+    "no_high_priority_tasks_left",
+    "target_outputs_complete",
+    "feynman_veto_twice",
+    "budget_exhausted",
+    "manual_conflict_detected",
+    "founder_approval_required"
+  ]
+}

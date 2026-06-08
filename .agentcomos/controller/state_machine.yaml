@@ -1,0 +1,17 @@
+run_states:
+- submitted
+- accepted
+- planning
+- decision
+- feynman_precheck
+- executing
+- worker_running
+- loop_running
+- evidence_verifying
+- release_review
+- versioning
+- delivered
+- failed
+- blocked
+- paused
+restart_policy: rebuild_active_jobs_from_state_files

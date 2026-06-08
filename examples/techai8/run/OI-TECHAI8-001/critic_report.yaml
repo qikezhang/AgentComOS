@@ -1,0 +1,7 @@
+critic: evidence_critic
+proposal_id: DM-TECHAI8-001-P01
+decision: revise
+findings:
+- severity: medium
+  issue: Affiliate availability is assumed but not proven
+  recommendation: Add affiliate availability audit before production publish

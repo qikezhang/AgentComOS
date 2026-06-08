@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "job_id",
+    "run_id",
+    "phase",
+    "runtime",
+    "status",
+    "expected_outputs"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "phase": {
+      "type": "string"
+    },
+    "runtime": {
+      "type": "string",
+      "enum": [
+        "opencode"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "starting",
+        "running",
+        "completed",
+        "failed",
+        "stalled",
+        "timed_out"
+      ]
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "expected_outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "last_output_at": {
+      "type": "string"
+    }
+  }
+}

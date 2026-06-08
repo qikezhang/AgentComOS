@@ -1,0 +1,31 @@
+{
+  "decision_need_score": {
+    "dimensions": {
+      "uncertainty": 0.25,
+      "number_of_possible_paths": 0.2,
+      "expected_impact": 0.2,
+      "reversibility_risk": 0.15,
+      "manual_or_worker_change": 0.1,
+      "user_visible_change": 0.1
+    },
+    "thresholds": {
+      "skip": "<20",
+      "mini": "20-49",
+      "standard": "50-79",
+      "full": ">=80"
+    }
+  },
+  "trivial_task_policy": {
+    "can_skip_decision_market_if_all_true": [
+      "single_known_action",
+      "no_strategy_choice",
+      "no_architecture_choice",
+      "no_worker_choice_uncertainty",
+      "no_manual_policy_change",
+      "no_user_visible_product_change",
+      "no_release_risk",
+      "reversible",
+      "expected_runtime_under_5_minutes"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+decision_id: DM-TECHAI8-001-FINAL
+decision: approved_with_conditions
+approved_plan: DM-TECHAI8-001-SYNTH
+final_score: 91.2
+conditions:
+- Complete affiliate availability audit first
+- Establish outbound click ledger
+required_next_actions:
+- create_operating_program_patch
+- create_task_frontier_seed
+- create_worker_invocations
+blocked_actions:
+- Do not publish unverified affiliate recommendations

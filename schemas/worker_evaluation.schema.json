@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "evaluation_id",
+    "worker_id",
+    "score_breakdown",
+    "decision"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "evaluation_id": {
+      "type": "string"
+    },
+    "worker_id": {
+      "type": "string"
+    },
+    "score_breakdown": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "keep",
+        "needs_patch",
+        "deprecate"
+      ]
+    }
+  }
+}

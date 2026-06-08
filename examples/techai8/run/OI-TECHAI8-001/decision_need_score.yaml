@@ -1,0 +1,13 @@
+task_id: TF-TECHAI8-001
+score: 65
+mode: standard
+breakdown:
+  uncertainty: 70
+  number_of_possible_paths: 80
+  expected_impact: 70
+  reversibility_risk: 40
+  manual_or_worker_change: 30
+  user_visible_change: 50
+why_not_skip:
+- strategy choice required
+- not deterministic

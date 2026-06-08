@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": true,
+  "title": "OperatingIntent",
+  "required": [
+    "intent_id",
+    "created_by",
+    "goal",
+    "success_criteria",
+    "risk_level"
+  ],
+  "properties": {
+    "intent_id": {
+      "type": "string",
+      "pattern": "^OI-[A-Z0-9-]+$"
+    },
+    "created_by": {
+      "const": "gm"
+    },
+    "source": {
+      "type": "string"
+    },
+    "goal": {
+      "type": "string"
+    },
+    "success_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_level": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    }
+  }
+}

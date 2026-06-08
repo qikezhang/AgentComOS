@@ -1,0 +1,22 @@
+batch_id: LB-TECHAI8-2026-0608-001
+source_queue: DQ-TECHAI8-GROWTH-001
+created_by: task_frontier
+executed_by: loop_execution_engine
+max_parallel_workers: 3
+max_tasks: 9
+tasks:
+- task_id: TF-001
+  worker_type: seo_research_worker
+  priority: 0.91
+- task_id: TF-002
+  worker_type: conversion_audit_worker
+  priority: 0.87
+batch_stop_conditions:
+- all_required_outputs_exist
+- no_blocking_feynman_veto
+- max_runtime_reached
+required_outputs:
+- batch_result.yaml
+- worker_outputs/
+- feynman_review.yaml
+- next_frontier_candidates.yaml

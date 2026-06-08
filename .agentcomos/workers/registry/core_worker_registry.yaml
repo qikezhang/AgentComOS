@@ -1,0 +1,285 @@
+{
+  "version": "0.1.0",
+  "workers": [
+    {
+      "worker_id": "feynman_review_worker",
+      "tier": 0,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": true
+    },
+    {
+      "worker_id": "evidence_audit_worker",
+      "tier": 0,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": true
+    },
+    {
+      "worker_id": "risk_audit_worker",
+      "tier": 0,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": true
+    },
+    {
+      "worker_id": "release_judge_worker",
+      "tier": 0,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": true
+    },
+    {
+      "worker_id": "failure_attribution_worker",
+      "tier": 0,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": true
+    },
+    {
+      "worker_id": "worker_evaluator_worker",
+      "tier": 0,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": true
+    },
+    {
+      "worker_id": "ratchet_judge_worker",
+      "tier": 0,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": true
+    },
+    {
+      "worker_id": "runtime_health_audit_worker",
+      "tier": 0,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": true
+    },
+    {
+      "worker_id": "environment_probe_review_worker",
+      "tier": 0,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": true
+    },
+    {
+      "worker_id": "proposal_builder_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "proposal_scorer_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "critic_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "synthesis_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "final_decision_judge_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "operating_planner_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "growth_diagnosis_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "daily_ops_review_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "product_health_check_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "seo_research_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "content_strategy_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "conversion_audit_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "finance_reconciliation_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "unit_economics_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "data_quality_audit_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "knowledge_extraction_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "manual_update_worker",
+      "tier": 1,
+      "runtime": "hermes_tmux",
+      "status": "active",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "architecture_review_worker",
+      "tier": 2,
+      "runtime": "hermes_tmux",
+      "status": "available",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "code_review_worker",
+      "tier": 2,
+      "runtime": "hermes_tmux",
+      "status": "available",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "test_failure_analysis_worker",
+      "tier": 2,
+      "runtime": "hermes_tmux",
+      "status": "available",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "deployment_review_worker",
+      "tier": 2,
+      "runtime": "hermes_tmux",
+      "status": "available",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "incident_analysis_worker",
+      "tier": 2,
+      "runtime": "hermes_tmux",
+      "status": "available",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "manual_contradiction_audit_worker",
+      "tier": 2,
+      "runtime": "hermes_tmux",
+      "status": "available",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "context_capsule_builder_worker",
+      "tier": 2,
+      "runtime": "hermes_tmux",
+      "status": "available",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "worker_evolver_worker",
+      "tier": 2,
+      "runtime": "hermes_tmux",
+      "status": "available",
+      "owner": "opencode",
+      "required": false
+    },
+    {
+      "worker_id": "revenue_ops_worker",
+      "tier": 2,
+      "runtime": "hermes_tmux",
+      "status": "available",
+      "owner": "opencode",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+policy_id: decision_market_adoption_policy
+version: 0.1.0
+中文备注: 开发初期显式启用；工业化期自动判断。
+stages:
+  development_explicit:
+    default: disabled
+    allow_system_auto: false
+    enabled_when:
+      - user_explicit
+      - task_policy
+      - forced_high_risk
+  transition_assisted:
+    default: suggest_only
+    allow_system_auto: false
+    enabled_when:
+      - user_explicit
+      - task_policy
+      - gm_confirmed_system_suggestion
+      - forced_high_risk
+  industrial_auto:
+    default: policy_auto
+    allow_system_auto: true
+    enabled_when:
+      - decision_need_score_at_least_20
+      - multiple_possible_paths
+      - manual_or_worker_change
+      - user_visible_change
+      - forced_high_risk
+budgets:
+  mini:
+    max_proposals: 3
+    max_critics: 1
+  standard:
+    max_proposals: 7
+    max_critics: 3
+  full:
+    requires_budget_approval: true

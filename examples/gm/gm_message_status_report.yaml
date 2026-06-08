@@ -1,0 +1,7 @@
+message_id: GMMSG-OI-TECHAI8-001-001
+run_id: OI-TECHAI8-001
+channel: discord
+message_type: status_report
+body: 当前任务已完成计划阶段，正在等待执行。
+requires_user_action: false
+中文备注: GM 只能基于 User Report Packet / Delivery Packet 汇报，不读取 Worker 原始输出。

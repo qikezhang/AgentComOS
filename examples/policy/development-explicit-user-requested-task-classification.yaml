@@ -1,0 +1,13 @@
+task_id: TF-DEV-002
+classification: normal_development_task
+risk_level: low
+is_trivial: false
+decision_required: true
+feynman_required: true
+automation_stage: development_explicit
+decision_trigger: user_explicit
+feynman_trigger: user_explicit
+reasons:
+  - user explicitly requested multi-proposal decision review
+  - user explicitly requested adversarial review
+中文备注: 开发初期显式请求示例。

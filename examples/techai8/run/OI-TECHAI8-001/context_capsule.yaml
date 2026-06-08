@@ -1,0 +1,8 @@
+capsule_id: CTX-TECHAI8-GROWTH-001
+source_manuals:
+- growth-manual
+- revenue-manual
+- risk-manual
+claims:
+- claim: Affiliate recommendations require availability verification before publication.
+excluded_claims: []

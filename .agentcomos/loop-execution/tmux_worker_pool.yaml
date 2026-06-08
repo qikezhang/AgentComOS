@@ -1,0 +1,4 @@
+runtime: hermes_tmux
+default_max_parallel_workers: 3
+hard_max_parallel_workers: 3
+session_naming: agentcomos_<run_id>_<worker_id>_<task_id>

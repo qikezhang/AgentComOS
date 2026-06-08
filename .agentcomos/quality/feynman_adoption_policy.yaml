@@ -1,0 +1,35 @@
+policy_id: feynman_adoption_policy
+version: 0.1.0
+中文备注: 开发初期显式启用；高风险强制；工业化期自动判断。
+stages:
+  development_explicit:
+    default: disabled
+    allow_system_auto: false
+    enabled_when:
+      - user_explicit
+      - task_policy
+      - forced_high_risk
+  transition_assisted:
+    default: suggest_only
+    allow_system_auto: false
+    enabled_when:
+      - user_explicit
+      - task_policy
+      - gm_confirmed_system_suggestion
+      - forced_high_risk
+  industrial_auto:
+    default: policy_auto
+    allow_system_auto: true
+    enabled_when:
+      - risk_level_at_least_medium
+      - loop_batch_gate
+      - evidence_gap_detected
+      - release_gate
+      - forced_high_risk
+forced_high_risk_types:
+  - production_deploy
+  - payment_or_collection_config
+  - legal_policy
+  - security_config
+  - gm_system_change
+  - data_migration

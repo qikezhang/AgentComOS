@@ -1,0 +1,6 @@
+no_output_timeout_minutes: 10
+no_file_growth_timeout_minutes: 15
+action:
+- collect_logs
+- mark_stalled
+- request_opencode_review

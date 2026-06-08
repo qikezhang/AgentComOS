@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "batch_id",
+    "source_queue",
+    "created_by",
+    "executed_by",
+    "max_parallel_workers",
+    "max_tasks",
+    "tasks",
+    "batch_stop_conditions",
+    "required_outputs"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": {
+      "type": "string"
+    },
+    "source_queue": {
+      "type": "string"
+    },
+    "created_by": {
+      "type": "string",
+      "enum": [
+        "task_frontier"
+      ]
+    },
+    "executed_by": {
+      "type": "string",
+      "enum": [
+        "loop_execution_engine"
+      ]
+    },
+    "max_parallel_workers": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "max_tasks": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "task_id",
+          "worker_type",
+          "priority"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "worker_type": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "number"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "batch_stop_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "required_outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  }
+}
