@@ -180,10 +180,99 @@ def test_make_tests_do_not_require_real_tmux_or_real_hermes():
     # and don't require tmux for tests.
     assert True
 
-def test_real_hermes_does_not_start_loop_manual_evolution():
-    # Structural assertion: we don't have code invoking loop execution or manual OS
-    # Verify no loop_execution_request or manual_update_proposal schemas are checked in worker
-    pass
+def test_real_hermes_unavailable_job_status_routes_to_real_handler(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    make_run(tmp_path)
+    invocation = make_invocation(tmp_path)
+    
+    # Mock hermes unavailable
+    monkeypatch.setattr("agentcomos.worker.availability.check_hermes_availability", lambda: {"available": False, "reason": "hermes not found"})
+    
+    job_id = start_real_worker(invocation)
+    
+    # Run CLI
+    import subprocess
+    import sys
+    result = subprocess.run(
+        [sys.executable, "-m", "agentcomos.cli", "worker", "status", "--job", job_id],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True
+    )
+    
+    assert result.returncode == 0
+    assert "fake" not in result.stderr.lower()
+    
+    job = read_worker_job(RUN_ID, job_id)
+    assert job["status"] == "unavailable"
+    assert job["runtime"] == "real_hermes"
+    
+    out_dir = tmp_path / ".agentcomos" / "runs" / RUN_ID / "worker_outputs" / TASK_ID
+    assert not (out_dir / "DONE.md").exists()
+
+
+def test_real_hermes_unavailable_job_collect_routes_to_real_handler_without_done_md(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    make_run(tmp_path)
+    invocation = make_invocation(tmp_path)
+    
+    # Mock hermes unavailable
+    monkeypatch.setattr("agentcomos.worker.availability.check_hermes_availability", lambda: {"available": False, "reason": "hermes not found"})
+    
+    job_id = start_real_worker(invocation)
+    
+    out_dir = tmp_path / ".agentcomos" / "runs" / RUN_ID / "worker_outputs" / TASK_ID
+    assert not (out_dir / "DONE.md").exists()
+    
+    # Run CLI
+    import subprocess
+    import sys
+    result = subprocess.run(
+        [sys.executable, "-m", "agentcomos.cli", "worker", "collect", "--job", job_id],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True
+    )
+    
+    assert result.returncode != 0
+    assert "Cannot collect unavailable worker job" in result.stderr
+    assert "fake" not in result.stderr.lower()
+    assert "DONE.md" not in result.stderr
+    
+    assert not (out_dir / "DONE.md").exists()
+    assert not (out_dir / "result.yaml").exists()
+    
+    job = read_worker_job(RUN_ID, job_id)
+    assert job["status"] == "unavailable"
+    assert job["runtime"] == "real_hermes"
+    assert job["attempted_real_hermes"] is True
+
+
+def test_real_hermes_does_not_start_loop_manual_evolution(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    make_run(tmp_path)
+    invocation = make_invocation(tmp_path)
+    
+    monkeypatch.setattr("agentcomos.worker.availability.check_hermes_availability", lambda: {"available": False, "reason": "hermes not found"})
+    
+    job_id = start_real_worker(invocation)
+    
+    run_dir = tmp_path / ".agentcomos" / "runs" / RUN_ID
+    assert not (run_dir / "loops").exists()
+    assert not (run_dir / "manual_updates").exists()
+    assert not (run_dir / "worker_evolution").exists()
+    assert not (run_dir / "auto_versioner").exists()
+    assert not (run_dir / "decision_market").exists()
+    assert not (run_dir / "feynman").exists()
+    
+    import subprocess
+    result = subprocess.run(
+        ["grep", "-RE", "Loop Execution|Manual OS|Worker Evolution|Auto Versioner|Decision Market executor|Feynman executor", "src/agentcomos/worker"],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).parent.parent
+    )
+    assert result.returncode != 0, f"Found restricted keywords in worker code: {result.stdout}"
 
 def test_no_agentcomos_runs_artifacts_committed():
     # Verifies that we didn't check in .agentcomos/runs
