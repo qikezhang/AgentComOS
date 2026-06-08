@@ -14,9 +14,7 @@ def submit_real_job(run_id: str, phase: str = "plan") -> str:
     job_id = get_job_id(run_id, 1)
     available = is_opencode_available()
     
-    status = "blocked" if not available else "unavailable"
-    if not available:
-        status = "unavailable"
+    status = "blocked" if available else "unavailable"
     
     cmd = build_opencode_run_attach_command(run_id, phase)
     
@@ -32,13 +30,17 @@ def submit_real_job(run_id: str, phase: str = "plan") -> str:
         "status": status,
         "created_by": "controller",
         "submitted_by": "controller",
-        "real_opencode_used": True,
+        "real_opencode_used": available,
+        "attempted_real_opencode": True,
         "fake_runtime": False,
         "command": cmd,
         "stdout_log": str(stdout_path),
         "stderr_log": str(stderr_path),
         "started_at": datetime.now(timezone.utc).isoformat()
     }
+    if not available:
+        job_data["failure_reason"] = "opencode not found"
+    
     write_job(run_id, job_id, job_data)
     
     write_runtime_status(run_id, {
