@@ -1,77 +1,210 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "required": [
-    "job_id",
-    "run_id",
-    "worker_id",
-    "runtime",
-    "tmux_session",
-    "invocation_file",
-    "output_dir",
-    "status",
-    "timeouts"
-  ],
-  "additionalProperties": false,
-  "properties": {
-    "job_id": {
-      "type": "string"
-    },
-    "run_id": {
-      "type": "string"
-    },
-    "batch_id": {
-      "type": "string"
-    },
-    "worker_id": {
-      "type": "string"
-    },
-    "runtime": {
-      "type": "string",
-      "enum": [
-        "hermes_tmux"
-      ]
-    },
-    "tmux_session": {
-      "type": "string",
-      "pattern": "^agentcomos_"
-    },
-    "invocation_file": {
-      "type": "string"
-    },
-    "output_dir": {
-      "type": "string"
-    },
-    "status": {
-      "type": "string",
-      "enum": [
-        "queued",
-        "running",
-        "completed",
-        "failed",
-        "stalled",
-        "timed_out"
-      ]
-    },
-    "timeouts": {
+  "oneOf": [
+    {
       "type": "object",
-      "additionalProperties": true,
       "required": [
-        "soft_timeout_minutes",
-        "hard_timeout_minutes",
-        "no_output_timeout_minutes"
+        "job_id",
+        "run_id",
+        "worker_id",
+        "runtime",
+        "tmux_session",
+        "invocation_file",
+        "output_dir",
+        "status",
+        "timeouts"
       ],
+      "additionalProperties": false,
       "properties": {
-        "soft_timeout_minutes": {
-          "type": "integer"
+        "job_id": {
+          "type": "string"
         },
-        "hard_timeout_minutes": {
-          "type": "integer"
+        "run_id": {
+          "type": "string"
         },
-        "no_output_timeout_minutes": {
-          "type": "integer"
+        "batch_id": {
+          "type": "string"
+        },
+        "worker_id": {
+          "type": "string"
+        },
+        "runtime": {
+          "type": "string",
+          "enum": [
+            "hermes_tmux"
+          ]
+        },
+        "tmux_session": {
+          "type": "string",
+          "pattern": "^agentcomos_"
+        },
+        "invocation_file": {
+          "type": "string"
+        },
+        "output_dir": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "stalled",
+            "timed_out"
+          ]
+        },
+        "timeouts": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "soft_timeout_minutes",
+            "hard_timeout_minutes",
+            "no_output_timeout_minutes"
+          ],
+          "properties": {
+            "soft_timeout_minutes": {
+              "type": "integer"
+            },
+            "hard_timeout_minutes": {
+              "type": "integer"
+            },
+            "no_output_timeout_minutes": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "job_id",
+        "run_id",
+        "task_id",
+        "invocation_id",
+        "runtime",
+        "status",
+        "created_by",
+        "started_by",
+        "fake_worker",
+        "real_hermes_used",
+        "tmux_used",
+        "tmux_session_name",
+        "started_at",
+        "completed_at",
+        "output_dir",
+        "required_outputs",
+        "logs",
+        "failure_reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "pattern": "^HWJ-"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "invocation_id": {
+          "type": "string"
+        },
+        "runtime": {
+          "type": "string",
+          "const": "tmux_fake_hermes"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "created",
+            "running",
+            "completed",
+            "failed",
+            "stalled",
+            "unavailable",
+            "archived"
+          ]
+        },
+        "created_by": {
+          "type": "string",
+          "const": "controller"
+        },
+        "started_by": {
+          "type": "string",
+          "const": "controller"
+        },
+        "fake_worker": {
+          "type": "boolean",
+          "const": true
+        },
+        "real_hermes_used": {
+          "type": "boolean",
+          "const": false
+        },
+        "tmux_used": {
+          "type": "boolean"
+        },
+        "tmux_session_name": {
+          "type": "string",
+          "pattern": "^agentcomos-"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "completed_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "output_dir": {
+          "type": "string",
+          "pattern": "worker_outputs/"
+        },
+        "required_outputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "logs": {
+          "type": "object",
+          "required": [
+            "stdout",
+            "stderr"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "stdout": {
+              "type": "string"
+            },
+            "stderr": {
+              "type": "string"
+            }
+          }
+        },
+        "failure_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tmux_command": {
+          "type": "string"
         }
       }
     }
-  }
+  ]
 }

@@ -34,3 +34,4 @@ forbidden:
 - deploy
 - call_gm
 - call_user
+- real_hermes

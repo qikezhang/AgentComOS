@@ -14,3 +14,18 @@ Optional experiment. tmux, Hermes, OpenCode, and Controller run in one container
 - DONE.md appears
 - failure_report.md handled
 - stale sessions cleaned
+
+## G4 fake E2E boundary
+
+G4 may use tmux, but tmux must run only the deterministic fake Hermes worker. G4 does not call real Hermes, does not call an LLM, and does not implement G5.
+
+Minimum G4 job identity:
+
+```text
+runtime: tmux_fake_hermes
+fake_worker: true
+real_hermes_used: false
+tmux_session_name: agentcomos-<run_id>-<task_id>
+```
+
+If tmux is unavailable, the worker job must be recorded as unavailable or blocked and must not be marked completed.
