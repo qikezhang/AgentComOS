@@ -1,4 +1,4 @@
-# AGENTS.md — AgentComOS v2.8.5 Engineering Rules
+# AGENTS.md — AgentComOS v2.8.6 Engineering Rules
 
 ## Non-negotiable architecture rules
 

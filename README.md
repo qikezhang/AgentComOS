@@ -24,9 +24,9 @@ make validate-examples
 当前基线验证：
 
 ```text
-make compile          pass
-make test             41 passed
-make validate-examples Run validation passed
+make compile: pass
+make test: 44 passed
+make validate-examples: Run validation passed
 ```
 
 ## Docker tmux runtime 验证
