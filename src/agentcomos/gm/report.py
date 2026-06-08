@@ -26,7 +26,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
         else:
             try:
                 text = path.read_text(encoding="utf-8")
-                if f"Fingerprint: {fingerprint}" in text:
+                if fingerprint in text:
                     return
             except Exception:
                 pass

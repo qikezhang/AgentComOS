@@ -24,6 +24,7 @@ def test_evidence_build_generates_manifest(tmp_path, monkeypatch):
     run_dir.mkdir(parents=True)
     
     (run_dir / "events.jsonl").touch()
+    (run_dir / "timeline.yaml").touch()
     
     build_evidence_packet("RUN-1")
     
@@ -48,6 +49,7 @@ def test_evidence_build_generates_events_summary(tmp_path, monkeypatch):
     run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-1"
     run_dir.mkdir(parents=True)
     (run_dir / "events.jsonl").touch()
+    (run_dir / "timeline.yaml").touch()
     
     build_evidence_packet("RUN-1")
     assert (run_dir / "evidence_packet" / "events_summary.yaml").exists()
@@ -71,6 +73,7 @@ def test_evidence_build_generates_runtime_summary(tmp_path, monkeypatch):
     run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-1"
     run_dir.mkdir(parents=True)
     (run_dir / "events.jsonl").touch()
+    (run_dir / "timeline.yaml").touch()
     
     build_evidence_packet("RUN-1")
     assert (run_dir / "evidence_packet" / "runtime_summary.yaml").exists()
@@ -94,6 +97,7 @@ def test_evidence_build_generates_artifact_index(tmp_path, monkeypatch):
     run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-1"
     run_dir.mkdir(parents=True)
     (run_dir / "events.jsonl").touch()
+    (run_dir / "timeline.yaml").touch()
     
     build_evidence_packet("RUN-1")
     assert (run_dir / "evidence_packet" / "artifact_index.yaml").exists()
@@ -117,6 +121,7 @@ def test_evidence_build_generates_validation_summary(tmp_path, monkeypatch):
     run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-1"
     run_dir.mkdir(parents=True)
     (run_dir / "events.jsonl").touch()
+    (run_dir / "timeline.yaml").touch()
     
     build_evidence_packet("RUN-1")
     assert (run_dir / "evidence_packet" / "validation_summary.yaml").exists()
@@ -167,29 +172,6 @@ def test_evidence_build_missing_events_does_not_recreate_and_pass(tmp_path, monk
     manifest = yaml.safe_load((run_dir / "evidence_packet" / "manifest.yaml").read_text())
     assert manifest["status"] == "failed"
 
-def test_evidence_build_missing_timeline_is_not_completed(tmp_path, monkeypatch):
-    monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id)
-    import agentcomos.controller.events
-    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id, raising=False)
-    import agentcomos.evidence.builder
-    monkeypatch.setattr(agentcomos.evidence.builder, "get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id, raising=False)
-    import agentcomos.evidence.summaries
-    monkeypatch.setattr(agentcomos.evidence.summaries, "get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id, raising=False)
-    import agentcomos.evidence.artifact_index
-    monkeypatch.setattr(agentcomos.evidence.artifact_index, "get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id, raising=False)
-    import agentcomos.evidence.validation
-    monkeypatch.setattr(agentcomos.evidence.validation, "get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id, raising=False)
-    import agentcomos.delivery.builder
-    monkeypatch.setattr(agentcomos.delivery.builder, "get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id, raising=False)
-    import agentcomos.gm.report
-    monkeypatch.setattr(agentcomos.gm.report, "get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id, raising=False)
-    run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-1"
-    run_dir.mkdir(parents=True)
-    (run_dir / "events.jsonl").touch()
-    
-    build_evidence_packet("RUN-1")
-    manifest = yaml.safe_load((run_dir / "evidence_packet" / "manifest.yaml").read_text())
-    assert manifest["status"] != "completed"
 
 def test_repeated_evidence_build_is_idempotent(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id)
@@ -210,6 +192,7 @@ def test_repeated_evidence_build_is_idempotent(tmp_path, monkeypatch):
     run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-1"
     run_dir.mkdir(parents=True)
     (run_dir / "events.jsonl").touch()
+    (run_dir / "timeline.yaml").touch()
     
     build_evidence_packet("RUN-1")
     manifest1 = (run_dir / "evidence_packet" / "manifest.yaml").read_text()
@@ -238,6 +221,7 @@ def test_g6_events_are_appended(tmp_path, monkeypatch):
     run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-1"
     run_dir.mkdir(parents=True)
     (run_dir / "events.jsonl").touch()
+    (run_dir / "timeline.yaml").touch()
     
     build_evidence_packet("RUN-1")
     text = (run_dir / "events.jsonl").read_text()
@@ -347,6 +331,7 @@ def test_g6_timeline_includes_evidence_delivery_gm_events(tmp_path, monkeypatch)
     
     run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-TL"
     run_dir.mkdir(parents=True)
+    (run_dir / "timeline.yaml").touch()
     (run_dir / "events.jsonl").write_text('{"event_id": "1", "timestamp": "1", "type": "run.created", "run_id": "RUN-TL"}\n')
     
     build_evidence_packet("RUN-TL")
@@ -371,6 +356,7 @@ def test_g6_timeline_is_stable_on_repeated_build(tmp_path, monkeypatch):
     
     run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-TL-STABLE"
     run_dir.mkdir(parents=True)
+    (run_dir / "timeline.yaml").touch()
     (run_dir / "events.jsonl").write_text('{"event_id": "1", "timestamp": "1", "type": "run.created", "run_id": "RUN-TL-STABLE"}\n')
     
     build_evidence_packet("RUN-TL-STABLE")

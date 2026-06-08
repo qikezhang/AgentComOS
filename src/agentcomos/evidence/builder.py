@@ -24,6 +24,14 @@ def get_input_fingerprint(run_id: str) -> str:
                     if "evidence.build" not in line and "delivery." not in line and "gm.report" not in line:
                         lines.append(line)
                 hasher.update("\n".join(lines).encode("utf-8"))
+            elif filename == "timeline.yaml":
+                try:
+                    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+                    if data and "events" in data:
+                        data["events"] = [e for e in data["events"] if not (e.get("type", "").startswith("evidence.build") or e.get("type", "").startswith("delivery.") or e.get("type", "").startswith("gm.report"))]
+                    hasher.update(yaml.dump(data, sort_keys=True).encode("utf-8"))
+                except Exception:
+                    hasher.update(path.read_bytes())
             else:
                 hasher.update(path.read_bytes())
                 
@@ -98,10 +106,21 @@ def build_evidence_packet(run_id: str) -> None:
         raise ValueError(f"Run {run_id} does not exist.")
         
     events_path = run_dir / "events.jsonl"
+    timeline_path = run_dir / "timeline.yaml"
+    
+    missing_critical = False
+    error_msg = ""
     if not events_path.exists():
+        missing_critical = True
+        error_msg = "Missing events.jsonl"
+    elif not timeline_path.exists():
+        missing_critical = True
+        error_msg = "Missing timeline.yaml"
+        
+    if missing_critical:
         generate_validation_summary(run_id)
         finalize_evidence_packet(run_id)
-        raise ValueError("Missing events.jsonl")
+        raise ValueError(error_msg)
 
     manifest_path = run_dir / "evidence_packet" / "manifest.yaml"
     fingerprint = get_input_fingerprint(run_id)
