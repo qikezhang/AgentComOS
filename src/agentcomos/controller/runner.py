@@ -29,10 +29,7 @@ def handle_run_create(intent_path: Path) -> None:
 def handle_run_status(run_id: str) -> None:
     status = read_run_status(run_id)
     if not status:
-        print(f"Run {run_id} not found.")
-        return
-    append_event(run_id, "run.status_read", {})
-    build_timeline(run_id, status["state"])
+        raise ValueError(f"Run {run_id} not found.")
     print(yaml.dump(status, sort_keys=False))
 
 def handle_controller_tick(run_id: str, fake: bool) -> None:
@@ -40,9 +37,12 @@ def handle_controller_tick(run_id: str, fake: bool) -> None:
     if not status:
         raise ValueError(f"Run {run_id} not found.")
     
+    try:
+        current_state = RunState(status["state"])
+    except ValueError:
+        raise ValueError(f"Invalid state: {status['state']}")
+        
     append_event(run_id, "controller.tick.started", {"fake": fake})
-    
-    current_state = RunState(status["state"])
     
     if fake:
         next_state = get_next_fake_state(current_state)
@@ -54,12 +54,13 @@ def handle_controller_tick(run_id: str, fake: bool) -> None:
                 "to_state": next_state.value
             })
             
-            if next_state in (RunState.delivery_ready, RunState.completed):
-                build_delivery_packet(run_id)
-                append_event(run_id, "delivery.built", {})
-                
+            if next_state in (RunState.evidence_verifying, RunState.delivery_ready, RunState.reported, RunState.completed):
                 build_evidence_packet(run_id)
                 append_event(run_id, "evidence.built", {})
+                
+            if next_state in (RunState.delivery_ready, RunState.reported, RunState.completed):
+                build_delivery_packet(run_id)
+                append_event(run_id, "delivery.built", {})
     
     current_state_str = status["state"]
     build_timeline(run_id, current_state_str)

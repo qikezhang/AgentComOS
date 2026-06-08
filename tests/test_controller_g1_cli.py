@@ -53,3 +53,7 @@ def test_cli_controller_recover(clean_run):
 def test_cli_no_real_opencode_or_hermes_usage():
     # Implicitly verified as no opencode/hermes calls are in runner code.
     pass
+
+def test_cli_run_status_missing():
+    result = runner.invoke(app, ["run", "status", "--run", "non-existent-run"])
+    assert result.exit_code != 0

@@ -39,7 +39,8 @@ def get_next_fake_state(current: RunState) -> RunState:
         RunState.planning: RunState.executing,
         RunState.executing: RunState.evidence_verifying,
         RunState.evidence_verifying: RunState.delivery_ready,
-        RunState.delivery_ready: RunState.completed,
+        RunState.delivery_ready: RunState.reported,
+        RunState.reported: RunState.completed,
         RunState.completed: RunState.completed,
     }
     return transitions.get(current, current)

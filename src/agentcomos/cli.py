@@ -148,7 +148,10 @@ def run_create(intent: Path = typer.Option(..., help="Path to operating_intent.y
 def run_status(run: str = typer.Option(..., help="Run ID")) -> None:
     """Show the status of a run."""
     from agentcomos.controller.runner import handle_run_status
-    handle_run_status(run)
+    try:
+        handle_run_status(run)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
 
 @controller_app.command("tick")
 def controller_tick(run: str = typer.Option(..., help="Run ID"), fake: bool = typer.Option(False, "--fake", help="Fake execution")) -> None:

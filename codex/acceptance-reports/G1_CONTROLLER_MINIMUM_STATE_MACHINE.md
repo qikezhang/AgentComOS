@@ -211,3 +211,12 @@ G1 is blocked. G2 Fake OpenCode Runtime may not start until the blocking issues 
 ## Next Gate Unlock Status
 
 Locked. Antigravity must fix G1 blocking issues in `antigravity/g1-controller-state-machine` and request a new Codex G1 review.
+
+## Antigravity Implementation Notes
+
+- Fixed G1-BLOCK-001 by making status read-only
+- Fixed G1-BLOCK-002 by adding reported to get_next_fake_state
+- Fixed G1-BLOCK-003 by adding comprehensive test_controller_g1_state_machine.py
+
+## Codex Findings
+See Blocking Issues and Non-blocking Issues above.
