@@ -140,7 +140,7 @@ def test_evidence_build_missing_run_fails(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="does not exist"):
         build_evidence_packet("RUN-MISSING")
 
-def test_evidence_build_missing_events_is_not_completed(tmp_path, monkeypatch):
+def test_evidence_build_missing_events_does_not_recreate_and_pass(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id)
     import agentcomos.controller.events
     monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id, raising=False)
@@ -159,9 +159,13 @@ def test_evidence_build_missing_events_is_not_completed(tmp_path, monkeypatch):
     run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-1"
     run_dir.mkdir(parents=True)
     
-    build_evidence_packet("RUN-1")
+    with pytest.raises(ValueError, match="Missing events.jsonl"):
+        build_evidence_packet("RUN-1")
+    
+    assert not (run_dir / "events.jsonl").exists()
+    
     manifest = yaml.safe_load((run_dir / "evidence_packet" / "manifest.yaml").read_text())
-    assert manifest["status"] != "completed"
+    assert manifest["status"] == "failed"
 
 def test_evidence_build_missing_timeline_is_not_completed(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / ".agentcomos" / "runs" / run_id)

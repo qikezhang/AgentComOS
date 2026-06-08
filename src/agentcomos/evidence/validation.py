@@ -27,10 +27,6 @@ def generate_validation_summary(run_id: str) -> str:
         blocking_issues.append("Missing timeline.yaml")
         
     warnings = []
-    if checks["delivery_packet_present"] == "failed":
-        warnings.append("Missing delivery_packet.yaml")
-    if checks["gm_report_present"] == "failed":
-        warnings.append("Missing gm_report.md")
         
     status = "passed"
     if blocking_issues:

@@ -3,11 +3,24 @@ from __future__ import annotations
 import yaml
 import agentcomos.controller.events as events
 import agentcomos.controller.state as state
+from agentcomos.evidence.builder import finalize_evidence_packet, get_input_fingerprint, get_evidence_status
 
 def build_delivery_packet(run_id: str) -> None:
     run_dir = state.get_run_dir(run_id)
     if not run_dir.exists():
         raise ValueError(f"Run {run_id} does not exist.")
+        
+    path = run_dir / "delivery_packet.yaml"
+    fingerprint = get_input_fingerprint(run_id)
+    if path.exists():
+        try:
+            old_packet = yaml.safe_load(path.read_text(encoding="utf-8"))
+            if old_packet.get("input_fingerprint") == fingerprint and old_packet.get("status") == "completed":
+                return
+        except Exception:
+            pass
+
+    evidence_status = get_evidence_status(run_id)
         
     events.append_event(run_id, "delivery.build.started", {"status": "started"})
     
@@ -17,11 +30,7 @@ def build_delivery_packet(run_id: str) -> None:
         timeline_path = run_dir / "timeline.yaml"
         
         has_critical = manifest_path.exists() and events_path.exists() and timeline_path.exists()
-        evidence_status = "failed"
-        if manifest_path.exists():
-            ev = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
-            evidence_status = ev.get("status", "failed")
-            
+        
         status = "completed"
         if not has_critical or evidence_status == "failed":
             status = "failed"
@@ -33,6 +42,7 @@ def build_delivery_packet(run_id: str) -> None:
             "run_id": run_id,
             "produced_by": ["controller", "evidence_builder"],
             "status": status,
+            "input_fingerprint": fingerprint,
             "summary": "Delivery packet generated from evidence.",
             "artifacts": [
                 "run_status.yaml",
@@ -49,11 +59,12 @@ def build_delivery_packet(run_id: str) -> None:
             "next_actions": ["Ready for Codex G6 review."]
         }
         
-        path = run_dir / "delivery_packet.yaml"
         path.write_text(yaml.dump(packet, sort_keys=False), encoding="utf-8")
         
         events.append_event(run_id, "delivery.updated", {"packet_id": packet["packet_id"]})
         events.append_event(run_id, "delivery.build.completed", {"status": status})
+        
+        finalize_evidence_packet(run_id)
     except Exception as e:
         events.append_event(run_id, "delivery.build.failed", {"error": str(e)})
         raise
