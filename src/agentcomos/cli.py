@@ -175,21 +175,40 @@ def controller_recover(run: str = typer.Option(..., help="Run ID")) -> None:
         raise typer.BadParameter(str(e))
 
 @opencode_app.command("submit")
-def opencode_submit(run: str = typer.Option(..., help="Run ID"), fake: bool = typer.Option(False, "--fake", help="Fake execution")) -> None:
+def opencode_submit(
+    run: str = typer.Option(..., help="Run ID"),
+    fake: bool = typer.Option(False, "--fake", help="Fake execution"),
+    real: bool = typer.Option(False, "--real", help="Real execution"),
+    phase: str = typer.Option("plan", "--phase", help="Phase to execute")
+) -> None:
     """Submit an OpenCode job."""
-    from agentcomos.opencode.fake_runtime import submit_fake_job
-    if fake:
+    if real:
+        from agentcomos.opencode.real_runtime import submit_real_job
+        try:
+            job_id = submit_real_job(run, phase=phase)
+            print(f"Real job submitted: {job_id}")
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    elif fake:
+        from agentcomos.opencode.fake_runtime import submit_fake_job
         try:
             job_id = submit_fake_job(run)
             print(f"Fake job submitted: {job_id}")
         except ValueError as e:
             raise typer.BadParameter(str(e))
     else:
-        raise typer.BadParameter("Real OpenCode runtime not implemented in G2")
+        raise typer.BadParameter("Must specify either --fake or --real")
 
 @opencode_app.command("status")
-def opencode_status(job: str = typer.Option(..., help="Job ID")) -> None:
-    """Check the status of an OpenCode job."""
+def opencode_status(job: str | None = typer.Option(None, help="Job ID")) -> None:
+    """Check the status of an OpenCode job or check runtime availability."""
+    if job is None:
+        from agentcomos.opencode.availability import check_opencode_availability
+        from rich import print
+        status = check_opencode_availability()
+        print(status)
+        return
+
     from agentcomos.opencode.fake_runtime import status_fake_job
     parts = job.split("-")
     if len(parts) >= 3:
@@ -205,17 +224,58 @@ def opencode_status(job: str = typer.Option(..., help="Job ID")) -> None:
 @opencode_app.command("collect")
 def opencode_collect(job: str = typer.Option(..., help="Job ID")) -> None:
     """Collect completed OpenCode job outputs."""
-    from agentcomos.opencode.fake_runtime import collect_fake_job
+    from agentcomos.opencode.jobs import read_job
     parts = job.split("-")
     if len(parts) >= 3:
         run_id = "-".join(parts[1:-1])
     else:
         raise typer.BadParameter("Invalid job ID format. Expected OCJ-<run_id>-<retry>")
     
-    try:
-        collect_fake_job(run_id, job)
-    except ValueError as e:
-        raise typer.BadParameter(str(e))
+    job_data = read_job(run_id, job)
+    if job_data and job_data.get("real_opencode_used"):
+        from agentcomos.opencode.real_runtime import collect_real_job
+        try:
+            collect_real_job(run_id, job)
+            print(f"Real job collected or in read-only mode: {job}")
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    else:
+        from agentcomos.opencode.fake_runtime import collect_fake_job
+        try:
+            collect_fake_job(run_id, job)
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+
+@opencode_app.command("recover")
+def opencode_recover(job: str = typer.Option(..., help="Job ID")) -> None:
+    """Recover an OpenCode job."""
+    from agentcomos.opencode.jobs import read_job
+    parts = job.split("-")
+    if len(parts) >= 3:
+        run_id = "-".join(parts[1:-1])
+    else:
+        raise typer.BadParameter("Invalid job ID format. Expected OCJ-<run_id>-<retry>")
+    
+    job_data = read_job(run_id, job)
+    if job_data and job_data.get("real_opencode_used"):
+        from agentcomos.opencode.real_runtime import recover_real_job
+        try:
+            recover_real_job(run_id, job)
+            print(f"Real job recovered: {job}")
+        except ValueError as e:
+            raise typer.BadParameter(str(e))
+    else:
+        raise typer.BadParameter("Fake recover not implemented or required")
+
+
+@opencode_app.command("start")
+@opencode_app.command("serve")
+def opencode_start() -> None:
+    """Construct and show the OpenCode serve command."""
+    from agentcomos.opencode.commands import build_opencode_serve_command
+    from rich import print
+    print(build_opencode_serve_command())
+
 
 
 if __name__ == "__main__":

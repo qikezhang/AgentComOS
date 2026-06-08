@@ -32,7 +32,7 @@ def test_cli_opencode_submit_real_fails(tmp_path, monkeypatch):
     
     result = runner.invoke(app, ["opencode", "submit", "--run", run_id])
     assert result.exit_code != 0
-    assert "Real OpenCode runtime not implemented in G2" in str(result.output) or "Real OpenCode runtime not implemented in G2" in str(result.exception)
+    assert "Must specify either --fake or --real" in str(result.output) or "Must specify either --fake or --real" in str(result.exception)
 
 def test_cli_opencode_status(tmp_path, monkeypatch):
     patch_get_run_dir(monkeypatch, tmp_path)
