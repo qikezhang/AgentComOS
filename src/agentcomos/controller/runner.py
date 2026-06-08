@@ -48,6 +48,13 @@ def handle_controller_tick(run_id: str, fake: bool) -> None:
         next_state = get_next_fake_state(current_state)
         if next_state != current_state:
             status["state"] = next_state.value
+            
+            if next_state == RunState.planning:
+                from agentcomos.opencode.fake_runtime import submit_fake_job
+                job_id = submit_fake_job(run_id)
+                status["last_job_id"] = job_id
+                status["phase"] = "G2_FAKE_OPENCODE_RUNTIME"
+                
             write_run_status(run_id, status)
             append_event(run_id, "run.state_changed", {
                 "from_state": current_state.value,
