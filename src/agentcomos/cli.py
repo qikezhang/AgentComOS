@@ -129,5 +129,45 @@ def opencode_command(run_id: str, phase: str = "plan", server: str = "http://127
     print(" ".join(q(part) for part in cmd))
 
 
+run_app = typer.Typer(help="Manage runs")
+app.add_typer(run_app, name="run")
+
+controller_app = typer.Typer(help="Controller operations")
+app.add_typer(controller_app, name="controller")
+
+@run_app.command("create")
+def run_create(intent: Path = typer.Option(..., help="Path to operating_intent.yaml")) -> None:
+    """Create a new run from an operating intent."""
+    from agentcomos.controller.runner import handle_run_create
+    try:
+        handle_run_create(intent)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@run_app.command("status")
+def run_status(run: str = typer.Option(..., help="Run ID")) -> None:
+    """Show the status of a run."""
+    from agentcomos.controller.runner import handle_run_status
+    handle_run_status(run)
+
+@controller_app.command("tick")
+def controller_tick(run: str = typer.Option(..., help="Run ID"), fake: bool = typer.Option(False, "--fake", help="Fake execution")) -> None:
+    """Advance the state machine for a run."""
+    from agentcomos.controller.runner import handle_controller_tick
+    try:
+        handle_controller_tick(run, fake)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@controller_app.command("recover")
+def controller_recover(run: str = typer.Option(..., help="Run ID")) -> None:
+    """Recover a run from its event log."""
+    from agentcomos.controller.runner import handle_controller_recover
+    try:
+        handle_controller_recover(run)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
 if __name__ == "__main__":
     app()

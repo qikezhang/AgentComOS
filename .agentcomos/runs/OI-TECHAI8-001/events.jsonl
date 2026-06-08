@@ -1,0 +1,9 @@
+{"event_id": "EVT-0150C131", "run_id": "OI-TECHAI8-001", "type": "run.created", "timestamp": "2026-06-08T07:32:39Z", "actor": "controller", "payload": {"intent_file": "examples/techai8/run/OI-TECHAI8-001/operating_intent.yaml"}}
+{"event_id": "EVT-52DD3E1A", "run_id": "OI-TECHAI8-001", "type": "run.status_read", "timestamp": "2026-06-08T07:32:39Z", "actor": "controller", "payload": {}}
+{"event_id": "EVT-38B63C61", "run_id": "OI-TECHAI8-001", "type": "controller.tick.started", "timestamp": "2026-06-08T07:32:39Z", "actor": "controller", "payload": {"fake": true}}
+{"event_id": "EVT-F8708DCD", "run_id": "OI-TECHAI8-001", "type": "run.state_changed", "timestamp": "2026-06-08T07:32:39Z", "actor": "controller", "payload": {"from_state": "created", "to_state": "accepted"}}
+{"event_id": "EVT-A47DB2B3", "run_id": "OI-TECHAI8-001", "type": "controller.tick.completed", "timestamp": "2026-06-08T07:32:39Z", "actor": "controller", "payload": {"state": "accepted"}}
+{"event_id": "EVT-1E9E34A3", "run_id": "OI-TECHAI8-001", "type": "controller.tick.started", "timestamp": "2026-06-08T07:32:40Z", "actor": "controller", "payload": {"fake": true}}
+{"event_id": "EVT-4511B47C", "run_id": "OI-TECHAI8-001", "type": "run.state_changed", "timestamp": "2026-06-08T07:32:40Z", "actor": "controller", "payload": {"from_state": "accepted", "to_state": "context_ready"}}
+{"event_id": "EVT-BB713BDA", "run_id": "OI-TECHAI8-001", "type": "controller.tick.completed", "timestamp": "2026-06-08T07:32:40Z", "actor": "controller", "payload": {"state": "context_ready"}}
+{"event_id": "EVT-09B646C7", "run_id": "OI-TECHAI8-001", "type": "controller.recovered", "timestamp": "2026-06-08T07:32:40Z", "actor": "controller", "payload": {"recovered_state": "context_ready"}}

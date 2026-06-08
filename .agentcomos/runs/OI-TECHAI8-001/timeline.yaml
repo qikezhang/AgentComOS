@@ -1,0 +1,25 @@
+run_id: OI-TECHAI8-001
+current_state: context_ready
+events:
+- type: run.created
+  timestamp: '2026-06-08T07:32:39Z'
+- type: run.status_read
+  timestamp: '2026-06-08T07:32:39Z'
+- type: controller.tick.started
+  timestamp: '2026-06-08T07:32:39Z'
+- type: run.state_changed
+  timestamp: '2026-06-08T07:32:39Z'
+  from_state: created
+  to_state: accepted
+- type: controller.tick.completed
+  timestamp: '2026-06-08T07:32:39Z'
+- type: controller.tick.started
+  timestamp: '2026-06-08T07:32:40Z'
+- type: run.state_changed
+  timestamp: '2026-06-08T07:32:40Z'
+  from_state: accepted
+  to_state: context_ready
+- type: controller.tick.completed
+  timestamp: '2026-06-08T07:32:40Z'
+- type: controller.recovered
+  timestamp: '2026-06-08T07:32:40Z'
