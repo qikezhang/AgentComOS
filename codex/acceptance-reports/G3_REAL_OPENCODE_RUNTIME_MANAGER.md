@@ -8,12 +8,13 @@ failed
 
 ## Audit Metadata
 
-- Audit time: 2026-06-08 21:40:46 CST (+0800)
+- Audit time: 2026-06-08 22:21:25 CST (+0800)
 - Auditor: Codex
 - Branch reviewed: `antigravity/g3-real-opencode-runtime-manager`
-- Commit reviewed: `29a66eb8ae9cdc8092e23804bd9acdb67bb9cb4a`
+- Commit reviewed: `94e2e2e57c99081930451440f3a27402f1663165`
 - Working branch confirmed: `antigravity/g3-real-opencode-runtime-manager`
 - Local OpenCode availability: `opencode not found`
+- Re-review context: Antigravity added `3527f56` and `94e2e2e` after the first failed G3 Codex review.
 
 ## Inputs Reviewed
 
@@ -32,7 +33,7 @@ git fetch origin
 git checkout antigravity/g3-real-opencode-runtime-manager
 git pull origin antigravity/g3-real-opencode-runtime-manager
 git status
-git log --oneline -10
+git log --oneline -14
 git diff --name-status origin/main...HEAD
 grep -R "hermes chat\|tmux new-session\|tmux attach\|Loop Execution\|Manual OS\|Worker Evolution\|Auto Versioner\|Decision Market executor\|Feynman executor" src tests .agentcomos docs antigravity codex || true
 grep -R "opencode serve\|opencode run\|run --attach" src tests || true
@@ -41,7 +42,7 @@ make test
 make validate-examples
 ```
 
-Manual G3 commands were also executed:
+Manual G3 commands were also executed in sequence to avoid run-directory races:
 
 ```bash
 agentcomos opencode status
@@ -49,6 +50,7 @@ agentcomos opencode start
 agentcomos opencode serve
 agentcomos run create --intent examples/techai8/run/OI-TECHAI8-001/operating_intent.yaml
 agentcomos opencode submit --run OI-TECHAI8-001 --phase plan --real
+agentcomos opencode status --job OCJ-OI-TECHAI8-001-001
 agentcomos opencode recover --job OCJ-OI-TECHAI8-001-001
 agentcomos opencode collect --job OCJ-OI-TECHAI8-001-001
 agentcomos opencode submit --run OI-TECHAI8-001 --fake
@@ -62,7 +64,7 @@ agentcomos opencode collect --job OCJ-REAL-DOES-NOT-EXIST
 ## Validation Results
 
 - `make compile`: passed.
-- `make test`: passed, `91 passed in 3.13s`.
+- `make test`: passed, `99 passed in 3.28s`.
 - `make validate-examples`: passed.
 - Tests did not require a real local `opencode` binary; local `opencode` was not found and the suite still passed.
 
@@ -72,11 +74,10 @@ agentcomos opencode collect --job OCJ-REAL-DOES-NOT-EXIST
 - Output clearly reported `available: False`, `reason: opencode not found`, `runtime: real_opencode`, `mode: real`, `version: unknown`.
 - No crash occurred.
 - No fake runtime artifacts were affected by status.
-- `opencode_runtime_status.yaml` was not written by status alone, but was written after real submit.
 
 Runtime status artifact after real submit:
 
-- Path: `.agentcomos/runs/OI-TECHAI8-001/opencode_runtime_status.yaml`
+- Path: `.agentcomos/runs/OI-TECHAI8-001/opencode_runtime_status.yaml`.
 - Fields included `runtime: real_opencode`, `available: false`, `mode: real`, `checked_at`, `reason: opencode not found`, and `version: unknown`.
 
 ## Real Submit Unavailable Behavior
@@ -86,11 +87,16 @@ With no local `opencode` binary:
 - `agentcomos opencode submit --run OI-TECHAI8-001 --phase plan --real`: exited 0 and created a real OpenCode job artifact.
 - Job path: `.agentcomos/runs/OI-TECHAI8-001/opencode_jobs/OCJ-OI-TECHAI8-001-001.yaml`.
 - Job status was `unavailable`, not `completed`.
-- Job recorded `runtime: real_opencode`, `phase: plan`, `created_by: controller`, `submitted_by: controller`, `fake_runtime: false`, `real_opencode_used: true`, `command`, `stdout_log`, and `stderr_log`.
+- Job recorded `runtime: real_opencode`, `phase: plan`, `created_by: controller`, `submitted_by: controller`, `fake_runtime: false`, `real_opencode_used: false`, `attempted_real_opencode: true`, `command`, `stdout_log`, `stderr_log`, and `failure_reason: opencode not found`.
 - Real submit did not call Hermes and did not create tmux sessions.
-- Real recover and real collect on the unavailable job did not crash.
+- `agentcomos opencode status --job OCJ-OI-TECHAI8-001-001`: passed and printed the real job YAML.
 
-Blocking detail: the unavailable job YAML did not include `failure_reason`, although the G3 manual acceptance requirement says `failure_reason` is required when a job is unavailable, blocked, or failed.
+Blocking detail: `agentcomos opencode collect --job OCJ-OI-TECHAI8-001-001` and `agentcomos opencode recover --job OCJ-OI-TECHAI8-001-001` failed for the unavailable real job. The job is real by `runtime: real_opencode` and `attempted_real_opencode: true`, but CLI routing checks only `real_opencode_used`; because unavailable jobs now correctly set `real_opencode_used: false`, the CLI falls through to fake collect/recover.
+
+Observed failures:
+
+- Collect exit code: 2, error says `delivery_packet.yaml is missing`, from the fake collect path.
+- Recover exit code: 2, error says `Fake recover not implemented or required`.
 
 ## Fake Runtime Regression Check
 
@@ -137,19 +143,11 @@ Confirmations:
 
 ## Branch Scope Check
 
-`git diff --name-status origin/main...HEAD` includes tracked run artifact deletions:
-
-- `.agentcomos/runs/OI-TECHAI8-001/delivery_packet.yaml`
-- `.agentcomos/runs/OI-TECHAI8-001/events.jsonl`
-- `.agentcomos/runs/OI-TECHAI8-001/evidence_packet/manifest.yaml`
-- `.agentcomos/runs/OI-TECHAI8-001/run_status.yaml`
-- `.agentcomos/runs/OI-TECHAI8-001/timeline.yaml`
-
-This violates the G3 instruction that the branch must not contain `.agentcomos/runs` runtime artifacts. The instruction explicitly states G3 must fail if `.agentcomos/runs` appears.
+`git diff --name-status origin/main...HEAD` no longer includes `.agentcomos/runs/*` runtime artifact deletions. The previous tracked run artifact blocking issue is resolved.
 
 Other scope notes:
 
-- `tests/test_opencode_g2_cli.py` is modified in the G3 branch. This appears related to preserving fake runtime behavior, but it is outside the narrow G3 test filenames listed by the user.
+- `tests/test_opencode_g2_cli.py` is modified in the G3 branch. This appears related to preserving fake runtime behavior after the CLI changed to require explicit `--fake` or `--real`.
 - No G0/G1/G2 acceptance report modification was present in the net diff against `origin/main`.
 
 ## Test Coverage Review
@@ -159,20 +157,23 @@ Direct or equivalent coverage found:
 - `test_real_opencode_status_handles_missing_binary`
 - `test_real_opencode_submit_requires_existing_run`
 - `test_real_opencode_submit_missing_binary_creates_blocked_or_unavailable_job`
+- `test_real_unavailable_job_has_failure_reason`
+- `test_real_opencode_submit_does_not_fake_completion`
 - `test_real_opencode_command_builder_uses_expected_serve_command`
 - `test_real_opencode_command_builder_uses_run_attach_when_configured`
-- G2 fake CLI tests still cover fake runtime behavior after G3.
+- `test_fake_runtime_still_passes_after_g3`
+- `test_make_tests_do_not_require_real_opencode`
+- `test_real_runtime_does_not_call_hermes_or_tmux`
+- `test_runtime_status_yaml_is_written`
+- `test_real_submit_records_stdout_stderr_paths`
 - `test_real_collect_missing_job_fails`
 - `test_real_collect_unavailable_job_is_read_only`
+- `test_branch_does_not_include_agentcomos_runs_artifacts`
+- Missing-run real submit is covered by `test_real_opencode_submit_requires_existing_run`, but there is still no direct test asserting no orphan artifacts for that CLI path.
 
-Coverage gaps relative to the requested list:
+Coverage gap:
 
-- No direct test named or clearly equivalent to `test_real_opencode_submit_does_not_fake_completion`.
-- No direct test named or clearly equivalent to `test_make_tests_do_not_require_real_opencode`; manual review confirmed this but test coverage is missing.
-- No direct test named or clearly equivalent to `test_real_runtime_does_not_call_hermes_or_tmux`; manual grep confirmed this but test coverage is missing.
-- No direct test asserts `opencode_runtime_status.yaml` is written.
-- No direct test asserts both stdout and stderr paths are recorded; current test only asserts stderr path.
-- No direct test asserts missing-run real submit leaves no orphan artifacts.
+- No CLI-level regression test catches that unavailable real jobs with `attempted_real_opencode: true` but `real_opencode_used: false` are routed to fake collect/recover. The function-level `test_real_collect_unavailable_job_is_read_only` passes, but the actual CLI `agentcomos opencode collect --job ...` fails.
 
 ## Runtime Artifacts Cleanup
 
@@ -182,24 +183,28 @@ Manual review artifacts were cleaned with:
 find .agentcomos/runs -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
 ```
 
-After cleanup, `git status --short` was clean before this acceptance report was edited.
+Tracked `.agentcomos/runs/OI-TECHAI8-001/*` files were restored after cleanup so the working tree no longer contains runtime artifact deletions. `git status --short` still shows an unrelated untracked `uv.lock`; it was not created by the G3 runtime checks and was not staged.
 
-Important: cleanup removed local manual-run artifacts, but the branch diff still contains tracked `.agentcomos/runs/OI-TECHAI8-001/*` deletions relative to `origin/main`; that remains a branch-level blocking issue.
+## Resolved Previous Blocking Issues
+
+- Branch diff no longer contains tracked `.agentcomos/runs/OI-TECHAI8-001/*` runtime artifact deletions.
+- Real unavailable job YAML now includes `failure_reason`.
+- Most requested G3 tests were added or strengthened.
 
 ## Blocking Issues
 
-1. G3 branch diff contains tracked `.agentcomos/runs/OI-TECHAI8-001/*` runtime artifact deletions. The user instruction says if `.agentcomos/runs` appears, G3 must fail.
-2. Real unavailable job YAML is missing `failure_reason` even though G3 acceptance requires `failure_reason` when status is `unavailable`, `blocked`, or `failed`.
-3. Required G3 test coverage is incomplete for no-fake-completion, no-real-opencode test dependency, no Hermes/tmux runtime calls, runtime status YAML writing, stdout/stderr path recording, and missing-run no-orphan-artifact behavior.
+1. CLI `agentcomos opencode collect --job <real_unavailable_job>` fails for unavailable real jobs because routing uses `real_opencode_used` instead of `runtime: real_opencode` or `attempted_real_opencode: true`.
+2. CLI `agentcomos opencode recover --job <real_unavailable_job>` fails for the same routing reason.
+3. There is no CLI-level test covering unavailable real job collect/recover routing, so the regression is not caught by `make test`.
 
 ## Non-blocking Issues
 
 - `opencode start` and `opencode serve` currently print the serve command rather than starting a process. This is acceptable only if G3 treats these commands as command-builder/controlled-start placeholders before full real serve lifecycle.
-- The real runtime code sets available real jobs to `unavailable` as well; this was not exercised because local `opencode` was unavailable, but it should be reviewed before testing on a machine with real OpenCode.
+- The real runtime code sets available real jobs to `blocked`; this was not exercised because local `opencode` was unavailable, but it should be reviewed before testing on a machine with real OpenCode.
 
 ## Rollback Note
 
-Keep G4 locked. Antigravity should remove the tracked `.agentcomos/runs` diff, add the missing unavailable `failure_reason`, and add or strengthen the missing G3 tests before requesting another Codex review.
+Keep G4 locked. Antigravity should route CLI collect/recover by `runtime: real_opencode` or `attempted_real_opencode: true`, add a CLI-level unavailable real job collect/recover regression test, and request another Codex review.
 
 ## Decision
 
