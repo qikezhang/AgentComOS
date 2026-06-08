@@ -161,3 +161,8 @@ G6 failed.
 
 Antigravity must fix the remaining blocking issues in `antigravity/g6-evidence-delivery-gm-report`. G7 Operating Program / Task Frontier must not start before G6 is merged after a passing Codex review.
 
+
+## Next Gate Unlock Status
+
+Locked. G7 remains locked until a later G6 review passes.
+

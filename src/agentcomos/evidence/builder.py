@@ -9,6 +9,7 @@ import agentcomos.controller.state as state
 from agentcomos.evidence.summaries import generate_events_summary, generate_runtime_summary
 from agentcomos.evidence.artifact_index import generate_artifact_index
 from agentcomos.evidence.validation import generate_validation_summary
+from agentcomos.controller.artifacts import rebuild_timeline_from_events
 
 def get_input_fingerprint(run_id: str) -> str:
     run_dir = state.get_run_dir(run_id)
@@ -123,9 +124,11 @@ def build_evidence_packet(run_id: str) -> None:
         
         events.append_event(run_id, "evidence.build.completed", {"status": "completed" if val_status == "passed" else val_status})
         
+        rebuild_timeline_from_events(run_id)
         finalize_evidence_packet(run_id)
     except Exception as e:
         events.append_event(run_id, "evidence.build.failed", {"error": str(e)})
+        rebuild_timeline_from_events(run_id)
         raise
 
 def get_evidence_status(run_id: str) -> str:

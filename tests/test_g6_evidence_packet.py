@@ -245,13 +245,140 @@ def test_g6_events_are_appended(tmp_path, monkeypatch):
     assert "evidence.build.completed" in text or "evidence.build.failed" in text
 
 def test_g6_does_not_start_loop_manual_evolution():
-    pass
+    src_dir = Path("src/agentcomos/evidence")
+    delivery_dir = Path("src/agentcomos/delivery")
+    gm_dir = Path("src/agentcomos/gm")
+    
+    for dir_path in [src_dir, delivery_dir, gm_dir]:
+        for f in dir_path.rglob("*.py"):
+            text = f.read_text(encoding="utf-8").lower()
+            assert "loop execution" not in text
+            assert "manual os" not in text
+            assert "worker evolution" not in text
+            assert "feynman executor" not in text
 
 def test_g6_does_not_call_real_opencode_or_hermes():
-    pass
+    src_dir = Path("src/agentcomos/evidence")
+    delivery_dir = Path("src/agentcomos/delivery")
+    gm_dir = Path("src/agentcomos/gm")
+    
+    for dir_path in [src_dir, delivery_dir, gm_dir]:
+        for f in dir_path.rglob("*.py"):
+            text = f.read_text(encoding="utf-8")
+            assert "opencode serve" not in text
+            assert "opencode run" not in text
+            assert "run --attach" not in text
+            assert "hermes chat" not in text
+            assert "tmux new-session" not in text
+            assert "tmux send-keys" not in text
+            assert "discord" not in text.lower()
 
 def test_no_agentcomos_runs_artifacts_committed():
-    pass
+    import subprocess
+    result = subprocess.run(["git", "diff", "--name-status", "origin/main...HEAD"], capture_output=True, text=True)
+    if result.returncode == 0:
+        assert ".agentcomos/runs" not in result.stdout
+        assert "uv.lock" not in result.stdout
+    else:
+        # fallback if origin/main doesn't exist
+        result = subprocess.run(["git", "status", "--short"], capture_output=True, text=True)
+        assert ".agentcomos/runs" not in result.stdout
+        assert "uv.lock" not in result.stdout
 
 def test_g1_to_g5_regression_still_passes():
-    pass
+    from typer.testing import CliRunner
+    from agentcomos.cli import app
+    runner = CliRunner()
+    
+    res = runner.invoke(app, ["--help"])
+    assert res.exit_code == 0
+    assert "run" in res.stdout
+    assert "controller" in res.stdout
+    assert "opencode" in res.stdout
+    assert "worker" in res.stdout
+    assert "evidence" in res.stdout
+    assert "delivery" in res.stdout
+    assert "gm" in res.stdout
+
+def test_g1_to_g5_minimal_fake_flow_still_works(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    
+    from typer.testing import CliRunner
+    from agentcomos.cli import app
+    
+    runner = CliRunner()
+    
+    intent_path = tmp_path / "intent.yaml"
+    intent_content = """
+intent_id: "OI-TEST-001"
+created_by: "gm"
+source: "discord"
+goal: "test"
+success_criteria: []
+constraints: []
+risk_level: "medium"
+"""
+    intent_path.write_text(intent_content)
+    
+    res = runner.invoke(app, ["run", "create", "--intent", str(intent_path)])
+    assert res.exit_code == 0
+    
+    runs_dir = tmp_path / ".agentcomos" / "runs"
+    runs = list(runs_dir.glob("*"))
+    assert len(runs) == 1
+    run_id = runs[0].name
+    
+    res = runner.invoke(app, ["opencode", "submit", "--run", run_id, "--fake"])
+    assert res.exit_code == 0
+    
+    res = runner.invoke(app, ["opencode", "collect", "--job", f"OCJ-{run_id}-001"])
+    assert res.exit_code == 0
+    
+    res = runner.invoke(app, ["evidence", "build", "--run", run_id])
+    assert res.exit_code == 0
+
+def test_g6_timeline_includes_evidence_delivery_gm_events(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    from agentcomos.evidence.builder import build_evidence_packet
+    from agentcomos.gm.report import generate_gm_report
+    from agentcomos.delivery.builder import build_delivery_packet
+    import agentcomos.controller.state as state
+    import yaml
+    
+    run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-TL"
+    run_dir.mkdir(parents=True)
+    (run_dir / "events.jsonl").write_text('{"event_id": "1", "timestamp": "1", "type": "run.created", "run_id": "RUN-TL"}\n')
+    
+    build_evidence_packet("RUN-TL")
+    generate_gm_report("RUN-TL", format="yaml")
+    build_delivery_packet("RUN-TL")
+    
+    tl_path = run_dir / "timeline.yaml"
+    assert tl_path.exists()
+    
+    data = yaml.safe_load(tl_path.read_text())
+    types = [e["type"] for e in data.get("events", [])]
+    
+    assert "evidence.build.completed" in types
+    assert "gm.report.completed" in types
+    assert "delivery.updated" in types
+    assert "delivery.build.completed" in types
+
+def test_g6_timeline_is_stable_on_repeated_build(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    from agentcomos.evidence.builder import build_evidence_packet
+    import agentcomos.controller.state as state
+    
+    run_dir = tmp_path / ".agentcomos" / "runs" / "RUN-TL-STABLE"
+    run_dir.mkdir(parents=True)
+    (run_dir / "events.jsonl").write_text('{"event_id": "1", "timestamp": "1", "type": "run.created", "run_id": "RUN-TL-STABLE"}\n')
+    
+    build_evidence_packet("RUN-TL-STABLE")
+    tl_path = run_dir / "timeline.yaml"
+    hash1 = tl_path.read_text()
+    
+    build_evidence_packet("RUN-TL-STABLE")
+    hash2 = tl_path.read_text()
+    
+    assert hash1 == hash2
+

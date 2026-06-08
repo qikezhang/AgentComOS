@@ -22,6 +22,42 @@ def build_timeline(run_id: str, current_state: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.dump(timeline, sort_keys=False), encoding="utf-8")
 
+def rebuild_timeline_from_events(run_id: str) -> None:
+    events = read_events(run_id)
+    seen_ids = set()
+    timeline_events = []
+    for e in events:
+        eid = e.get("event_id")
+        if eid and eid in seen_ids:
+            continue
+        if eid:
+            seen_ids.add(eid)
+        
+        t = {"event_id": eid, "type": e["type"], "timestamp": e["timestamp"], "actor": e.get("actor", "controller")}
+        if "from_state" in e.get("payload", {}):
+            t["from_state"] = e["payload"]["from_state"]
+        if "to_state" in e.get("payload", {}):
+            t["to_state"] = e["payload"]["to_state"]
+        timeline_events.append(t)
+    
+    current_state = "unknown"
+    status_path = get_run_dir(run_id) / "run_status.yaml"
+    if status_path.exists():
+        try:
+            status_data = yaml.safe_load(status_path.read_text(encoding="utf-8"))
+            current_state = status_data.get("current_state", "unknown")
+        except Exception:
+            pass
+            
+    timeline = {
+        "run_id": run_id,
+        "current_state": current_state,
+        "events": timeline_events,
+    }
+    path = get_run_dir(run_id) / "timeline.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.dump(timeline, sort_keys=False), encoding="utf-8")
+
 def build_evidence_packet(run_id: str) -> None:
     path = get_run_dir(run_id) / "evidence_packet" / "manifest.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)

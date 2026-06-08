@@ -4,6 +4,7 @@ import yaml
 import agentcomos.controller.events as events
 import agentcomos.controller.state as state
 from agentcomos.evidence.builder import finalize_evidence_packet, get_input_fingerprint, get_evidence_status
+from agentcomos.controller.artifacts import rebuild_timeline_from_events
 
 def build_delivery_packet(run_id: str) -> None:
     run_dir = state.get_run_dir(run_id)
@@ -64,9 +65,11 @@ def build_delivery_packet(run_id: str) -> None:
         events.append_event(run_id, "delivery.updated", {"packet_id": packet["packet_id"]})
         events.append_event(run_id, "delivery.build.completed", {"status": status})
         
+        rebuild_timeline_from_events(run_id)
         finalize_evidence_packet(run_id)
     except Exception as e:
         events.append_event(run_id, "delivery.build.failed", {"error": str(e)})
+        rebuild_timeline_from_events(run_id)
         raise
 
 def get_delivery_status(run_id: str) -> str:

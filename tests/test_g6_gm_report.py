@@ -175,5 +175,3 @@ def test_repeated_gm_report_is_idempotent(tmp_path, monkeypatch):
     
     assert text1 == text2
     
-def test_g6_timeline_is_updated():
-    pass
