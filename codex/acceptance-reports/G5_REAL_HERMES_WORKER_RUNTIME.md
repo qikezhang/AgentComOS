@@ -24,10 +24,12 @@ Unlocked after fake tmux worker E2E passes.
 
 ## Audit Metadata
 
-- Audited at: 2026-06-08T15:39:35Z
+- Initial audit at: 2026-06-08T15:39:35Z
+- Re-reviewed at: 2026-06-08T15:55:28Z
 - Auditor: Codex
 - Branch: `antigravity/g5-real-hermes-worker-runtime`
-- Commit reviewed: `870d25ed036afa064c0e8f0ae3671df72dbb3ef3`
+- Initial commit reviewed: `870d25ed036afa064c0e8f0ae3671df72dbb3ef3`
+- Re-review commit reviewed: `017108473ac420fae57e2735c9a9d0f5c9f2840d`
 - Host facts probed: global `agentcomos` not on PATH; `.venv/bin/agentcomos` available; `hermes` not on PATH; `tmux` not on PATH; `opencode` not on PATH.
 
 ## Commands Executed
@@ -64,17 +66,20 @@ make validate-examples
 ./.venv/bin/agentcomos worker start --invocation /tmp/not-exist-worker-invocation.yaml --real
 ./.venv/bin/agentcomos worker status --job HWJ-REAL-DOES-NOT-EXIST
 ./.venv/bin/agentcomos worker collect --job HWJ-REAL-DOES-NOT-EXIST
+rg -n "status.*unavailable|collect.*unavailable|routes_to_real|route.*status|route.*collect|does_not_require_done|loop_manual|does_not_start_loop" tests/test_worker_g5_real_hermes.py tests
 ```
 
 Results:
 
 - `make compile`: passed.
-- `make test`: passed, 135 tests.
+- `make test`: passed, 142 tests.
 - `make validate-examples`: passed.
 - G1 Controller regression: passed.
 - G2 fake OpenCode regression: passed.
 - G3 real OpenCode availability regression: passed; reported `available: False`, `reason: opencode not found`.
 - G4 fake Hermes worker regression: host has no `tmux`; start recorded `runtime: tmux_fake_hermes`, `status: unavailable`, `real_hermes_used: false`, and collect failed cleanly. Full `DONE.md` / `result.yaml` / `reasoning_summary.md` generation was not manually verifiable on this host.
+- G4 fake output contract: automated tests now verify fake worker `DONE.md`, `result.yaml`, and `reasoning_summary.md` generation without real Hermes.
+- Hermes availability: passed; `agentcomos worker hermes-status` reports `available: False`, `reason: hermes not found`, `version: unknown`, `runtime: real_hermes`, and writes `.agentcomos/worker-runtime/hermes_runtime_status.yaml`.
 - G5 real Hermes unavailable path: passed safety behavior; start recorded `runtime: real_hermes`, `attempted_real_hermes: true`, `fake_worker: false`, `real_hermes_used: false`, `status: unavailable`, `failure_reason: hermes not found`, and `attempted_command` containing `hermes chat -Q -q`.
 - G5 real Hermes status/collect/recover: status routed to the real job and showed unavailable; collect failed cleanly without requiring fake `DONE.md`; recover preserved `runtime: real_hermes` and `status: unavailable`.
 - Negative checks: missing run, missing invocation, missing job status, and missing job collect all failed cleanly.
@@ -83,7 +88,7 @@ Results:
 
 - Real unavailable worker job YAML was generated and checked at `.agentcomos/runs/OI-TECHAI8-001/worker_jobs/HWJ-OI-TECHAI8-001-TF-001-001.yaml`.
 - The real unavailable job included `job_id`, `run_id`, `task_id`, `runtime: real_hermes`, `attempted_real_hermes: true`, `created_by: controller`, `started_by: controller`, `real_hermes_used: false`, `fake_worker: false`, logs, `attempted_command`, and `failure_reason`.
-- No Hermes runtime status YAML artifact was found.
+- Hermes runtime status YAML was generated and checked at `.agentcomos/worker-runtime/hermes_runtime_status.yaml`.
 - No `.agentcomos/runs` runtime artifact changes were left in the working tree after cleanup.
 
 ## Positive Tests
@@ -93,11 +98,18 @@ Results:
 - `test_real_hermes_missing_binary_creates_blocked_or_unavailable_job`
 - `test_real_hermes_unavailable_job_has_failure_reason`
 - `test_real_hermes_does_not_fake_completion`
-- `test_real_hermes_job_routes_by_runtime_not_real_hermes_used`
+- `test_real_hermes_job_routes_by_runtime_even_when_real_hermes_used_false`
+- `test_attempted_real_hermes_routes_to_real_handler`
+- `test_real_hermes_used_is_not_routing_field`
+- `test_fake_worker_still_routes_to_fake_handler`
+- `test_unknown_worker_runtime_fails_safely`
 - `test_fake_hermes_runtime_still_passes_after_g5`
-- `test_make_tests_do_not_require_real_hermes`
+- `test_make_tests_do_not_require_real_tmux_or_real_hermes`
 - `test_real_hermes_does_not_start_loop_manual_evolution`
 - `test_no_agentcomos_runs_artifacts_committed`
+- `test_fake_hermes_worker_output_contract_without_tmux`
+- `test_fake_hermes_worker_writes_done_result_summary_without_real_hermes`
+- `test_g4_fake_worker_output_contract_preserved_after_g5`
 
 ## Negative Tests
 
@@ -105,14 +117,17 @@ Results:
 - Missing invocation real worker start failed.
 - Missing job status failed.
 - Missing job collect failed.
-- Unknown runtime, real unavailable status routing, real unavailable collect routing, and collect-unavailable-without-DONE.md are not covered by explicit G5 tests.
+- Unknown runtime fails safely is now covered by an explicit G5 unit test.
+- Real unavailable direct collect behavior is covered by `test_real_hermes_does_not_fake_completion`.
+- Real unavailable CLI status/collect routing and no-`DONE.md` collect semantics were manually verified, but are not covered by explicit G5 CLI routing tests.
 
 ## Evidence Artifacts
 
 - `make compile` output: passed.
-- `make test` output: 135 passed.
+- `make test` output: 142 passed.
 - `make validate-examples` output: passed.
 - Real unavailable job sample was generated during audit and removed from the working tree after inspection.
+- Hermes runtime status artifact was generated during audit and removed from the working tree after inspection.
 
 ## Antigravity Implementation Report
 
@@ -129,29 +144,22 @@ Results:
 - Real Hermes command construction is controlled by the explicit `--real` path and uses `tmux` plus `hermes chat -Q -q --invocation`.
 - Fake Hermes runtime remains routed as `tmux_fake_hermes`; on this host without `tmux`, it fails safely as unavailable rather than pretending completion.
 - Real unavailable jobs route by `runtime: real_hermes` / `attempted_real_hermes: true`, not by `real_hermes_used`.
-- `worker hermes-status` is missing, and no equivalent worker-scoped Hermes availability command or runtime status artifact with `runtime`, `available`, `checked_at`, `reason`, and `version` was found.
-- Required G5 routing and negative coverage is incomplete.
+- `worker hermes-status` is now implemented and writes a worker-scoped Hermes availability artifact with `runtime`, `available`, `checked_at`, `reason`, and `version`.
+- Required G5 test coverage is improved but still incomplete for CLI-level unavailable real status/collect routing and for the Loop/Manual/Evolution boundary placeholder test.
 
 ## Blocking Issues
 
-1. Missing required Hermes availability command/artifact.
-   - `agentcomos worker hermes-status` fails with "No such command 'hermes-status'".
-   - No equivalent worker availability command was identified.
-   - No Hermes runtime status YAML artifact was generated or found.
-   - Acceptance requires clear `available: false` / unavailable, `reason`, `checked_at`, and `version` without crashing.
-
-2. Required G5 test coverage is incomplete.
-   - No explicit G5 test proves unknown worker runtime fails safely and does not default to fake.
+1. Required G5 test coverage is still incomplete.
    - No explicit G5 CLI/status test proves unavailable real Hermes jobs route to the real status handler.
    - No explicit G5 CLI/collect test proves unavailable real Hermes jobs route to the real collect handler.
-   - No explicit test proves real unavailable collect does not require fake `DONE.md`.
-   - `test_real_hermes_does_not_start_loop_manual_evolution` is a `pass` placeholder rather than a meaningful regression.
+   - No explicit G5 test proves real unavailable collect does not require fake `DONE.md` through the CLI routing path.
+   - `test_real_hermes_does_not_start_loop_manual_evolution` remains a `pass` placeholder rather than a meaningful regression.
 
 ## Non-blocking Issues
 
-- The G5 tests monkeypatch `agentcomos.worker.availability.check_hermes_availability`, but `real_runtime.py` imports `check_hermes_availability` directly. On hosts with `hermes` installed, those monkeypatches may not control the code under test.
 - The host lacks `tmux`, so the manual G4 fake worker output-generation regression could not be fully observed. The unavailable safety behavior was correct, and the automated G4/G5 tests passed.
 - Real worker job YAML uses nested `logs.stdout` / `logs.stderr` rather than top-level `stdout_log` / `stderr_log`; this is probably equivalent, but the field naming should be confirmed in the contract.
+- `test_make_tests_do_not_require_real_tmux_or_real_hermes` is a trivial assertion; the suite still passed on a host without those binaries, so the behavior is covered by execution environment but the test itself is weak.
 
 ## Rollback Note
 
@@ -159,7 +167,7 @@ Results:
 
 ## Decision
 
-G5 failed. Antigravity must fix the blocking issues in the G5 branch before G6 Evidence / Delivery / GM Report may start.
+G5 failed on re-review. Antigravity resolved the Hermes availability blocker, but must still fix the remaining G5 test coverage blocker before G6 Evidence / Delivery / GM Report may start.
 
 ## Next Gate Unlock Status
 
