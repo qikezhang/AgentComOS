@@ -12,9 +12,9 @@
 4 tmux Hermes Worker Pool Fake E2E
 5 Real Hermes Worker Runtime
 6 Evidence / Delivery / GM Report
-7 Simple Operating Program
+7 Operating Program / Task Frontier
 8 Decision/Feynman Controlled Adoption
-9 Loop Execution + Task Frontier
+9 Loop Execution
 10 Manual OS / Worker Evolution / Auto Versioner
 11 Industrial Auto Governance
 ```
@@ -103,17 +103,19 @@ user_report_packet 完整
 gm_report.md 可读
 ```
 
-## Phase 7 — Simple Operating Program
+## Phase 7 — Operating Program / Task Frontier
 
-目标：简单长期运营节奏跑通。
+目标：从 Operating Intent 生成 Operating Program，再生成可审计、可恢复、可线性推进的 Task Frontier。
 
 下一阶段解锁条件：
 
 ```text
-hourly check
-daily packet
-four-hour packet
-GM report
+operating_program.yaml
+task_frontier.yaml
+task_frontier_index.yaml
+frontier_status.yaml
+controller tick --fake advances at most one frontier task
+Evidence / Delivery / GM report include frontier state
 ```
 
 ## Phase 8 — Decision/Feynman Controlled Adoption
@@ -135,7 +137,7 @@ industrial_auto
 高风险任务强制 gate
 ```
 
-## Phase 9 — Loop Execution + Task Frontier
+## Phase 9 — Loop Execution
 
 目标：批量循环任务可控执行。
 

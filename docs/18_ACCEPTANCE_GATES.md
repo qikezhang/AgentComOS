@@ -235,44 +235,56 @@ missing risk summary -> fail
 missing next action -> fail
 ```
 
-## G7 — Simple Operating Program
+## G7 — Operating Program / Task Frontier
 
-Goal：跑通最小长期运营节奏，但不启用复杂 Loop。
+Goal：从 Operating Intent 生成 Operating Program 和 Task Frontier，并允许 Controller 以 fake path 每次最多推进一个 frontier task；不启用 Loop Execution。
 
 Inputs：
 
 ```text
 operating_program.yaml
-daily_operating_packet.yaml
-four_hour_operating_packet.yaml
-hourly_health_snapshot.yaml
+task_frontier.yaml
+task_frontier_index.yaml
+frontier_status.yaml
 ```
 
 Commands：
 
 ```bash
-agentcomos operating create --template examples/techai8/operating_program.yaml
-agentcomos scheduler tick --hourly --fake
-agentcomos scheduler tick --daily --fake
+agentcomos program build --run <run_id>
+agentcomos program status --run <run_id>
+agentcomos frontier build --run <run_id>
+agentcomos frontier status --run <run_id>
+agentcomos frontier list --run <run_id>
+agentcomos frontier next --run <run_id>
+agentcomos frontier update --run <run_id> --task <task_id> --status <status>
+agentcomos controller tick --run <run_id> --fake
 ```
 
 Required outputs：
 
 ```text
-.agentcomos/runs/<run_id>/hourly_health_snapshot.yaml
-.agentcomos/runs/<run_id>/daily_operating_packet.yaml
-.agentcomos/runs/<run_id>/user_report_packet.yaml
+.agentcomos/runs/<run_id>/operating_program.yaml
+.agentcomos/runs/<run_id>/task_frontier.yaml
+.agentcomos/runs/<run_id>/task_frontier_index.yaml
+.agentcomos/runs/<run_id>/frontier_status.yaml
+.agentcomos/runs/<run_id>/evidence_packet/manifest.yaml
+.agentcomos/runs/<run_id>/delivery_packet.yaml
+.agentcomos/runs/<run_id>/gm_report.md
 ```
 
 Negative tests：
 
 ```text
-operating program without metric -> fail
-daily packet without next_actions -> fail
-hourly check cannot mutate production state -> fail
+missing run -> fail without orphan run
+missing operating intent -> fail or partial; do not invent objective
+invalid dependency -> fail or partial; do not complete
+repeated build/tick -> no duplicate completed task or duplicated build events
+controller tick -> at most one ready task
+real OpenCode/Hermes/Discord/Loop/Manual/Worker Evolution/Auto Versioner/Decision/Feynman executor paths not called
 ```
 
-Codex report：`codex/acceptance-reports/G7_SIMPLE_OPERATING_PROGRAM.md`
+Codex report：`codex/acceptance-reports/G7_OPERATING_PROGRAM_TASK_FRONTIER.md`
 
 ## G8 — Decision/Feynman Controlled Adoption
 
@@ -311,7 +323,7 @@ industrial_auto without budget policy -> fail
 
 Codex report：`codex/acceptance-reports/G8_DECISION_FEYNMAN_CONTROLLED_ADOPTION.md`
 
-## G9 — Loop Execution + Task Frontier
+## G9 — Loop Execution
 
 Goal：批量循环任务可控执行。
 

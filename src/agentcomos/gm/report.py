@@ -35,12 +35,16 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
     
     try:
         runtime_path = run_dir / "evidence_packet" / "runtime_summary.yaml"
+        frontier_status_path = run_dir / "frontier_status.yaml"
         evidence_status = get_evidence_status(run_id)
         delivery_status = get_delivery_status(run_id)
             
         rt = {}
         if runtime_path.exists():
             rt = yaml.safe_load(runtime_path.read_text(encoding="utf-8"))
+        frontier_status = {}
+        if frontier_status_path.exists():
+            frontier_status = yaml.safe_load(frontier_status_path.read_text(encoding="utf-8")) or {}
             
         oc = rt.get("opencode", {})
         hm = rt.get("hermes", {})
@@ -83,12 +87,26 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                     "tmux_used": wk.get("tmux_used", False),
                     "unavailable_disclosure": unavailable_disclosure
                 },
+                "task_frontier": {
+                    "frontier_id": frontier_status.get("frontier_id"),
+                    "status": frontier_status.get("status", "missing"),
+                    "tasks_total": frontier_status.get("tasks_total", 0),
+                    "ready_tasks": frontier_status.get("ready_tasks", []),
+                    "blocked_tasks": frontier_status.get("blocked_tasks", []),
+                    "completed_tasks": frontier_status.get("completed_tasks", []),
+                    "failed_tasks": frontier_status.get("failed_tasks", []),
+                    "next_task_id": frontier_status.get("next_task_id"),
+                },
                 "artifacts": [
                     "evidence_packet/manifest.yaml",
                     "evidence_packet/events_summary.yaml",
                     "evidence_packet/runtime_summary.yaml",
                     "evidence_packet/artifact_index.yaml",
-                    "evidence_packet/validation_summary.yaml"
+                    "evidence_packet/validation_summary.yaml",
+                    "operating_program.yaml",
+                    "task_frontier.yaml",
+                    "task_frontier_index.yaml",
+                    "frontier_status.yaml"
                 ],
                 "artifact_gaps": gaps,
                 "risks": gaps + unavailable_disclosure,
@@ -98,6 +116,16 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
         else:
             gaps_md = "\n".join(f"- {g}" for g in gaps) if gaps else "None detected."
             unavailable_md = "\n".join(f"- {u}" for u in unavailable_disclosure) if unavailable_disclosure else "No unavailable runtime issues detected."
+            frontier_md = (
+                f"- **Frontier ID**: {frontier_status.get('frontier_id', 'missing')}\n"
+                f"- **Frontier Status**: {frontier_status.get('status', 'missing')}\n"
+                f"- **Tasks Total**: {frontier_status.get('tasks_total', 0)}\n"
+                f"- **Ready Tasks**: {frontier_status.get('ready_tasks', [])}\n"
+                f"- **Blocked Tasks**: {frontier_status.get('blocked_tasks', [])}\n"
+                f"- **Completed Tasks**: {frontier_status.get('completed_tasks', [])}\n"
+                f"- **Failed Tasks**: {frontier_status.get('failed_tasks', [])}\n"
+                f"- **Next Task**: {frontier_status.get('next_task_id')}\n"
+            )
             
             report_md = f"""# GM Report - {run_id}
 
@@ -133,6 +161,13 @@ The following evidence files were used to generate this report:
 - `evidence_packet/runtime_summary.yaml`
 - `evidence_packet/artifact_index.yaml`
 - `evidence_packet/validation_summary.yaml`
+- `operating_program.yaml`
+- `task_frontier.yaml`
+- `task_frontier_index.yaml`
+- `frontier_status.yaml`
+
+## Task Frontier
+{frontier_md}
 
 **Artifact Gaps:**
 {gaps_md}

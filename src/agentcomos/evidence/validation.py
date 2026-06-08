@@ -10,6 +10,9 @@ def generate_validation_summary(run_id: str) -> str:
         "run_status_present": "passed" if (run_dir / "run_status.yaml").exists() else "failed",
         "events_jsonl_present": "passed" if (run_dir / "events.jsonl").exists() else "failed",
         "timeline_present": "passed" if (run_dir / "timeline.yaml").exists() else "failed",
+        "operating_program_present": "passed" if (run_dir / "operating_program.yaml").exists() else "missing",
+        "task_frontier_present": "passed" if (run_dir / "task_frontier.yaml").exists() else "missing",
+        "frontier_status_present": "passed" if (run_dir / "frontier_status.yaml").exists() else "missing",
         "evidence_manifest_present": "passed", # Since we are building it now
         "delivery_packet_present": "passed" if (run_dir / "delivery_packet.yaml").exists() else "failed",
         "gm_report_present": "passed" if (run_dir / "gm_report.md").exists() else "failed",

@@ -6,7 +6,12 @@ def build_timeline(run_id: str, current_state: str) -> None:
     events = read_events(run_id)
     timeline_events = []
     for e in events:
-        t = {"type": e["type"], "timestamp": e["timestamp"]}
+        t = {
+            "event_id": e.get("event_id"),
+            "type": e["type"],
+            "timestamp": e["timestamp"],
+            "actor": e.get("actor", "controller"),
+        }
         if "from_state" in e.get("payload", {}):
             t["from_state"] = e["payload"]["from_state"]
         if "to_state" in e.get("payload", {}):
@@ -45,7 +50,7 @@ def rebuild_timeline_from_events(run_id: str) -> None:
     if status_path.exists():
         try:
             status_data = yaml.safe_load(status_path.read_text(encoding="utf-8"))
-            current_state = status_data.get("current_state", "unknown")
+            current_state = status_data.get("current_state") or status_data.get("state", "unknown")
         except Exception:
             pass
             
