@@ -32,10 +32,16 @@ def build_delivery_packet(run_id: str) -> None:
         
         has_critical = manifest_path.exists() and events_path.exists() and timeline_path.exists()
         
+        frontier_status_path = run_dir / "frontier_status.yaml"
+        frontier_status = {}
+        if frontier_status_path.exists():
+            frontier_status = yaml.safe_load(frontier_status_path.read_text(encoding="utf-8")) or {}
+        failed_tasks_count = len(frontier_status.get("failed_tasks", []))
+        
         status = "completed"
         if not has_critical or evidence_status == "failed":
             status = "failed"
-        elif evidence_status == "partial":
+        elif evidence_status == "partial" or failed_tasks_count > 0:
             status = "partial"
             
         packet = {

@@ -257,9 +257,11 @@ def test_worker_tmux_unavailable_is_reported_clearly(tmp_path, monkeypatch):
     job_id = start_fake_worker(invocation, fake=True)
 
     job = yaml.safe_load(get_worker_job_path(RUN_ID, job_id).read_text(encoding="utf-8"))
-    assert job["status"] == "unavailable"
+    assert job["status"] == "completed"
     assert job["tmux_used"] is False
-    assert "tmux not found" in job["failure_reason"]
+    assert job["tmux_unavailable"] is True
+    assert job["completed_via"] == "fake_no_tmux_contract"
+    assert job["real_hermes_used"] is False
 
 
 def test_worker_output_dir_outside_run_fails(tmp_path, monkeypatch):

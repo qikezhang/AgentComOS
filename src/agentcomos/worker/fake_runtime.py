@@ -129,13 +129,28 @@ def start_fake_worker(invocation_path: Path, fake: bool) -> str:
         worktree=Path.cwd(),
     )
     if result.status == "unavailable":
-        job["status"] = "unavailable"
-        job["failure_reason"] = result.reason
+        from agentcomos.worker.fake_hermes import write_fake_outputs
+        
+        write_fake_outputs(invocation_path)
+        job["status"] = "completed"
+        job["tmux_used"] = False
+        job["tmux_unavailable"] = True
+        job["completed_via"] = "fake_no_tmux_contract"
+        job["started_at"] = _now()
+        job["completed_at"] = _now()
+        job["failure_reason"] = None
         write_worker_job(run_id, job_id, job)
-        append_event(run_id, "worker.job.failed", {"job_id": job_id, "reason": result.reason})
-        build_timeline(run_id, "worker_unavailable")
-        print(f"Worker job unavailable: {job_id} ({result.reason})")
+        
+        append_event(run_id, "worker.job.started", {"job_id": job_id, "shim": "fake_no_tmux_contract"})
+        detection = detect_required_outputs(output_dir, list(job.get("required_outputs") or []))
+        append_event(run_id, "worker.output.detected", {"job_id": job_id, **detection})
+        append_event(run_id, "worker.job.completed", {"job_id": job_id})
+        
+        build_timeline(run_id, "worker_running")
+        build_timeline(run_id, "worker_completed")
+        print(f"Worker job completed via fake_no_tmux_contract: {job_id}")
         return job_id
+        
     if result.status == "failed":
         job["status"] = "failed"
         job["failure_reason"] = result.reason
