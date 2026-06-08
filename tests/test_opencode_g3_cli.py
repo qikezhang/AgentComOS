@@ -16,9 +16,9 @@ def test_opencode_status_availability(monkeypatch):
     assert "opencode not found" in result.stdout
 
 def test_opencode_submit_requires_fake_or_real():
-    result = runner.invoke(app, ["opencode", "submit", "--run", "OI-TEST-001"])
+    result = runner.invoke(app, ["opencode", "submit", "--run", "OI-TEST-001"], env={"TERMINAL_WIDTH": "10000", "COLUMNS": "10000", "NO_COLOR": "1", "TERM": "dumb", "_TYPER_STANDARD_TRACEBACK": "1"})
     assert result.exit_code != 0
-    assert "Must specify either --fake or --real" in str(result.output) or "Must specify either --fake or --real" in str(result.exception)
+    assert "either --fake or --real" in result.output
 
 def test_unavailable_real_job_routes_to_real_status_even_when_real_opencode_used_false(monkeypatch, tmp_path):
     from agentcomos.opencode.jobs import write_job

@@ -30,9 +30,9 @@ def test_cli_opencode_submit_real_fails(tmp_path, monkeypatch):
     patch_get_run_dir(monkeypatch, tmp_path)
     run_id = "cli-test-submit"
     
-    result = runner.invoke(app, ["opencode", "submit", "--run", run_id])
+    result = runner.invoke(app, ["opencode", "submit", "--run", run_id], env={"TERMINAL_WIDTH": "10000", "COLUMNS": "10000", "NO_COLOR": "1", "TERM": "dumb", "_TYPER_STANDARD_TRACEBACK": "1"})
     assert result.exit_code != 0
-    assert "Must specify either --fake or --real" in str(result.output) or "Must specify either --fake or --real" in str(result.exception)
+    assert "either --fake or --real" in result.output
 
 def test_cli_opencode_status(tmp_path, monkeypatch):
     patch_get_run_dir(monkeypatch, tmp_path)
