@@ -9,11 +9,11 @@ from agentcomos.worker.jobs import (
     build_worker_job_id,
     get_worker_job_path,
 )
-from agentcomos.worker.runner import (
-    collect_worker,
-    recover_workers,
-    start_worker,
-    status_worker,
+from agentcomos.worker.fake_runtime import (
+    collect_fake_worker,
+    recover_fake_workers,
+    start_fake_worker,
+    status_fake_worker,
 )
 from agentcomos.worker.tmux_pool import TmuxStartResult
 
@@ -79,7 +79,7 @@ def fake_tmux_started(monkeypatch):
             command="tmux new-session -d -s test scripts/fake_hermes_worker.py",
         )
 
-    monkeypatch.setattr("agentcomos.worker.runner.start_fake_worker_session", _start)
+    monkeypatch.setattr("agentcomos.worker.fake_runtime.start_fake_worker_session", _start)
 
 
 def test_worker_start_generates_worker_job(tmp_path, monkeypatch):
@@ -88,7 +88,7 @@ def test_worker_start_generates_worker_job(tmp_path, monkeypatch):
     invocation = make_invocation(tmp_path)
     fake_tmux_started(monkeypatch)
 
-    job_id = start_worker(invocation, fake=True)
+    job_id = start_fake_worker(invocation, fake=True)
 
     assert job_id == JOB_ID
     job_path = get_worker_job_path(RUN_ID, job_id)
@@ -111,9 +111,9 @@ def test_worker_start_is_idempotent(tmp_path, monkeypatch):
     invocation = make_invocation(tmp_path)
     fake_tmux_started(monkeypatch)
 
-    first = start_worker(invocation, fake=True)
+    first = start_fake_worker(invocation, fake=True)
     events_before = (run_dir / "events.jsonl").read_text(encoding="utf-8")
-    second = start_worker(invocation, fake=True)
+    second = start_fake_worker(invocation, fake=True)
 
     assert first == second
     assert len(list((run_dir / "worker_jobs").glob("*.yaml"))) == 1
@@ -125,11 +125,11 @@ def test_worker_status_reads_job_without_mutation(tmp_path, monkeypatch):
     make_run(tmp_path)
     invocation = make_invocation(tmp_path)
     fake_tmux_started(monkeypatch)
-    job_id = start_worker(invocation, fake=True)
+    job_id = start_fake_worker(invocation, fake=True)
     job_path = get_worker_job_path(RUN_ID, job_id)
     before = job_path.read_text(encoding="utf-8")
 
-    status_worker(job_id)
+    status_fake_worker(job_id)
 
     assert job_path.read_text(encoding="utf-8") == before
 
@@ -139,9 +139,9 @@ def test_worker_collect_detects_done_outputs(tmp_path, monkeypatch):
     run_dir = make_run(tmp_path)
     invocation = make_invocation(tmp_path)
     fake_tmux_started(monkeypatch)
-    job_id = start_worker(invocation, fake=True)
+    job_id = start_fake_worker(invocation, fake=True)
 
-    collect_worker(job_id)
+    collect_fake_worker(job_id)
 
     job = yaml.safe_load(get_worker_job_path(RUN_ID, job_id).read_text(encoding="utf-8"))
     assert job["status"] == "completed"
@@ -161,12 +161,12 @@ def test_worker_collect_requires_all_required_outputs(tmp_path, monkeypatch, mis
     make_run(tmp_path)
     invocation = make_invocation(tmp_path)
     fake_tmux_started(monkeypatch)
-    job_id = start_worker(invocation, fake=True)
+    job_id = start_fake_worker(invocation, fake=True)
     output_dir = tmp_path / ".agentcomos" / "runs" / RUN_ID / "worker_outputs" / TASK_ID
     (output_dir / missing).unlink()
 
     with pytest.raises(ValueError, match="missing required outputs"):
-        collect_worker(job_id)
+        collect_fake_worker(job_id)
 
     job = yaml.safe_load(get_worker_job_path(RUN_ID, job_id).read_text(encoding="utf-8"))
     assert job["status"] == "stalled"
@@ -177,12 +177,12 @@ def test_worker_collect_is_idempotent(tmp_path, monkeypatch):
     make_run(tmp_path)
     invocation = make_invocation(tmp_path)
     fake_tmux_started(monkeypatch)
-    job_id = start_worker(invocation, fake=True)
-    collect_worker(job_id)
+    job_id = start_fake_worker(invocation, fake=True)
+    collect_fake_worker(job_id)
     result_path = tmp_path / ".agentcomos" / "runs" / RUN_ID / "worker_outputs" / TASK_ID / "result.yaml"
     before = result_path.read_text(encoding="utf-8")
 
-    collect_worker(job_id)
+    collect_fake_worker(job_id)
 
     assert result_path.read_text(encoding="utf-8") == before
 
@@ -192,7 +192,7 @@ def test_worker_missing_invocation_fails(tmp_path, monkeypatch):
     make_run(tmp_path)
 
     with pytest.raises(ValueError, match="not found"):
-        start_worker(tmp_path / "missing.yaml", fake=True)
+        start_fake_worker(tmp_path / "missing.yaml", fake=True)
 
     assert not (tmp_path / ".agentcomos" / "runs" / RUN_ID / "worker_jobs").exists()
 
@@ -203,8 +203,8 @@ def test_worker_no_real_hermes_usage(tmp_path, monkeypatch):
     invocation = make_invocation(tmp_path)
     fake_tmux_started(monkeypatch)
 
-    job_id = start_worker(invocation, fake=True)
-    collect_worker(job_id)
+    job_id = start_fake_worker(invocation, fake=True)
+    collect_fake_worker(job_id)
 
     job = yaml.safe_load(get_worker_job_path(RUN_ID, job_id).read_text(encoding="utf-8"))
     result_path = tmp_path / ".agentcomos" / "runs" / RUN_ID / "worker_outputs" / TASK_ID / "result.yaml"
@@ -219,9 +219,9 @@ def test_worker_events_are_appended(tmp_path, monkeypatch):
     invocation = make_invocation(tmp_path)
     fake_tmux_started(monkeypatch)
 
-    job_id = start_worker(invocation, fake=True)
+    job_id = start_fake_worker(invocation, fake=True)
     before = len((run_dir / "events.jsonl").read_text(encoding="utf-8").splitlines())
-    collect_worker(job_id)
+    collect_fake_worker(job_id)
     after = len((run_dir / "events.jsonl").read_text(encoding="utf-8").splitlines())
 
     assert after > before
@@ -232,9 +232,9 @@ def test_worker_recover_reads_existing_jobs(tmp_path, monkeypatch):
     make_run(tmp_path)
     invocation = make_invocation(tmp_path)
     fake_tmux_started(monkeypatch)
-    job_id = start_worker(invocation, fake=True)
+    job_id = start_fake_worker(invocation, fake=True)
 
-    recovered = recover_workers(RUN_ID)
+    recovered = recover_fake_workers(RUN_ID)
 
     assert recovered[0]["job_id"] == job_id
     assert recovered[0]["status"] == "completed"
@@ -252,9 +252,9 @@ def test_worker_tmux_unavailable_is_reported_clearly(tmp_path, monkeypatch):
             reason="tmux not found on PATH",
         )
 
-    monkeypatch.setattr("agentcomos.worker.runner.start_fake_worker_session", _unavailable)
+    monkeypatch.setattr("agentcomos.worker.fake_runtime.start_fake_worker_session", _unavailable)
 
-    job_id = start_worker(invocation, fake=True)
+    job_id = start_fake_worker(invocation, fake=True)
 
     job = yaml.safe_load(get_worker_job_path(RUN_ID, job_id).read_text(encoding="utf-8"))
     assert job["status"] == "unavailable"
@@ -271,4 +271,4 @@ def test_worker_output_dir_outside_run_fails(tmp_path, monkeypatch):
     invocation.write_text(yaml.dump(data, sort_keys=False), encoding="utf-8")
 
     with pytest.raises(ValueError, match="output_dir must be inside"):
-        start_worker(invocation, fake=True)
+        start_fake_worker(invocation, fake=True)

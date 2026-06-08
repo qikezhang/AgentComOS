@@ -75,3 +75,12 @@ def find_job_for_invocation(run_id: str, invocation_id: str) -> dict[str, Any] |
             return job
     return None
 
+
+def detect_job_runtime(job: dict[str, Any]) -> str:
+    runtime = job.get("runtime")
+    if runtime == "real_hermes" or job.get("attempted_real_hermes") is True:
+        return "real"
+    if runtime in ("fake_hermes", "tmux_fake_hermes") or job.get("fake_worker") is True:
+        return "fake"
+    return "unknown"
+

@@ -42,7 +42,11 @@ make validate-examples
 
 ## Antigravity Implementation Report
 
-- Link or path: `docs/templates/antigravity_implementation_report.md` copy for this gate.
+- Implementation completed by Antigravity.
+- Real Hermes uses `tmux` and `hermes chat -Q -q --invocation <file>`.
+- Properly handles missing binary (records `unavailable` or `blocked` status with `hermes not found` without failing ungracefully).
+- Strictly maintains `attempted_real_hermes` and uses `detect_job_runtime` for proper routing. Fake workers remain untampered.
+- CLI handles `--fake` and `--real` flags strictly.
 
 ## Codex Findings
 

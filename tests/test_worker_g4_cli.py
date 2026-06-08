@@ -53,7 +53,7 @@ def fake_tmux_started(monkeypatch):
             command="tmux new-session -d -s test scripts/fake_hermes_worker.py",
         )
 
-    monkeypatch.setattr("agentcomos.worker.runner.start_fake_worker_session", _start)
+    monkeypatch.setattr("agentcomos.worker.fake_runtime.start_fake_worker_session", _start)
 
 
 def test_worker_cli_start_status_collect_list_recover(tmp_path, monkeypatch):
@@ -89,5 +89,5 @@ def test_worker_cli_requires_fake(tmp_path, monkeypatch):
     result = runner.invoke(app, ["worker", "start", "--invocation", str(invocation)])
 
     assert result.exit_code != 0
-    assert "requires --fake" in result.output or "requires --fake" in str(result.exception)
+    assert "Must specify either --fake or --real" in result.output or "Must specify either --fake or --real" in str(result.exception)
 

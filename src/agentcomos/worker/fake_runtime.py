@@ -65,7 +65,7 @@ def _job_by_id(job_id: str) -> tuple[str, dict[str, Any]]:
     return found
 
 
-def start_worker(invocation_path: Path, fake: bool) -> str:
+def start_fake_worker(invocation_path: Path, fake: bool) -> str:
     if not fake:
         raise ValueError("G4 worker start requires --fake. Real Hermes is reserved for G5.")
     invocation = load_invocation(invocation_path)
@@ -156,13 +156,13 @@ def start_worker(invocation_path: Path, fake: bool) -> str:
     return job_id
 
 
-def status_worker(job_id: str) -> dict[str, Any]:
+def status_fake_worker(job_id: str) -> dict[str, Any]:
     run_id, job = _job_by_id(job_id)
     print(yaml.dump(job, sort_keys=False))
     return job
 
 
-def collect_worker(job_id: str) -> dict[str, Any]:
+def collect_fake_worker(job_id: str) -> dict[str, Any]:
     run_id, job = _job_by_id(job_id)
     if job.get("status") == "unavailable":
         raise ValueError(f"Cannot collect unavailable worker job {job_id}: {job.get('failure_reason')}")
@@ -191,13 +191,13 @@ def collect_worker(job_id: str) -> dict[str, Any]:
     return job
 
 
-def list_workers(run_id: str) -> list[dict[str, Any]]:
+def list_fake_workers(run_id: str) -> list[dict[str, Any]]:
     jobs = list_worker_jobs(run_id)
     print(yaml.dump({"run_id": run_id, "jobs": jobs}, sort_keys=False))
     return jobs
 
 
-def kill_worker(job_id: str) -> str:
+def kill_fake_worker(job_id: str) -> str:
     run_id, job = _job_by_id(job_id)
     message = kill_session(str(job.get("tmux_session_name")))
     if message == "session killed":
@@ -210,10 +210,13 @@ def kill_worker(job_id: str) -> str:
     return message
 
 
-def recover_workers(run_id: str) -> list[dict[str, Any]]:
+def recover_fake_workers(run_id: str) -> list[dict[str, Any]]:
     jobs = list_worker_jobs(run_id)
     recovered: list[dict[str, Any]] = []
     for job in jobs:
+        from agentcomos.worker.jobs import detect_job_runtime
+        if detect_job_runtime(job) != "fake":
+            continue
         job_id = str(job["job_id"])
         detection = detect_required_outputs(Path(str(job["output_dir"])), list(job.get("required_outputs") or []))
         if detection["complete"] and job.get("status") != "completed":
