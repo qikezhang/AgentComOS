@@ -18,6 +18,9 @@ def patch_get_run_dir(monkeypatch, tmp_path):
 def test_cli_opencode_submit_fake(tmp_path, monkeypatch):
     patch_get_run_dir(monkeypatch, tmp_path)
     run_id = "cli-test-submit"
+    run_dir = tmp_path / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "run_status.yaml").write_text(f"run_id: {run_id}\nstatus: accepted\n", encoding="utf-8")
     
     result = runner.invoke(app, ["opencode", "submit", "--run", run_id, "--fake"])
     assert result.exit_code == 0
@@ -34,6 +37,9 @@ def test_cli_opencode_submit_real_fails(tmp_path, monkeypatch):
 def test_cli_opencode_status(tmp_path, monkeypatch):
     patch_get_run_dir(monkeypatch, tmp_path)
     run_id = "cli-test-status"
+    run_dir = tmp_path / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "run_status.yaml").write_text(f"run_id: {run_id}\nstatus: accepted\n", encoding="utf-8")
     job_id = submit_fake_job(run_id)
     
     result = runner.invoke(app, ["opencode", "status", "--job", job_id])
@@ -43,6 +49,10 @@ def test_cli_opencode_status(tmp_path, monkeypatch):
 def test_cli_opencode_collect(tmp_path, monkeypatch):
     patch_get_run_dir(monkeypatch, tmp_path)
     run_id = "cli-test-collect"
+    run_dir = tmp_path / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "run_status.yaml").write_text(f"run_id: {run_id}\nstatus: accepted\n", encoding="utf-8")
+    (run_dir / "delivery_packet.yaml").write_text("artifacts: []\n", encoding="utf-8")
     job_id = submit_fake_job(run_id)
     
     result = runner.invoke(app, ["opencode", "collect", "--job", job_id])

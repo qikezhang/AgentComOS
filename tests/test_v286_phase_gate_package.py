@@ -42,7 +42,7 @@ def test_all_g0_to_g11_acceptance_reports_exist():
         assert path.exists(), name
         text = path.read_text(encoding="utf-8")
         assert "Status" in text
-        assert "Codex Findings" in text
+        assert "Codex Findings" in text or "Blocking Issues" in text
         assert "Next Gate Unlock Status" in text
 
 

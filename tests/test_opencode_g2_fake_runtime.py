@@ -5,9 +5,17 @@ from agentcomos.opencode.fake_runtime import submit_fake_job, collect_fake_job, 
 from agentcomos.opencode.jobs import get_job_path, get_opencode_logs_dir, get_opencode_outputs_dir
 from agentcomos.controller.state import get_run_dir
 
+def setup_valid_run(tmp_path, run_id):
+    run_dir = tmp_path / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "run_status.yaml").write_text(f"run_id: {run_id}\nstatus: accepted\n", encoding="utf-8")
+    (run_dir / "delivery_packet.yaml").write_text("artifacts: []\n", encoding="utf-8")
+    return run_dir
+
 def test_fake_opencode_submit_generates_job(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
     run_id = "test-run-1"
+    setup_valid_run(tmp_path, run_id)
     
     job_id = submit_fake_job(run_id)
     assert job_id == f"OCJ-{run_id}-001"
@@ -22,6 +30,7 @@ def test_fake_opencode_submit_generates_job(tmp_path, monkeypatch):
 def test_fake_opencode_submit_generates_plan(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
     run_id = "test-run-2"
+    setup_valid_run(tmp_path, run_id)
     
     submit_fake_job(run_id)
     
@@ -34,6 +43,7 @@ def test_fake_opencode_submit_generates_plan(tmp_path, monkeypatch):
 def test_fake_opencode_submit_generates_logs(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
     run_id = "test-run-3"
+    setup_valid_run(tmp_path, run_id)
     
     job_id = submit_fake_job(run_id)
     
@@ -44,6 +54,7 @@ def test_fake_opencode_submit_generates_logs(tmp_path, monkeypatch):
 def test_fake_opencode_submit_is_idempotent(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
     run_id = "test-run-4"
+    setup_valid_run(tmp_path, run_id)
     
     job_id1 = submit_fake_job(run_id)
     # Write some garbage to plan to see if it gets overwritten (it shouldn't)
@@ -57,6 +68,7 @@ def test_fake_opencode_submit_is_idempotent(tmp_path, monkeypatch):
 def test_fake_opencode_collect_reads_completed_job(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
     run_id = "test-run-5"
+    setup_valid_run(tmp_path, run_id)
     job_id = submit_fake_job(run_id)
     
     # Should pass without exceptions
@@ -70,6 +82,7 @@ def test_opencode_collect_missing_job_fails(tmp_path, monkeypatch):
 def test_fake_opencode_status_reads_job(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
     run_id = "test-run-6"
+    setup_valid_run(tmp_path, run_id)
     job_id = submit_fake_job(run_id)
     
     status_fake_job(run_id, job_id)
@@ -80,3 +93,49 @@ def test_opencode_status_missing_job_fails(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
     with pytest.raises(ValueError, match="not found"):
         status_fake_job("test", "OCJ-test-001")
+
+def test_opencode_submit_missing_run_fails_without_artifacts(tmp_path, monkeypatch):
+    monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    run_id = "OI-DOES-NOT-EXIST"
+    
+    with pytest.raises(ValueError, match="does not exist"):
+        submit_fake_job(run_id)
+        
+    run_dir = tmp_path / "runs" / run_id
+    assert not (run_dir / "opencode_jobs").exists()
+    assert not (run_dir / "opencode_logs").exists()
+    assert not (run_dir / "opencode_outputs").exists()
+
+def test_opencode_submit_missing_run_status_fails(tmp_path, monkeypatch):
+    monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    run_id = "OI-BROKEN"
+    run_dir = tmp_path / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    
+    with pytest.raises(ValueError, match="does not exist"):
+        submit_fake_job(run_id)
+        
+    assert not (run_dir / "opencode_jobs").exists()
+
+def test_opencode_collect_missing_delivery_packet_fails_read_only(tmp_path, monkeypatch):
+    monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    run_id = "OI-COLLECT-TEST"
+    run_dir = tmp_path / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    (run_dir / "run_status.yaml").write_text(yaml.dump({"run_id": run_id}))
+    
+    # Fake submit works
+    job_id = submit_fake_job(run_id)
+    
+    # Now simulate collect but without delivery packet
+    delivery_packet = run_dir / "delivery_packet.yaml"
+    if delivery_packet.exists():
+        delivery_packet.unlink()
+    
+    job_path = get_job_path(run_id, job_id)
+    mtime_before = job_path.stat().st_mtime
+    
+    with pytest.raises(ValueError, match="delivery_packet.yaml is missing"):
+        collect_fake_job(run_id, job_id)
+        
+    assert job_path.stat().st_mtime == mtime_before

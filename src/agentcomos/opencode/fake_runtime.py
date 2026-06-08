@@ -15,6 +15,23 @@ def _now() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 def submit_fake_job(run_id: str, retry_num: int = 1) -> str:
+    from agentcomos.controller.state import get_run_dir
+    run_dir = get_run_dir(run_id)
+    if not run_dir.exists():
+        raise ValueError(f"Run {run_id} does not exist. Run create must be executed before fake opencode submit.")
+    
+    run_status_path = run_dir / "run_status.yaml"
+    if not run_status_path.exists():
+        raise ValueError(f"Run {run_id} does not exist. Run create must be executed before fake opencode submit.")
+        
+    try:
+        run_status = yaml.safe_load(run_status_path.read_text(encoding="utf-8"))
+    except Exception:
+        run_status = {}
+        
+    if not run_status or run_status.get("run_id") != run_id:
+        raise ValueError(f"Run {run_id} does not exist. Run create must be executed before fake opencode submit.")
+
     job_id = get_job_id(run_id, retry_num)
     
     # Idempotency check
@@ -100,6 +117,11 @@ def collect_fake_job(run_id: str, job_id: str) -> None:
     job = read_job(run_id, job_id)
     if not job:
         raise ValueError(f"Job {job_id} not found for run {run_id}")
+    
+    from agentcomos.controller.state import get_run_dir
+    run_dir = get_run_dir(run_id)
+    if not (run_dir / "delivery_packet.yaml").exists():
+        raise ValueError(f"Cannot collect job {job_id} because delivery_packet.yaml is missing for run {run_id}")
     
     if job.get("status") == "completed":
         # Ensure outputs exist
