@@ -112,7 +112,7 @@ G1/G2/G3/G4 regression commands were also executed with the repository CLI at `.
 
 The previously blocking empty/pass-only Loop/Manual/Evolution test is no longer a placeholder.
 
-## Findings
+## Codex Findings
 
 - No blocking issues remain.
 - Branch scope is acceptable for G5: real Hermes availability, real worker runtime, worker routing, CLI worker commands, G5 tests, task/report documentation, and necessary G4 regression tests.
