@@ -111,7 +111,8 @@ def start_real_worker(invocation_path: Path) -> str:
         "failure_reason": None,
     }
 
-    is_hermes_available, _ = check_hermes_availability()
+    status_info = check_hermes_availability()
+    is_hermes_available = status_info.get("available", False)
     if not is_hermes_available:
         job["status"] = "unavailable"
         job["failure_reason"] = "hermes not found"

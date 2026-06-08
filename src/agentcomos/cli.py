@@ -311,6 +311,15 @@ def opencode_start() -> None:
     print(build_opencode_serve_command())
 
 
+@worker_app.command("hermes-status")
+def worker_hermes_status() -> None:
+    """Check Hermes CLI availability and write status artifact."""
+    from agentcomos.worker.availability import check_hermes_availability
+    from rich import print
+    status = check_hermes_availability()
+    print(status)
+
+
 @worker_app.command("start")
 def worker_start(
     invocation: Path = typer.Option(..., "--invocation", help="Path to worker_invocation.yaml"),

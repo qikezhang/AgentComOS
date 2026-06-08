@@ -15,4 +15,4 @@
 - [x] Add tests and negative cases (Loop 5).
 - [x] Run full regression tests (Loop 6).
 - [x] Clean artifacts and review boundaries (Loop 7).
-- [/] Submit PR (Loop 8).
+- [x] Submit PR (Loop 8).
