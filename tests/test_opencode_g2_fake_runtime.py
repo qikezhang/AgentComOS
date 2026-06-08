@@ -14,6 +14,14 @@ def setup_valid_run(tmp_path, run_id):
 
 def test_fake_opencode_submit_generates_job(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     run_id = "test-run-1"
     setup_valid_run(tmp_path, run_id)
     
@@ -29,6 +37,14 @@ def test_fake_opencode_submit_generates_job(tmp_path, monkeypatch):
 
 def test_fake_opencode_submit_generates_plan(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     run_id = "test-run-2"
     setup_valid_run(tmp_path, run_id)
     
@@ -42,6 +58,14 @@ def test_fake_opencode_submit_generates_plan(tmp_path, monkeypatch):
 
 def test_fake_opencode_submit_generates_logs(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     run_id = "test-run-3"
     setup_valid_run(tmp_path, run_id)
     
@@ -53,6 +77,14 @@ def test_fake_opencode_submit_generates_logs(tmp_path, monkeypatch):
 
 def test_fake_opencode_submit_is_idempotent(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     run_id = "test-run-4"
     setup_valid_run(tmp_path, run_id)
     
@@ -67,6 +99,14 @@ def test_fake_opencode_submit_is_idempotent(tmp_path, monkeypatch):
 
 def test_fake_opencode_collect_reads_completed_job(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     run_id = "test-run-5"
     setup_valid_run(tmp_path, run_id)
     job_id = submit_fake_job(run_id)
@@ -76,11 +116,27 @@ def test_fake_opencode_collect_reads_completed_job(tmp_path, monkeypatch):
 
 def test_opencode_collect_missing_job_fails(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     with pytest.raises(ValueError, match="not found"):
         collect_fake_job("test", "OCJ-test-001")
 
 def test_fake_opencode_status_reads_job(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     run_id = "test-run-6"
     setup_valid_run(tmp_path, run_id)
     job_id = submit_fake_job(run_id)
@@ -91,11 +147,27 @@ def test_fake_opencode_status_reads_job(tmp_path, monkeypatch, capsys):
 
 def test_opencode_status_missing_job_fails(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     with pytest.raises(ValueError, match="not found"):
         status_fake_job("test", "OCJ-test-001")
 
 def test_opencode_submit_missing_run_fails_without_artifacts(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     run_id = "OI-DOES-NOT-EXIST"
     
     with pytest.raises(ValueError, match="does not exist"):
@@ -108,6 +180,14 @@ def test_opencode_submit_missing_run_fails_without_artifacts(tmp_path, monkeypat
 
 def test_opencode_submit_missing_run_status_fails(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     run_id = "OI-BROKEN"
     run_dir = tmp_path / "runs" / run_id
     run_dir.mkdir(parents=True)
@@ -119,6 +199,14 @@ def test_opencode_submit_missing_run_status_fails(tmp_path, monkeypatch):
 
 def test_opencode_collect_missing_delivery_packet_fails_read_only(tmp_path, monkeypatch):
     monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
     run_id = "OI-COLLECT-TEST"
     run_dir = tmp_path / "runs" / run_id
     run_dir.mkdir(parents=True)
@@ -139,3 +227,89 @@ def test_opencode_collect_missing_delivery_packet_fails_read_only(tmp_path, monk
         collect_fake_job(run_id, job_id)
         
     assert job_path.stat().st_mtime == mtime_before
+
+def test_fake_opencode_submit_generates_delivery_packet(tmp_path, monkeypatch):
+    monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    run_id = "test-run-dp"
+    run_dir = tmp_path / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    (run_dir / "run_status.yaml").write_text(f"run_id: {run_id}\nstatus: accepted\n", encoding="utf-8")
+    
+    submit_fake_job(run_id)
+    
+    dp_path = run_dir / "delivery_packet.yaml"
+    assert dp_path.exists()
+    dp_data = yaml.safe_load(dp_path.read_text())
+    assert dp_data["status"] == "completed"
+    assert "opencode_outputs/opencode_project_plan.yaml" in dp_data["artifacts"]
+
+def test_fake_opencode_collect_succeeds_after_submit_delivery_exists(tmp_path, monkeypatch):
+    monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    run_id = "test-run-collect-succ"
+    run_dir = tmp_path / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    (run_dir / "run_status.yaml").write_text(f"run_id: {run_id}\nstatus: accepted\n", encoding="utf-8")
+    
+    job_id = submit_fake_job(run_id)
+    collect_fake_job(run_id, job_id)  # Should not raise
+
+def test_fake_submit_appends_delivery_updated_event(tmp_path, monkeypatch):
+    monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    run_id = "test-run-events"
+    run_dir = tmp_path / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    (run_dir / "run_status.yaml").write_text(f"run_id: {run_id}\nstatus: accepted\n", encoding="utf-8")
+    
+    submit_fake_job(run_id)
+    
+    events_path = run_dir / "events.jsonl"
+    events_text = events_path.read_text()
+    assert "delivery.updated" in events_text
+
+def test_fake_submit_updates_timeline_with_delivery_updated(tmp_path, monkeypatch):
+    monkeypatch.setattr("agentcomos.controller.state.get_run_dir", lambda run_id: tmp_path / "runs" / run_id)
+    import agentcomos.controller.events
+    monkeypatch.setattr(agentcomos.controller.events, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.controller.artifacts
+    monkeypatch.setattr(agentcomos.controller.artifacts, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.jobs
+    monkeypatch.setattr(agentcomos.opencode.jobs, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    import agentcomos.opencode.fake_runtime
+    monkeypatch.setattr(agentcomos.opencode.fake_runtime, "get_run_dir", lambda run_id: tmp_path / "runs" / run_id, raising=False)
+    run_id = "test-run-timeline"
+    run_dir = tmp_path / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    (run_dir / "run_status.yaml").write_text(f"run_id: {run_id}\nstatus: accepted\n", encoding="utf-8")
+    
+    submit_fake_job(run_id)
+    
+    timeline_path = run_dir / "timeline.yaml"
+    assert timeline_path.exists()
+    timeline_data = yaml.safe_load(timeline_path.read_text())
+    
+    types = [e["type"] for e in timeline_data["events"]]
+    assert "delivery.updated" in types

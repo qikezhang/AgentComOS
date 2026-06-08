@@ -110,6 +110,12 @@ def submit_fake_job(run_id: str, retry_num: int = 1) -> str:
     write_job(run_id, job_id, job_data)
 
     append_event(run_id, "opencode.job.completed", {"job_id": job_id})
+    
+    from agentcomos.controller.artifacts import build_delivery_packet, build_timeline
+    build_delivery_packet(run_id)
+    
+    current_state = run_status.get("status", "unknown")
+    build_timeline(run_id, current_state)
 
     return job_id
 
