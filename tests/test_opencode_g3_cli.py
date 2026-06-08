@@ -16,7 +16,7 @@ def test_opencode_status_availability(monkeypatch):
     assert "opencode not found" in result.stdout
 
 def test_opencode_submit_requires_fake_or_real():
-    result = runner.invoke(app, ["opencode", "submit", "--run", "OI-TEST-001"], env={"TERMINAL_WIDTH": "10000", "COLUMNS": "10000"})
+    result = runner.invoke(app, ["opencode", "submit", "--run", "OI-TEST-001"], env={"TERMINAL_WIDTH": "10000", "COLUMNS": "10000", "NO_COLOR": "1", "TERM": "dumb", "_TYPER_STANDARD_TRACEBACK": "1"})
     assert result.exit_code != 0
     assert "either --fake or --real" in result.output
 

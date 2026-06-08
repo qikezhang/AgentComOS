@@ -86,7 +86,7 @@ def test_worker_cli_requires_fake(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     invocation = make_cli_run(tmp_path)
 
-    result = runner.invoke(app, ["worker", "start", "--invocation", str(invocation)], env={"TERMINAL_WIDTH": "10000", "COLUMNS": "10000"})
+    result = runner.invoke(app, ["worker", "start", "--invocation", str(invocation)], env={"TERMINAL_WIDTH": "10000", "COLUMNS": "10000", "NO_COLOR": "1", "TERM": "dumb", "_TYPER_STANDARD_TRACEBACK": "1"})
     
     assert result.exit_code != 0
     assert "either --fake or --real" in result.output
