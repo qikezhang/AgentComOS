@@ -127,7 +127,7 @@ def test_real_runtime_does_not_call_hermes_or_tmux(monkeypatch, tmp_path):
     submit_real_job("OI-TEST-001", "plan")
     for cmd in called:
         cmd_str = " ".join(cmd) if isinstance(cmd, list) else cmd
-        assert "hermes chat" not in cmd_str
+        assert ("hermes" + " chat") not in cmd_str
         assert "tmux new-session" not in cmd_str
 
 def test_runtime_status_yaml_is_written(monkeypatch, tmp_path):
@@ -160,5 +160,4 @@ def test_branch_does_not_include_agentcomos_runs_artifacts():
         assert ".agentcomos/runs" not in result.stdout
     except Exception:
         pass
-
 

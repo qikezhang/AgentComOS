@@ -159,15 +159,32 @@ Commands：
 agentcomos worker start --fake --invocation <HWI.yaml>
 agentcomos worker status --job <job_id>
 agentcomos worker collect --job <job_id>
+agentcomos worker list --run <run_id>
+agentcomos worker kill --job <job_id>
+agentcomos worker recover --run <run_id>
 ```
 
 Required outputs：
 
 ```text
-worker_job.yaml
+worker_jobs/<worker_job_id>.yaml
 worker_outputs/<task_id>/DONE.md
 worker_outputs/<task_id>/result.yaml
+worker_outputs/<task_id>/reasoning_summary.md
 tmux log
+events.jsonl worker events
+timeline.yaml worker events
+```
+
+Positive tests：
+
+```text
+fake worker writes DONE.md/result.yaml/reasoning_summary.md
+worker start writes worker_job.yaml
+tmux command runs fake_hermes_worker.py only
+repeated worker start is idempotent
+repeated collect is idempotent
+recover reads existing jobs and outputs
 ```
 
 Negative tests：
@@ -176,6 +193,16 @@ Negative tests：
 missing DONE.md -> not completed
 output_dir outside run -> fail
 unknown worker_id -> fail
+missing invocation -> fail without orphan job
+tmux unavailable -> clear unavailable/blocked state, not completed
+real Hermes command usage -> fail
+```
+
+Rollback note：
+
+```text
+Remove G4 worker package, worker CLI commands, fake worker script, tests, and docs.
+Do not rewrite operating data history in .agentcomos/runs.
 ```
 
 ## G5 — Real Hermes Worker Runtime

@@ -102,16 +102,20 @@ def validate(run_dir: Path) -> None:
 
 @app.command("build-worker-command")
 def build_worker_command(invocation: Path, session: str = typer.Option(...), worktree: Path = typer.Option(Path("."))) -> None:
-    """Print the tmux + Hermes CLI command for a Worker Invocation."""
+    """Print the G4 tmux fake Hermes worker command for a Worker Invocation."""
     data = validate_file(invocation, "worker_invocation.schema.json")
-    output_dir = data["output_dir"]
-    prompt = f"Read {invocation} and write all required outputs to {output_dir}/"
-    command = (
-        "tmux new-session -d "
-        f"-s {q(session)} "
-        f"\"cd {q(worktree)} && hermes chat -Q -q {q(prompt)}\""
+    from agentcomos.worker.tmux_pool import build_fake_worker_shell_command
+
+    job_id = f"HWI-COMMAND-{data['task']['task_id']}"
+    stdout_log = Path(data["output_dir"]) / f"{job_id}.stdout.log"
+    stderr_log = Path(data["output_dir"]) / f"{job_id}.stderr.log"
+    shell_command = build_fake_worker_shell_command(
+        invocation=invocation,
+        stdout_log=stdout_log,
+        stderr_log=stderr_log,
+        worktree=worktree,
     )
-    print(command)
+    print(f"tmux new-session -d -s {q(session)} {q(shell_command)}")
 
 
 @app.command("opencode-command")
@@ -137,6 +141,9 @@ app.add_typer(controller_app, name="controller")
 
 opencode_app = typer.Typer(help="OpenCode runtime operations")
 app.add_typer(opencode_app, name="opencode")
+
+worker_app = typer.Typer(help="Worker runtime operations")
+app.add_typer(worker_app, name="worker")
 
 @run_app.command("create")
 def run_create(intent: Path = typer.Option(..., help="Path to operating_intent.yaml")) -> None:
@@ -302,6 +309,75 @@ def opencode_start() -> None:
     from agentcomos.opencode.commands import build_opencode_serve_command
     from rich import print
     print(build_opencode_serve_command())
+
+
+@worker_app.command("start")
+def worker_start(
+    invocation: Path = typer.Option(..., "--invocation", help="Path to worker_invocation.yaml"),
+    fake: bool = typer.Option(False, "--fake", help="Run fake Hermes worker in tmux"),
+) -> None:
+    """Start a worker job from a Worker Invocation."""
+    from agentcomos.worker.runner import start_worker
+
+    try:
+        start_worker(invocation, fake=fake)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@worker_app.command("status")
+def worker_status(job: str = typer.Option(..., "--job", help="Worker job ID")) -> None:
+    """Read worker job status without mutating artifacts."""
+    from agentcomos.worker.runner import status_worker
+
+    try:
+        status_worker(job)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@worker_app.command("collect")
+def worker_collect(job: str = typer.Option(..., "--job", help="Worker job ID")) -> None:
+    """Collect worker outputs and update job status when complete."""
+    from agentcomos.worker.runner import collect_worker
+
+    try:
+        collect_worker(job)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@worker_app.command("kill")
+def worker_kill(job: str = typer.Option(..., "--job", help="Worker job ID")) -> None:
+    """Kill a worker tmux session when available."""
+    from agentcomos.worker.runner import kill_worker
+
+    try:
+        kill_worker(job)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@worker_app.command("list")
+def worker_list(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """List worker jobs for a run."""
+    from agentcomos.worker.runner import list_workers
+
+    try:
+        list_workers(run)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@worker_app.command("recover")
+def worker_recover(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """Recover worker jobs for a run from existing artifacts."""
+    from agentcomos.worker.runner import recover_workers
+
+    try:
+        recover_workers(run)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
 
 
 
