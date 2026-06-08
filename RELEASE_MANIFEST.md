@@ -138,9 +138,9 @@ Phase 4: tmux Hermes Worker Pool Fake E2E
 ## 8. 当前验证结果
 
 ```text
-make compile          pass
-make test             38 passed
-make validate-examples Run validation passed
+make compile: pass
+make test: 44 passed
+make validate-examples: Run validation passed
 ```
 
 ## 9. v2.8.6 Ordered Next Steps
