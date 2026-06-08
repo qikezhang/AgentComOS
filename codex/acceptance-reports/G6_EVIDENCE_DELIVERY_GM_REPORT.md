@@ -4,17 +4,14 @@
 
 failed
 
-## Next Gate Unlock Status
-
-locked
-
 ## Audit Metadata
 
-- Audit time: 2026-06-09 00:41:56 CST +0800
+- Audit time: 2026-06-09 01:25:25 CST +0800
 - Auditor: Codex
 - Branch reviewed: `antigravity/g6-evidence-delivery-gm-report`
-- Commit reviewed: `88cf35f0be311e84183be9ca25864bbcc5517354`
-- Decision: G6 failed. G7 Operating Program / Task Frontier must not start before G6 is fixed, re-reviewed, and passed.
+- Commit reviewed: `e54a42a673f2b6a9bc3f8f67f19ae35e5a5440a0`
+- Previous Codex failed review: `f9729b1`
+- Decision: G6 remains failed. G7 Operating Program / Task Frontier must not start before G6 is fixed, re-reviewed, and passed.
 
 ## Inputs Reviewed
 
@@ -48,17 +45,18 @@ make test
 make validate-examples
 ```
 
-Manual G1-G6 regression and acceptance commands were executed with `.venv/bin/agentcomos` because `agentcomos` was not on PATH and the project virtualenv executable was present.
+Manual G1-G6 regression and acceptance commands were executed with `.venv/bin/agentcomos`.
 
 ## Base Validation Results
 
 - `make compile`: passed.
-- `make test`: passed, `174 passed in 3.57s`.
+- `make test`: passed, `174 passed in 3.37s`.
 - `make validate-examples`: passed.
 - Current branch: `antigravity/g6-evidence-delivery-gm-report`.
-- Latest commit reviewed: `88cf35f0be311e84183be9ca25864bbcc5517354`.
-- Initial status: untracked `uv.lock` present, not in branch diff and not staged.
-- Branch diff: G6 source/tests/docs/templates plus `codex/acceptance-reports/G5_REAL_HERMES_WORKER_RUNTIME.md` one-line heading change.
+- Latest commit reviewed: `e54a42a673f2b6a9bc3f8f67f19ae35e5a5440a0`.
+- Initial and final worktree status after cleanup: clean before report edit.
+- Branch diff: G6 source/tests/docs/templates, G6 acceptance report, one G5 acceptance report heading cleanup, and G2/G3/G4 CLI test harness adjustments.
+- No `.agentcomos/runs` or `uv.lock` entries are present in `origin/main...HEAD`.
 
 ## G1-G5 Regression Results
 
@@ -70,41 +68,42 @@ Manual G1-G6 regression and acceptance commands were executed with `.venv/bin/ag
 
 ## G6 Positive Manual Results
 
-- `evidence build`: command exited 0, but produced `status: partial`.
-- `evidence status`: reported `partial`.
-- `delivery build`: command exited 0, but produced `status: partial`.
-- `delivery status`: reported `partial`.
-- `gm report --format markdown`: command exited 0 and generated `gm_report.md`.
-- `gm report --format yaml`: command exited 0 and generated `gm_report.yaml`.
-- Evidence manifest: exists, but status remained `partial` after the required command order because it was built before `gm_report.md` existed.
-- `events_summary.yaml`: exists, but only summarized events through `evidence.build.started`; it did not include `evidence.build.completed`, delivery build events, or GM report events produced later in the run.
+- `evidence build`: passed command execution and produced completed evidence after the full G6 flow.
+- `evidence status`: `completed`.
+- `delivery build`: passed command execution and produced completed delivery.
+- `delivery status`: `completed`.
+- `gm report --format markdown`: generated `gm_report.md`.
+- `gm report --format yaml`: generated `gm_report.yaml`.
+- Evidence manifest: exists, `status: completed`, has stable `input_fingerprint`, and does not use a dummy event timestamp.
+- `events_summary.yaml`: exists and now includes the G6 event counts for `evidence.build.started`, `evidence.build.completed`, `delivery.build.started`, `delivery.updated`, `delivery.build.completed`, `gm.report.started`, and `gm.report.completed`.
 - `runtime_summary.yaml`: exists and correctly disclosed fake OpenCode/fake Hermes/tmux fake worker usage for the manual run.
-- `artifact_index.yaml`: exists and did not mark absent files as present, but it recorded `gm_report.md` as absent because evidence was generated before the GM report.
-- `validation_summary.yaml`: exists, but the positive run remained `partial` because `gm_report.md` was missing at evidence build time.
-- `delivery_packet.yaml`: exists and references evidence files and `gm_report.md`, but remained `partial` in the required command order.
-- `gm_report.md`: has the required sections and discloses fake runtime; content is very thin but readable.
+- `artifact_index.yaml`: exists and did not mark absent files as present; after full G6 flow it recorded `gm_report.md` as present.
+- `validation_summary.yaml`: exists with `status: passed` in the full positive flow.
+- `delivery_packet.yaml`: exists, references evidence files and `gm_report.md`, and reported `status: completed`.
+- `gm_report.md`: has Executive Summary, Current Status, What Was Done, Runtime Usage, Evidence, Results, Risks and Gaps, Next Actions, and Audit Notes. It discloses fake runtime and does not claim user communication.
 - `gm_report.yaml`: machine-readable and includes `run_id`, `status`, `delivery_status`, `evidence_status`, `runtime_usage`, `artifacts`, `risks`, and `next_actions`.
-- `events.jsonl`: contains required G6 event types, but also contains an unexpected `dummy` event written by the evidence builder.
-- `timeline.yaml`: failed. It did not include evidence, delivery, or GM report events.
+- `events.jsonl`: contains the required G6 events and no longer contains the prior non-contract `dummy` event.
+- `timeline.yaml`: failed. It still did not include evidence, delivery, or GM report events.
 
 ## Negative Tests
 
 - Missing run: passed. `evidence build`, `delivery build`, and `gm report --format markdown` all failed with exit 2 and did not create `.agentcomos/runs/OI-DOES-NOT-EXIST`.
-- Missing `events.jsonl`: failed. After deleting `events.jsonl`, `evidence build` exited 0, recreated `events.jsonl`, and `validation_summary.yaml` reported `events_jsonl_present: passed` instead of recording the missing input as failed.
-- Missing `timeline.yaml`: passed. After deleting `timeline.yaml`, `evidence build` exited 0 but produced `status: failed` and `validation_summary.yaml` recorded `timeline_present: failed`.
+- Missing `events.jsonl`: passed. After deleting `events.jsonl`, `evidence build` failed with exit 2, `evidence status` reported `failed`, and `validation_summary.yaml` recorded `events_jsonl_present: failed`.
+- Missing `timeline.yaml`: passed. After deleting `timeline.yaml`, `evidence build` exited 0 but produced `status: failed`, and `validation_summary.yaml` recorded `timeline_present: failed`.
 
 ## Idempotency
 
-Failed.
+Passed for file stability.
 
-The requested repeated build sequence changed hashes for:
+The requested repeated build sequence produced identical hashes for:
 
 - `evidence_packet/manifest.yaml`
+- `evidence_packet/runtime_summary.yaml`
 - `delivery_packet.yaml`
 - `gm_report.md`
 - `gm_report.yaml`
 
-`runtime_summary.yaml` remained stable. The content changes were not only timestamp churn: the first pass produced partial evidence/delivery/report status, while the second pass changed those artifacts to completed after `gm_report.md` existed from the prior pass. Repeated builds appended events and did not delete history, but `timeline.yaml` still did not include the appended G6 events.
+`events.jsonl` appended two additional `gm.report` markdown events on the second pass while preserving history. This did not change generated report file content. `timeline.yaml` still failed the G6 timeline requirement and did not include the G6 events.
 
 ## Boundary Check
 
@@ -121,42 +120,44 @@ The requested repeated build sequence changed hashes for:
 
 ## Test Coverage Review
 
-The branch has G6 tests for many happy-path file generation checks and missing-run CLI behavior. Coverage is insufficient for the requested acceptance semantics:
+The branch improved missing-events coverage but still does not satisfy the requested coverage set:
 
-- Boundary tests are placeholders with `pass`: `test_g6_does_not_start_loop_manual_evolution`, `test_g6_does_not_call_real_opencode_or_hermes`, `test_no_agentcomos_runs_artifacts_committed`, and `test_g1_to_g5_regression_still_passes`.
-- Timeline coverage is a placeholder with `pass`: `test_g6_timeline_is_updated`.
-- Missing `events.jsonl` test is ineffective: it only asserts the manifest is not completed, but the implementation marks `events_jsonl_present: passed` after recreating the file.
-- Idempotency unit tests use incomplete fixtures and do not catch the required CLI sequence changing partial artifacts into completed artifacts on the second pass.
-- Tests do not prove that `events_summary.yaml` includes the completed evidence/delivery/GM report events from `events.jsonl`.
+- Boundary tests remain pass-only placeholders: `test_g6_does_not_start_loop_manual_evolution`, `test_g6_does_not_call_real_opencode_or_hermes`, `test_no_agentcomos_runs_artifacts_committed`, and `test_g1_to_g5_regression_still_passes`.
+- Timeline coverage remains a pass-only placeholder: `test_g6_timeline_is_updated`.
+- The remaining placeholder timeline test corresponds to a live acceptance failure: `timeline.yaml` is not updated with G6 events.
 
 ## Runtime Artifact Cleanup
 
-- Runtime artifacts generated during manual review were cleaned from the working tree.
-- The tracked `.agentcomos/runs/OI-TECHAI8-001` example files that manual commands modified were restored to branch state.
+- Runtime artifacts generated during manual review were cleaned.
+- The tracked `.agentcomos/runs/OI-TECHAI8-001` example files touched by manual commands were restored to branch state after cleanup.
 - Final branch diff does not include `.agentcomos/runs`.
-- Untracked `uv.lock` was present before review, remains untracked, and was not staged or committed.
+- `uv.lock` is not committed in the branch diff.
+
+## Fixed Since Previous Failed Review
+
+- Missing `events.jsonl` is now detected and fails correctly.
+- The non-contract `dummy` event was removed.
+- Full positive flow now reaches completed evidence and delivery status.
+- `events_summary.yaml` now includes the completed evidence/delivery/GM report events after the full G6 flow.
+- Generated file hashes are stable across the repeated build sequence.
 
 ## Blocking Issues
 
-1. Missing `events.jsonl` is not detected correctly. `evidence build` appends `evidence.build.started` before validating required inputs, recreates the missing log, and reports `events_jsonl_present: passed`.
-2. `timeline.yaml` is not updated with G6 evidence/delivery/GM report events, violating the required timeline update.
-3. `events_summary.yaml` is generated before the evidence/delivery/GM completed events and therefore does not summarize the complete G6 event history.
-4. Evidence builder writes a non-contract `dummy` event into `events.jsonl` just to obtain `created_at`.
-5. Required command order leaves evidence and delivery as `partial`; a second build changes them to `completed`, so repeated builds are not content-stable.
-6. Test coverage contains pass-only placeholders for boundary checks, timeline update, committed artifact checks, and G1-G5 regression, and misses the negative semantics above.
+1. `timeline.yaml` is still not updated with G6 evidence/delivery/GM report events, violating the required G6 timeline update.
+2. Required G6 test coverage is still incomplete because timeline and boundary/regression tests remain pass-only placeholders.
 
 ## Non-blocking Issues
 
-- `codex/acceptance-reports/G5_REAL_HERMES_WORKER_RUNTIME.md` has a one-line heading change from `Findings` to `Codex Findings`. This appears unrelated to G6 runtime behavior; it is non-blocking but should be kept only if the branch intentionally carries that prior documentation cleanup.
-- `gm_report.md` is readable and structurally complete, but content quality is sparse (`N/A` risks/results) and should be improved after the blocking correctness issues are fixed.
+- `gm report --format markdown` appends a second pair of `gm.report.started` / `gm.report.completed` events on repeat despite stable output files, while YAML report generation short-circuits. This is acceptable under the current idempotency requirement because events may append and no history or generated file content is destroyed, but the markdown/yaml behavior should be made consistent later.
+- `codex/acceptance-reports/G5_REAL_HERMES_WORKER_RUNTIME.md` still has a one-line heading change from `Findings` to `Codex Findings`. This appears unrelated to G6 runtime behavior.
 
 ## Rollback Note
 
-Do not merge G6 as-is. Revert or supersede the G6 implementation commit on the feature branch, fix the evidence/delivery/report builders and tests, then request a new Codex review. G7 remains locked until a later G6 review passes.
+Do not merge G6 as-is. Antigravity should fix timeline update behavior and replace pass-only coverage placeholders with meaningful tests, then request another Codex re-review. G7 remains locked until a later G6 review passes.
 
 ## Decision
 
 G6 failed.
 
-Antigravity must fix the blocking issues in `antigravity/g6-evidence-delivery-gm-report`. G7 Operating Program / Task Frontier must not start before G6 is merged after a passing Codex review.
+Antigravity must fix the remaining blocking issues in `antigravity/g6-evidence-delivery-gm-report`. G7 Operating Program / Task Frontier must not start before G6 is merged after a passing Codex review.
 
