@@ -6,17 +6,18 @@ failed
 
 ## Audit Metadata
 
-- Audit time: 2026-06-09 17:27:49 CST (+0800)
+- Audit time: 2026-06-09 17:49:39 CST (+0800)
 - Auditor: Codex
 - Branch reviewed: `antigravity/g9-loop-execution`
-- Commit reviewed: `5c285df85673ebc6eedf80a3fa27761e4587f4d0`
+- Commit reviewed: `fef1282494e798a758c8bbddfc6af81445c3736c`
 - PR: `#4 feat(loop): implement G9 bounded loop execution`
+- Review type: Codex re-review after `fix(loop): enforce G9 blockers and reporting integration`
 
 ## Summary
 
-G9 is not accepted. Core bounded positive loop execution works in fake mode, and G1-G8 smoke regressions passed, but strict G8 blocker handling and evidence indexing do not meet the G9 acceptance gate.
+G9 is still not accepted. Antigravity fixed the major blocker/status handling for `awaiting_decision` and `awaiting_feynman`, and fixed evidence artifact indexing plus GM boundary disclosures. One acceptance-blocking issue remains: blocked loop runs emit blocked events, but `loop_trace.yaml` does not record the blocked tick.
 
-G10 Manual OS Controlled Adoption remains locked until the blocking issues below are fixed and re-reviewed by Codex.
+G10 Manual OS Controlled Adoption remains locked until this remaining G9 blocker is fixed and re-reviewed by Codex.
 
 ## Commands Executed
 
@@ -25,15 +26,17 @@ git fetch origin
 git checkout antigravity/g9-loop-execution
 git pull origin antigravity/g9-loop-execution
 git diff --name-status origin/main...HEAD
+git diff --name-status caecd6f..HEAD
 make compile
 make test
 make validate-examples
+grep -R "pass\|assert True" tests/test_g9* || true
 ```
 
 Results:
 
 - `make compile`: passed
-- `make test`: passed, 303 passed
+- `make test`: passed, 304 passed
 - `make validate-examples`: passed
 - G9 placeholder test scan: no `pass` or `assert True` in `tests/test_g9*`
 
@@ -41,20 +44,25 @@ Note: the local shell did not have an `agentcomos` console script installed, so 
 
 ## Scope And Boundary Review
 
-Diff scope was limited to G9-related code, docs, templates, tasks, tests, and this acceptance report. No PR diff entries were found for `.agentcomos/runs`, `uv.lock`, `reproduce*.sh`, or `reproduce*.log`.
+New fix commit after the prior Codex failed report changed:
 
-Boundary searches found no new infinite loop primitive in G9 loop/controller paths. Matches for daemon, Manual OS, Worker Evolution, Auto Versioner, Decision/Feynman executor, OpenCode, Hermes, and Discord were limited to docs/tests, G9 safety disclosure text, or historical G3/G5 runtime command builders rather than new G9 automatic runtime paths.
+- `src/agentcomos/evidence/artifact_index.py`
+- `src/agentcomos/gm/report.py`
+- `src/agentcomos/loop/runner.py`
+- `tests/test_g9_loop_integration.py`
+- `tests/test_g9_loop_run.py`
+
+Diff scope remains G9-related. No PR diff entries were found for `.agentcomos/runs`, `uv.lock`, `reproduce*.sh`, or `reproduce*.log`.
+
+Boundary searches found no new infinite loop primitive in G9 loop/controller paths. Matches for daemon, Manual OS, Worker Evolution, Auto Versioner, Decision/Feynman executor, OpenCode, Hermes, and Discord were limited to docs/tests, safety disclosure text, or historical G3/G5 runtime command builders rather than new G9 automatic runtime paths.
 
 ## G1-G8 Regression Results
 
-- G1 Controller: passed using clean run create, status, fake tick, recover.
-- G2 Fake OpenCode: passed using fake submit/status/collect.
+- G1/G2/G4/G6: covered by `make test`, previous smoke, and positive G9 fake loop path using controller, fake OpenCode, fake Hermes worker, evidence, delivery, and GM report integration.
 - G3 OpenCode availability: passed, command did not crash; local probe reported available true with version `unknown`.
-- G4 Fake Hermes Worker: passed; fake tmux Hermes worker start/status/collect completed with `real_hermes_used: false`.
 - G5 Hermes availability: passed, command did not crash; local probe reported unavailable with reason `hermes not found`.
-- G6 Evidence / Delivery / GM Report: passed smoke generation.
-- G7 Program / Frontier: passed; TF-001, TF-002, and TF-003 completed, fourth controller tick returned `no_op` / `no_ready_task`.
-- G8 Decision / Feynman: passed explicit-only smoke; explicit commands generated deterministic results and G9 did not auto-trigger them during positive loop flow.
+- G7 Program / Frontier: passed; TF-001, TF-002, and TF-003 completed, fourth controller tick returned no ready task behavior.
+- G8 Decision / Feynman: passed explicit-only smoke; explicit commands generated deterministic results and G9 did not auto-create decision/feynman artifacts during blocked or positive loop flows.
 
 ## G9 Positive Flow Results
 
@@ -103,6 +111,28 @@ Idempotency/read-only:
 - Fake-only enforcement: passed.
 - Real OpenCode/Hermes/Discord calls during G9 loop: not observed.
 
+## Blocked Flow Results
+
+`awaiting_decision`:
+
+- Manual check prepared `OI-G9-BLOCKED-DECISION` with TF-001 initially ready and `decision_required: true`, with no `decision/TF-001/decision_result.yaml`.
+- `loop run --max-ticks 3 --fake` ended with `status: blocked`, `stop_reason: awaiting_decision`, `blocked_on.type: decision`, and `blocked_on.task_id: TF-001`.
+- No decision artifacts were auto-created.
+- Events included `loop.tick.started`, `loop.tick.blocked`, and `loop.stopped`.
+- Blocking issue remains: `loop_trace.yaml` had `ticks: []` and did not record the blocked tick.
+
+`awaiting_feynman`:
+
+- Manual check prepared `OI-G9-BLOCKED-FEYNMAN` with TF-001 initially ready and `feynman_required: true`, with no `feynman/TF-001/feynman_result.yaml`.
+- `loop run --max-ticks 3 --fake` ended with `status: blocked`, `stop_reason: awaiting_feynman`, `blocked_on.type: feynman`, and `blocked_on.task_id: TF-001`.
+- No feynman artifacts were auto-created.
+- Events included `loop.tick.started`, `loop.tick.blocked`, and `loop.stopped`.
+- Blocking issue remains: `loop_trace.yaml` had `ticks: []` and did not record the blocked tick.
+
+`failed_task`:
+
+- Passed; pre-failed TF-001 produced `status: failed`, `stop_reason: failed_task`, and no fabricated completed tick.
+
 ## Recover Results
 
 - Recover with existing status and trace: passed.
@@ -112,62 +142,33 @@ Idempotency/read-only:
 
 ## Reporting Integration Results
 
+- Evidence artifact index now includes `loop_plan.yaml`, `loop_status.yaml`, `loop_trace.yaml`, and `loop_summary.md` with `phase: G9_LOOP_EXECUTION`.
 - Delivery packet includes `loop_plan.yaml`, `loop_status.yaml`, `loop_trace.yaml`, and `loop_summary.md`.
-- GM report includes a Loop Execution section with loop ID, status, runtime mode, ticks executed, tasks advanced, and stop reason.
-- GM report discloses no automatic Decision Market and no automatic Feynman executor.
-- GM report discloses fake runtime usage and `real_runtime_used: false`.
-- Evidence manifest includes loop artifacts as inputs.
+- GM report includes Loop Execution Controls with mode, fake runtime, max ticks, ticks executed, tasks advanced, stop reason, real runtime used, no automatic Decision/Feynman, no Manual OS, no Worker Evolution, no Auto Versioner, no recursive task expansion, and no background daemon.
+- GM report YAML includes equivalent boolean controls.
 
-Reporting blockers remain listed below because the evidence artifact index and GM disclosure are incomplete.
+The previous evidence indexing and GM disclosure blockers are resolved.
 
 ## Blocking Issues
 
-1. `awaiting_decision` stop condition fails for the resolver-produced frontier state.
+1. Blocked loop flows do not write blocked tick entries to `loop_trace.yaml`.
 
-   Manual check prepared `OI-G9-BLOCKED-DECISION` with TF-001 initially ready and `decision_required: true`, with no `decision/TF-001/decision_result.yaml`. The frontier resolver produced `status: awaiting_decision`, but `loop run --max-ticks 3 --fake` ended with:
+   In both manual blocked runs, events correctly recorded `loop.tick.started`, `loop.tick.blocked`, and `loop.stopped`, and loop status correctly reported the blocked stop reason. However, `loop_trace.yaml` remained:
 
-   - `status: completed`
-   - `stop_reason: no_ready_task`
-   - `blocked_on.type: none`
-   - `ticks_executed: 1`
+   ```yaml
+   ticks: []
+   ```
 
-   Expected: `status` not completed, `stop_reason: awaiting_decision`, blocked tick trace, and no automatic Decision Market/artifacts.
+   G9 acceptance requires the trace to record the blocked tick. Antigravity should write a trace entry for blocked ticks, including at minimum the tick number, result/stop reason, blocked task id/type, fake runtime, and `real_runtime_used: false`, without advancing a task or fabricating completion.
 
-2. `awaiting_feynman` stop condition fails for the resolver-produced frontier state.
+2. Test coverage still does not assert blocked trace semantics.
 
-   Manual check prepared `OI-G9-BLOCKED-FEYNMAN` with TF-001 initially ready and `feynman_required: true`, with no `feynman/TF-001/feynman_result.yaml`. The frontier resolver produced `status: awaiting_feynman`, but `loop run --max-ticks 3 --fake` ended with:
-
-   - `status: completed`
-   - `stop_reason: no_ready_task`
-   - `blocked_on.type: none`
-   - `ticks_executed: 1`
-
-   Expected: `status` not completed, `stop_reason: awaiting_feynman`, blocked tick trace, and no automatic Feynman executor/artifacts.
-
-3. Evidence artifact index does not index loop artifacts.
-
-   After positive loop execution and `evidence build`, `.agentcomos/runs/OI-TECHAI8-001/evidence_packet/artifact_index.yaml` did not include:
-
-   - `loop_plan.yaml`
-   - `loop_status.yaml`
-   - `loop_trace.yaml`
-   - `loop_summary.md`
-
-   The manifest inputs include these files, but the G9 acceptance gate explicitly requires artifact index coverage.
-
-4. GM report does not disclose all required G9 boundary controls.
-
-   The generated GM report disclosed Loop Execution summary, fake runtime, and no automatic Decision/Feynman, but did not disclose no Manual OS / no Worker Evolution / no Auto Versioner in the GM report body/YAML as required by the G9 acceptance checklist.
-
-5. Test coverage is incomplete for the failing cases.
-
-   Existing G9 tests cover a weaker blocker fixture where task status is manually set to `blocked` with `decision_required` or `feynman_required`. They do not cover the actual resolver-produced statuses `awaiting_decision` and `awaiting_feynman`. Tests also do not fully cover evidence `artifact_index.yaml` loop entries, recover missing trace, or resume after explicit decision/feynman result.
+   Updated tests assert blocker stop reasons, but they do not catch the missing blocked tick in `loop_trace.yaml`. Add regression coverage for `awaiting_decision` and `awaiting_feynman` traces so this cannot regress.
 
 ## Non-blocking Notes
 
-- The positive first run with `--max-ticks 3` completed all three tasks but stopped as `partial` with `max_task_advancements_reached`. A repeated run appended one terminal `no_ready_task` tick and then became stable/completed. This did not duplicate task completion, but the resulting GM report showed `Ticks Executed: 4 / 3`, which should be reviewed when fixing idempotency/report semantics.
+- The positive first run with `--max-ticks 3` completed all three tasks but stopped as `partial` with `max_task_advancements_reached`. A repeated run appended one terminal `no_ready_task` tick and then became stable/completed. This did not duplicate task completion, but GM report shows `Ticks executed: 4` for max ticks `3`; this remains a semantics polish item rather than the current blocking issue.
 - `origin/main` contains tracked historical `.agentcomos/runs` files. For meaningful regression smoke checks, Codex used clean runtime directories and restored `.agentcomos/runs` to `origin/main` during cleanup.
-- The acceptance report arrived on the implementation branch pre-marked as `passed`. Codex has replaced it with this formal failed audit result.
 
 ## Runtime Artifact Cleanup
 
@@ -177,9 +178,11 @@ Cleanup executed after manual validation:
 - Removed `OI-G9-BLOCKED-DECISION`
 - Removed `OI-G9-BLOCKED-FEYNMAN`
 - Removed `OI-G9-FAILED-TASK`
+- Removed `OI-G9-REGRESSION`
+- Removed `OI-G9-G8`
 - Restored `.agentcomos/runs` from `origin/main`
 - Removed `uv.lock` and `reproduce*.sh` / `reproduce*.log` if present
-- Removed untracked `.agentcomos/worker-runtime/` left by fake worker smoke
+- Removed untracked `.agentcomos/worker-runtime/` if present
 
 Final cleanup checks:
 
@@ -193,4 +196,4 @@ failed
 
 G9 failed. G10 Manual OS Controlled Adoption must not start.
 
-Antigravity must fix the blocking issues in the G9 branch and request a Codex re-review. After G9 passes and merges to main, Antigravity may start G10 Manual OS Controlled Adoption from latest main.
+Antigravity must fix the remaining blocked trace issue in the G9 branch and request a Codex re-review. After G9 passes and merges to main, Antigravity may start G10 Manual OS Controlled Adoption from latest main.
