@@ -1,0 +1,8 @@
+run_id: OI-TECHAI8-001
+task_id: TF-001
+mode: explicit
+created_by: controller
+status: requested
+source: task_frontier
+check_type: task_understanding
+question: "Can this task be explained clearly enough to execute safely?"

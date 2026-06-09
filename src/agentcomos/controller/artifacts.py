@@ -16,6 +16,8 @@ def build_timeline(run_id: str, current_state: str) -> None:
             t["from_state"] = e["payload"]["from_state"]
         if "to_state" in e.get("payload", {}):
             t["to_state"] = e["payload"]["to_state"]
+        if "task_id" in e.get("payload", {}):
+            t["task_id"] = e["payload"]["task_id"]
         timeline_events.append(t)
     
     timeline = {
@@ -43,6 +45,8 @@ def rebuild_timeline_from_events(run_id: str) -> None:
             t["from_state"] = e["payload"]["from_state"]
         if "to_state" in e.get("payload", {}):
             t["to_state"] = e["payload"]["to_state"]
+        if "task_id" in e.get("payload", {}):
+            t["task_id"] = e["payload"]["task_id"]
         timeline_events.append(t)
     
     current_state = "unknown"

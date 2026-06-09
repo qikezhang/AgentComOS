@@ -1,0 +1,15 @@
+run_id: OI-TECHAI8-001
+task_id: TF-001
+mode: explicit
+created_by: controller
+status: requested
+source: task_frontier
+criteria:
+  - feasibility
+  - safety
+  - evidence
+options:
+  - option_id: option_a
+    summary: "Proceed with current task plan"
+  - option_id: option_b
+    summary: "Block task until additional evidence exists"
