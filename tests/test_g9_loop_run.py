@@ -109,7 +109,7 @@ def test_loop_run_stops_on_awaiting_decision(run_dir: Path):
     run_id = run_dir.name
     create_loop_plan(run_id)
     frontier = yaml.safe_load((run_dir / "task_frontier.yaml").read_text())
-    frontier["tasks"][0]["status"] = "blocked"
+    frontier["tasks"][0]["status"] = "ready"
     frontier["tasks"][0]["decision_required"] = True
     (run_dir / "task_frontier.yaml").write_text(yaml.dump(frontier))
     
@@ -117,12 +117,13 @@ def test_loop_run_stops_on_awaiting_decision(run_dir: Path):
     assert res.exit_code == 0
     status = yaml.safe_load((run_dir / "loop_status.yaml").read_text())
     assert status["stop_reason"] == "awaiting_decision"
+    assert status["status"] == "blocked"
 
 def test_loop_run_stops_on_awaiting_feynman(run_dir: Path):
     run_id = run_dir.name
     create_loop_plan(run_id)
     frontier = yaml.safe_load((run_dir / "task_frontier.yaml").read_text())
-    frontier["tasks"][0]["status"] = "blocked"
+    frontier["tasks"][0]["status"] = "ready"
     frontier["tasks"][0]["feynman_required"] = True
     (run_dir / "task_frontier.yaml").write_text(yaml.dump(frontier))
     
@@ -130,3 +131,22 @@ def test_loop_run_stops_on_awaiting_feynman(run_dir: Path):
     assert res.exit_code == 0
     status = yaml.safe_load((run_dir / "loop_status.yaml").read_text())
     assert status["stop_reason"] == "awaiting_feynman"
+    assert status["status"] == "blocked"
+
+def test_repeated_terminal_loop_run_does_not_append_no_ready_tick(run_dir: Path):
+    run_id = run_dir.name
+    create_loop_plan(run_id)
+    plan = yaml.safe_load((run_dir / "loop_plan.yaml").read_text())
+    plan["max_task_advancements"] = 10
+    (run_dir / "loop_plan.yaml").write_text(yaml.dump(plan))
+    
+    # First run reaches end of tasks
+    runner.invoke(app, ["loop", "run", "--run", run_id, "--max-ticks", "5", "--fake"])
+    status = yaml.safe_load((run_dir / "loop_status.yaml").read_text())
+    ticks1 = status["ticks_executed"]
+    assert status["status"] == "completed"
+    
+    # Second run should do nothing
+    runner.invoke(app, ["loop", "run", "--run", run_id, "--max-ticks", "5", "--fake"])
+    status2 = yaml.safe_load((run_dir / "loop_status.yaml").read_text())
+    assert status2["ticks_executed"] == ticks1

@@ -59,6 +59,13 @@ def test_loop_integration_updates_artifacts(run_dir: Path):
     assert "loop_plan.yaml" in manifest["inputs"]
     assert "loop_status.yaml" in manifest["inputs"]
     
+    artifact_index = yaml.safe_load((run_dir / "evidence_packet" / "artifact_index.yaml").read_text())
+    indexed_paths = [a["path"] for a in artifact_index["artifacts"]]
+    assert "loop_plan.yaml" in indexed_paths
+    assert "loop_status.yaml" in indexed_paths
+    assert "loop_trace.yaml" in indexed_paths
+    assert "loop_summary.md" in indexed_paths
+    
     # 3. Delivery
     delivery = yaml.safe_load((run_dir / "delivery_packet.yaml").read_text())
     assert "loop_status.yaml" in delivery["artifacts"]
@@ -67,8 +74,14 @@ def test_loop_integration_updates_artifacts(run_dir: Path):
     gm_yaml = yaml.safe_load((run_dir / "gm_report.yaml").read_text())
     assert "loop_execution" in gm_yaml
     assert gm_yaml["loop_execution"]["ticks_executed"] == 1
+    assert gm_yaml["loop_execution"]["manual_os_enabled"] is False
+    assert gm_yaml["loop_execution"]["worker_evolution_enabled"] is False
+    assert gm_yaml["loop_execution"]["auto_versioner_enabled"] is False
+    assert gm_yaml["loop_execution"]["mode"] == "bounded"
     
     # 5. GM Report MD
     gm_md = (run_dir / "gm_report.md").read_text()
-    assert "## Loop Execution" in gm_md
-    assert "**Ticks Executed**: 1 / 1" in gm_md
+    assert "## Loop Execution Controls" in gm_md
+    assert "**Manual OS**: not enabled" in gm_md
+    assert "**Worker Evolution**: not enabled" in gm_md
+    assert "**Auto Versioner**: not enabled" in gm_md

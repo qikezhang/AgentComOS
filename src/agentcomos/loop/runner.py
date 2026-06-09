@@ -22,7 +22,7 @@ def run_loop(run_id: str, max_ticks: int, fake: bool) -> None:
     status = _get_or_create_status(run_id, max_ticks)
     trace = _get_or_create_trace(run_id)
     
-    if status["status"] in ("completed", "failed"):
+    if status["status"] in ("completed", "failed", "blocked"):
         return
         
     status["status"] = "running"
@@ -36,7 +36,7 @@ def run_loop(run_id: str, max_ticks: int, fake: bool) -> None:
         
         # Check blockers BEFORE tick
         frontier = read_task_frontier(run_id)
-        if _is_blocked_on_decision_or_feynman(frontier, status):
+        if _is_blocked_on_decision_or_feynman(frontier, status, run_id):
             stop_reason = status["stop_reason"]
             append_event(run_id, "loop.tick.blocked", {"stop_reason": stop_reason})
             break
@@ -76,7 +76,7 @@ def run_loop(run_id: str, max_ticks: int, fake: bool) -> None:
         frontier = read_task_frontier(run_id)
         if tick_result == "no_ready_task":
             break
-        elif _is_blocked_on_decision_or_feynman(frontier, status):
+        elif _is_blocked_on_decision_or_feynman(frontier, status, run_id):
             stop_reason = status["stop_reason"]
             break
         elif status["tasks_advanced"] >= yaml.safe_load(plan_path.read_text()).get("max_task_advancements", 999):
@@ -88,7 +88,7 @@ def run_loop(run_id: str, max_ticks: int, fake: bool) -> None:
         status["status"] = "partial" if status["tasks_advanced"] > 0 else "completed"
     elif stop_reason == "no_ready_task":
         status["status"] = "completed"
-    elif stop_reason in ("awaiting_decision", "awaiting_feynman"):
+    elif stop_reason in ("awaiting_decision", "awaiting_feynman", "feynman_failed"):
         status["status"] = "blocked"
     elif stop_reason == "failed_task":
         status["status"] = "failed"
@@ -162,7 +162,7 @@ def _write_summary(path: Path, status: dict) -> None:
 """
     path.write_text(summary, encoding="utf-8")
 
-def _is_blocked_on_decision_or_feynman(frontier: dict, status: dict) -> bool:
+def _is_blocked_on_decision_or_feynman(frontier: dict, status: dict, run_id: str) -> bool:
     if not frontier or "tasks" not in frontier:
         return False
         
@@ -182,4 +182,36 @@ def _is_blocked_on_decision_or_feynman(frontier: dict, status: dict) -> bool:
                 status["stop_reason"] = "awaiting_feynman"
                 return True
                 
+        if task["status"] in ("ready", "executable"):
+            if task.get("decision_required"):
+                decision_file = Path(f".agentcomos/runs/{run_id}/decision/{task['task_id']}/decision_result.yaml")
+                if not decision_file.exists():
+                    status["blocked_on"] = {"type": "decision", "task_id": task["task_id"]}
+                    status["stop_reason"] = "awaiting_decision"
+                    return True
+                res = yaml.safe_load(decision_file.read_text(encoding="utf-8"))
+                if res.get("status") != "completed":
+                    status["blocked_on"] = {"type": "decision", "task_id": task["task_id"]}
+                    status["stop_reason"] = "awaiting_decision"
+                    return True
+            
+            if task.get("feynman_required"):
+                feynman_file = Path(f".agentcomos/runs/{run_id}/feynman/{task['task_id']}/feynman_result.yaml")
+                if not feynman_file.exists():
+                    status["blocked_on"] = {"type": "feynman", "task_id": task["task_id"]}
+                    status["stop_reason"] = "awaiting_feynman"
+                    return True
+                res = yaml.safe_load(feynman_file.read_text(encoding="utf-8"))
+                if res.get("status") != "completed":
+                    status["blocked_on"] = {"type": "feynman", "task_id": task["task_id"]}
+                    status["stop_reason"] = "awaiting_feynman"
+                    return True
+                if res.get("pass") is False:
+                    status["blocked_on"] = {"type": "feynman", "task_id": task["task_id"]}
+                    status["stop_reason"] = "feynman_failed"
+                    return True
+                    
+            # Controller will process this candidate, no need to check further ones
+            break
+            
     return False

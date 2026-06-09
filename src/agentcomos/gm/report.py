@@ -62,6 +62,16 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
         loop_status = {}
         if loop_status_path.exists():
             loop_status = yaml.safe_load(loop_status_path.read_text(encoding="utf-8")) or {}
+            loop_status.update({
+                "mode": "bounded",
+                "automatic_decision_market_enabled": False,
+                "automatic_feynman_executor_enabled": False,
+                "manual_os_enabled": False,
+                "worker_evolution_enabled": False,
+                "auto_versioner_enabled": False,
+                "recursive_task_expansion_enabled": False,
+                "daemon_enabled": False
+            })
         
         for task in frontier.get("tasks", []):
             task_id = task.get("task_id")
@@ -110,7 +120,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
         status = "completed"
         if evidence_status in ("failed", "missing_manifest", "missing_run") or delivery_status in ("failed", "missing_packet", "missing_run"):
             status = "failed"
-        elif evidence_status == "partial" or delivery_status == "partial" or len(frontier_status.get("failed_tasks", [])) > 0 or awaiting_d or awaiting_f or missing_required:
+        elif evidence_status == "partial" or delivery_status == "partial" or len(frontier_status.get("failed_tasks", [])) > 0 or awaiting_d or awaiting_f or missing_required or loop_status.get("status") == "blocked":
             status = "partial"
 
         # Artifact gaps
@@ -290,13 +300,20 @@ The following evidence files were used to generate this report:
 - `task_frontier_index.yaml`
 - `frontier_status.yaml`
 
-## Loop Execution
-- **Loop ID**: {loop_status.get('loop_id', 'missing')}
-- **Status**: {loop_status.get('status', 'missing')}
-- **Runtime Mode**: {loop_status.get('runtime_mode', 'missing')}
-- **Ticks Executed**: {loop_status.get('ticks_executed', 0)} / {loop_status.get('ticks_requested', 0)}
-- **Tasks Advanced**: {loop_status.get('tasks_advanced', 0)}
-- **Stop Reason**: {loop_status.get('stop_reason', 'missing')}
+## Loop Execution Controls
+- **Loop Execution mode**: bounded
+- **Runtime mode**: {loop_status.get('runtime_mode', 'fake')}
+- **Max ticks**: {loop_status.get('ticks_requested', 0)}
+- **Ticks executed**: {loop_status.get('ticks_executed', 0)}
+- **Tasks advanced**: {loop_status.get('tasks_advanced', 0)}
+- **Stop reason**: {loop_status.get('stop_reason', 'missing')}
+- **Real runtime used**: false
+- **Automatic Decision/Feynman**: disabled
+- **Manual OS**: not enabled
+- **Worker Evolution**: not enabled
+- **Auto Versioner**: not enabled
+- **Recursive task expansion**: not enabled
+- **Background daemon**: not enabled
 
 ## Task Frontier
 {frontier_md}
