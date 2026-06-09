@@ -6,6 +6,7 @@ import agentcomos.controller.state as state
 from agentcomos.evidence.builder import finalize_evidence_packet, get_input_fingerprint, get_evidence_status
 from agentcomos.delivery.builder import get_delivery_status
 from agentcomos.controller.artifacts import rebuild_timeline_from_events
+from agentcomos.frontier.builder import read_task_frontier
 
 def generate_gm_report(run_id: str, format: str = "markdown") -> None:
     run_dir = state.get_run_dir(run_id)
@@ -50,10 +51,61 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
         hm = rt.get("hermes", {})
         wk = rt.get("worker", {})
         
+        frontier = read_task_frontier(run_id) or {}
+        decision_tasks = []
+        feynman_tasks = []
+        missing_required = False
+        awaiting_d = len(frontier_status.get("awaiting_decision_tasks", [])) > 0
+        awaiting_f = len(frontier_status.get("awaiting_feynman_tasks", [])) > 0
+        
+        for task in frontier.get("tasks", []):
+            task_id = task.get("task_id")
+            if task.get("decision_required") or (run_dir / "decision" / task_id / "decision_request.yaml").exists():
+                result_path = run_dir / "decision" / task_id / "decision_result.yaml"
+                status_val = "completed" if result_path.exists() else ("awaiting_decision" if task_id in frontier_status.get("awaiting_decision_tasks", []) else "missing")
+                if not result_path.exists():
+                    missing_required = True
+                dt = {
+                    "task_id": task_id,
+                    "required": True,
+                    "status": status_val,
+                    "artifact": f"decision/{task_id}/decision_result.yaml"
+                }
+                if result_path.exists():
+                    d_result = yaml.safe_load(result_path.read_text(encoding="utf-8")) or {}
+                    dt["selected_option"] = d_result.get("selected_option", "unknown")
+                decision_tasks.append(dt)
+                
+            if task.get("feynman_required") or (run_dir / "feynman" / task_id / "feynman_check.yaml").exists():
+                result_path = run_dir / "feynman" / task_id / "feynman_result.yaml"
+                status_val = "completed" if result_path.exists() else ("awaiting_feynman" if task_id in frontier_status.get("awaiting_feynman_tasks", []) else "missing")
+                if not result_path.exists():
+                    missing_required = True
+                ft = {
+                    "task_id": task_id,
+                    "required": True,
+                    "status": status_val,
+                    "artifact": f"feynman/{task_id}/feynman_result.yaml"
+                }
+                if result_path.exists():
+                    f_result = yaml.safe_load(result_path.read_text(encoding="utf-8")) or {}
+                    ft["pass"] = f_result.get("pass", False)
+                feynman_tasks.append(ft)
+                
+        g8_controls = {
+            "decision_controlled_mode": "explicit",
+            "feynman_controlled_mode": "explicit",
+            "automatic_decision_market_enabled": False,
+            "automatic_feynman_executor_enabled": False,
+            "real_runtime_used": False,
+            "decision_tasks": decision_tasks,
+            "feynman_tasks": feynman_tasks
+        }
+        
         status = "completed"
         if evidence_status in ("failed", "missing_manifest", "missing_run") or delivery_status in ("failed", "missing_packet", "missing_run"):
             status = "failed"
-        elif evidence_status == "partial" or delivery_status == "partial" or len(frontier_status.get("failed_tasks", [])) > 0:
+        elif evidence_status == "partial" or delivery_status == "partial" or len(frontier_status.get("failed_tasks", [])) > 0 or awaiting_d or awaiting_f or missing_required:
             status = "partial"
 
         # Artifact gaps
@@ -88,6 +140,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 "delivery_status": delivery_status,
                 "evidence_status": evidence_status,
                 "summary": "GM Report generated from evidence.",
+                "g8_controls": g8_controls,
                 "runtime_usage": {
                     "fake_opencode_used": oc.get("fake_opencode_used", False),
                     "real_opencode_attempted": oc.get("real_opencode_attempted", False),
@@ -140,6 +193,54 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 f"- **Next Task**: {frontier_status.get('next_task_id')}\n"
             )
             
+            controls_md_lines = [
+                "## Decision / Feynman Controls",
+                "- **Decision controlled mode**: explicit",
+                "- **Feynman controlled mode**: explicit",
+                "- **Automatic Decision Market**: not enabled",
+                "- **Automatic Feynman executor**: not enabled",
+                "- **Real runtime used**: false",
+                "",
+                "These controls were generated deterministically for G8 controlled adoption.",
+                ""
+            ]
+            
+            if decision_tasks:
+                controls_md_lines.append("**Decision Tasks:**")
+                for t in decision_tasks:
+                    if "selected_option" in t:
+                        controls_md_lines.append(f"- Task {t['task_id']}: status={t['status']}, selected_option={t['selected_option']}, artifact={t['artifact']}")
+                    else:
+                        controls_md_lines.append(f"- Task {t['task_id']}: status={t['status']}, artifact={t['artifact']}")
+                controls_md_lines.append("")
+                
+            if feynman_tasks:
+                controls_md_lines.append("**Feynman Tasks:**")
+                for t in feynman_tasks:
+                    if "pass" in t:
+                        controls_md_lines.append(f"- Task {t['task_id']}: status={t['status']}, pass={t['pass']}, artifact={t['artifact']}")
+                    else:
+                        controls_md_lines.append(f"- Task {t['task_id']}: status={t['status']}, artifact={t['artifact']}")
+                controls_md_lines.append("")
+                
+            if awaiting_d:
+                controls_md_lines.append("**Blocked on Decision:**")
+                for task_id in frontier_status.get("awaiting_decision_tasks", []):
+                    controls_md_lines.append(f"- Blocked task: {task_id}")
+                    controls_md_lines.append(f"  - Missing artifact: decision/{task_id}/decision_result.yaml")
+                    controls_md_lines.append(f"  - Next action: run `agentcomos decision request --run {run_id} --task {task_id} --mode explicit`")
+                controls_md_lines.append("")
+
+            if awaiting_f:
+                controls_md_lines.append("**Blocked on Feynman Check:**")
+                for task_id in frontier_status.get("awaiting_feynman_tasks", []):
+                    controls_md_lines.append(f"- Blocked task: {task_id}")
+                    controls_md_lines.append(f"  - Missing artifact: feynman/{task_id}/feynman_result.yaml")
+                    controls_md_lines.append(f"  - Next action: run `agentcomos feynman check --run {run_id} --task {task_id} --mode explicit`")
+                controls_md_lines.append("")
+
+            controls_md = "\n".join(controls_md_lines)
+            
             report_md = f"""# GM Report - {run_id}
 
 ## Executive Summary
@@ -155,6 +256,7 @@ This report summarizes the execution of run `{run_id}`, detailing the status of 
 ## What Was Done
 The GM reporting process gathered the latest evidence packet and delivery packet artifacts. It aggregated runtime occurrences, identified missing elements, and verified runtime boundaries according to G6 requirements.
 
+{controls_md}
 ## Runtime Usage
 - **Fake OpenCode used**: {oc.get("fake_opencode_used", False)}
 - **Real OpenCode attempted**: {oc.get("real_opencode_attempted", False)}
@@ -214,3 +316,14 @@ This report was automatically generated by AgentComOS GM Report Builder. It does
         events.append_event(run_id, "gm.report.failed", {"error": str(e)})
         rebuild_timeline_from_events(run_id)
         raise
+
+def get_gm_report_status(run_id: str, format: str = "yaml") -> str:
+    # helper added for test
+    run_dir = state.get_run_dir(run_id)
+    path = run_dir / ("gm_report.yaml" if format == "yaml" else "gm_report.md")
+    if not path.exists():
+        return "missing"
+    if format == "yaml":
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        return data.get("status", "unknown")
+    return "unknown"

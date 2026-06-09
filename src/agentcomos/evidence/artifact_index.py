@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import yaml
 import agentcomos.controller.state as state
+from agentcomos.frontier.builder import read_task_frontier
 
 def generate_artifact_index(run_id: str) -> None:
     run_dir = state.get_run_dir(run_id)
@@ -20,14 +21,59 @@ def generate_artifact_index(run_id: str) -> None:
         {"path": "worker_outputs/TF-001/result.yaml", "type": "worker_output"}
     ]
     
+    # Scan decision directory
+    decision_dir = run_dir / "decision"
+    if decision_dir.exists() and decision_dir.is_dir():
+        for task_dir in decision_dir.iterdir():
+            if not task_dir.is_dir():
+                continue
+            task_id = task_dir.name
+            if (task_dir / "decision_request.yaml").exists():
+                checks.append({
+                    "path": f"decision/{task_id}/decision_request.yaml",
+                    "type": "decision_request",
+                    "phase": "G8_DECISION_FEYNMAN_CONTROLLED_ADOPTION"
+                })
+                checks.append({
+                    "path": f"decision/{task_id}/decision_result.yaml",
+                    "type": "decision_result",
+                    "phase": "G8_DECISION_FEYNMAN_CONTROLLED_ADOPTION"
+                })
+    
+    # Scan feynman directory
+    feynman_dir = run_dir / "feynman"
+    if feynman_dir.exists() and feynman_dir.is_dir():
+        for task_dir in feynman_dir.iterdir():
+            if not task_dir.is_dir():
+                continue
+            task_id = task_dir.name
+            if (task_dir / "feynman_check.yaml").exists():
+                checks.append({
+                    "path": f"feynman/{task_id}/feynman_check.yaml",
+                    "type": "feynman_check",
+                    "phase": "G8_DECISION_FEYNMAN_CONTROLLED_ADOPTION"
+                })
+                checks.append({
+                    "path": f"feynman/{task_id}/feynman_result.yaml",
+                    "type": "feynman_result",
+                    "phase": "G8_DECISION_FEYNMAN_CONTROLLED_ADOPTION"
+                })
+
+
+
+    checks.sort(key=lambda x: x["path"])
+
     artifacts = []
     for check in checks:
         exists = (run_dir / check["path"]).exists()
-        artifacts.append({
+        entry = {
             "path": check["path"],
             "type": check["type"],
             "exists": exists
-        })
+        }
+        if "phase" in check:
+            entry["phase"] = check["phase"]
+        artifacts.append(entry)
         
     index = {
         "run_id": run_id,
