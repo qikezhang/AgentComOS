@@ -2,64 +2,43 @@
 
 Status: failed
 
-Audit time: 2026-06-10 03:36 Asia/Shanghai (2026-06-09T19:36:35Z)
+Audit time: 2026-06-10 04:17 Asia/Shanghai (2026-06-09T20:17:51Z)
 Auditor: Codex
 Branch reviewed: antigravity/g11-gm-discord-controlled-bridge
-Commit reviewed: 6b2ea9dd97fafaee0e74bc85f55ef2e294fd752d
+Commit reviewed: 53febecdf2d479ecd3e0af77edb44e979aab31b7
+Review type: Codex re-review after prior failed report
 
 ## Final Decision
 
-G11 failed Codex acceptance.
+G11 remains failed under the requested strict acceptance scope.
 
-G12 remains locked. Antigravity must fix the blocking issues in the G11 branch before G11 can be merged or used as the base for G12.
+The functional G11 blockers from the first Codex review were largely fixed in commit `53febecdf2d479ecd3e0af77edb44e979aab31b7`, but one blocking scope issue remains unresolved. G12 remains locked.
 
-## Blocking Issues
+## Remaining Blocking Issue
 
-1. Decision/Feynman Discord commands do not parse the required acceptance syntax.
-   - Tested messages:
-     - `decision result TF-002 approved`
-     - `feynman result TF-002 pass`
-   - Both parsed as `command_type: unknown` with `status: blocked`.
-   - Required result: `decision_result` and `feynman_result` commands must require explicit confirmation, then execute through the G8 explicit result path.
+1. Changed file scope still includes `tests/test_g6_evidence_packet.py`, which is outside the requested G11 allowed change list.
+   - Current diff still includes `M tests/test_g6_evidence_packet.py`.
+   - The change removes the earlier `discord` guard from a G6 evidence boundary test.
+   - The user-specified allowed test scope for G11 was `tests/test_g11_*.py`; this file is not in that list.
+   - Required resolution: restore the G6 test change, move equivalent coverage to G11-specific tests, or get explicit scope approval before G11 can pass.
 
-2. Loop command artifacts do not preserve required parsed parameters.
-   - `loop run OI-TECHAI8-001 max_ticks=3 fake` parsed as `loop_run_request`, but the generated `gm_command.yaml` did not record `max_ticks`, `fake`, or `real_runtime_used`.
-   - Required result: command artifact must make bounded-loop and fake-runtime controls explicit and reviewable.
+## Fixed Since Prior Review
 
-3. Confirmed loop execution failed the required acceptance path unless `loop_plan.yaml` was pre-created outside the Discord command.
-   - After G11 setup (`run create`, `program build`, `frontier build`), confirmed execution of `loop run ... max_ticks=3 fake` returned `status: failed` with `loop_plan.yaml is missing`.
-   - Required result: the G11 command path must either create/require the bounded loop plan as part of an explicit safe workflow or fail before being treated as an executable confirmed command. The acceptance command itself must pass.
-
-4. Oversized loop requests are not rejected or clearly bounded.
-   - `loop run OI-TECHAI8-001 max_ticks=999999 fake` was accepted after `loop plan` existed and produced a `completed` GM Discord command result: `Executed fake loop run with max_ticks=999999`.
-   - Required result: oversized `max_ticks` must be rejected or capped and disclosed as bounded.
-
-5. GM Discord audit is stale and incomplete.
-   - `gm-discord audit` returns the existing audit file without regenerating or updating it.
-   - After shell/manual/decision/feynman/loop commands, the audit still contained only the first status command.
-   - Required result: audit must contain inbound, command, result, and safety boundary coverage for all G11 commands or explicitly regenerate idempotently when inputs change.
-
-6. Repeated command execution is not idempotent for blocked commands.
-   - Re-executing blocked decision/feynman commands appended duplicate `gm_discord.command.blocked` events.
-   - Required result: repeated parse/execute should return `already_current` or otherwise avoid duplicate completed/blocked event spam.
-
-7. Blocked shell command reason is too generic.
-   - Dangerous message `run shell: sudo systemctl restart docker` was blocked and did not execute shell, but the result summary was only `Command is blocked for safety.`
-   - Required result: blocked reason should disclose shell/unsafe/prohibited cause so Evidence/Delivery/GM report can explain why it was blocked.
-
-8. GM report and delivery do not fully disclose G11 failures.
-   - Delivery marked the oversized loop command as `completed`.
-   - GM report asserted `loop_bounded: True` and did not disclose the blocked shell reason or oversized max_ticks acceptance.
-   - Required result: reporting must not represent unsafe or out-of-policy G11 command outcomes as successful/compliant.
-
-9. Changed file scope includes `tests/test_g6_evidence_packet.py`, which is outside the requested G11 allowed change list.
-   - The diff removes the older `discord` guard from a G6 boundary test.
-   - Required result: either justify this as an explicit G11 acceptance change in scope or move coverage into G11-specific tests without weakening earlier boundary tests.
+- Decision Discord result syntax now parses as `decision_result`.
+- Feynman Discord result syntax passes with `feynman result TF-002 passed`.
+- Commands requiring confirmation return `requires_confirmation` before explicit confirmation.
+- Explicit confirmation allows Manual OS approval, Decision result, Feynman result, and fake bounded loop execution.
+- Loop command artifacts now record `max_ticks`, `fake`, `real_runtime_used`, and bounded-loop safety fields.
+- Missing `max_ticks`, oversized `max_ticks=999999`, and real runtime loop requests are blocked.
+- Blocked shell command now reports a specific reason (`prohibited_shell_command`).
+- GM Discord audit now regenerates when content changes and covers all commands.
+- Repeated execution of completed/blocked commands did not append duplicate events in the re-review.
+- Delivery and GM report now disclose blocked G11 commands, reasons, and next actions.
 
 ## Verification Results
 
 - make compile: passed.
-- make test: passed, 375 tests passed.
+- make test: passed, 414 tests passed.
 - make validate-examples: passed.
 - G1 Controller regression: passed using the project-local CLI equivalent (`PYTHONPATH=src ./.venv/bin/python3 -m agentcomos.cli`) because no global `agentcomos` executable was installed in this shell.
 - G2 Fake OpenCode regression: passed.
@@ -68,34 +47,36 @@ G12 remains locked. Antigravity must fix the blocking issues in the G11 branch b
 - G5 Hermes availability check: passed as non-blocking availability probe (`hermes not found` reported, expected for availability probe).
 - G6 Evidence / Delivery / GM regression: passed.
 - G7 Program / Frontier regression: passed.
-- G8 Decision/Feynman regression: passed; explicit mode still works through direct CLI.
-- G9 Loop Execution regression: passed; bounded fake loop still works through direct CLI.
+- G8 Decision/Feynman regression: passed; explicit mode remains controlled.
+- G9 Loop Execution regression: passed; bounded fake loop remains controlled.
 - G10 Manual OS regression: passed; immutable approval behavior still rejects changing approved to rejected.
 
 ## G11 Acceptance Matrix
 
 - ingest requires fake: passed. Ingest without `--fake` was rejected with `G11 requires --fake`.
-- ingest redacts inbound message: passed for status message safety fields; separate unit coverage also checks redaction.
+- ingest redacts inbound message: passed for inbound safety fields; unit coverage also checks redaction.
 - parse status command: passed. Parsed as read-only, low risk, no confirmation required.
-- parse report command: not fully exercised manually in this audit run; unit test suite passed, but G11 remains failed on other blockers.
+- parse report command: covered by passing G11 test suite; not a blocker in this re-review.
 - parse manual-os command: passed. Parsed as `manual_os_approve`, confirmation required, medium risk, no real OS execution allowed.
-- parse decision/feynman command: failed. Required acceptance syntax parsed as `unknown` and blocked.
-- parse loop run command: failed. Parsed command type, but omitted required `max_ticks`, `fake`, and `real_runtime_used` fields.
-- blocked shell command: partially passed. It was blocked and shell was not executed, but blocked reason did not disclose shell/unsafe/prohibited cause.
+- parse decision command: passed. `decision result TF-002 approved` parsed as `decision_result`.
+- parse feynman command: passed with supported syntax `feynman result TF-002 passed`.
+- parse loop run command: passed. `loop run OI-TECHAI8-001 max_ticks=3 fake` recorded `max_ticks: 3`, `fake: true`, `real_runtime_used: false`, and bounded-loop safety.
+- blocked shell command: passed. Dangerous shell text was blocked with `prohibited_shell_command`; no shell/sudo/systemctl/docker execution occurred.
 - execute read-only: passed. Status command completed with no shell execution and safety flags false.
 - execute manual-os with explicit confirm: passed. Approval was produced through G10 Manual OS artifact after explicit confirmation.
-- execute decision/feynman with explicit confirm: failed. Commands were blocked as `unknown`.
-- execute loop run with max_ticks and fake: failed in the acceptance setup because `loop_plan.yaml` was missing; after manual `loop plan`, fake bounded execution worked for `max_ticks=3`.
-- execute without confirm: passed. Manual OS and loop commands returned `requires_confirmation` before explicit confirmation.
-- missing max_ticks: passed as fail-safe. Execution returned failed with `max_ticks must be provided and > 0`.
-- real runtime loop request: passed as fail-safe. Execution returned failed with `loop run must be fake via Discord`.
-- oversized max_ticks: failed. `max_ticks=999999 fake` completed instead of being rejected or clearly bounded.
-- events appended: partially passed. Required G11 event types appeared, but duplicate blocked events were appended on repeated execution.
+- execute decision/feynman with explicit confirm: passed.
+- execute loop run with max_ticks and fake: passed. Result included loop metadata: `max_ticks: 3`, `fake: true`, `real_runtime_used: false`, `ticks_executed: 3`, `stop_reason: max_task_advancements_reached`.
+- execute without confirm: passed. Manual OS, Decision, Feynman, and loop commands returned `requires_confirmation`.
+- missing max_ticks: passed. Command blocked with `missing_max_ticks`.
+- real runtime loop request: passed. Command blocked with `real_runtime_loop_forbidden`.
+- oversized max_ticks: passed. `max_ticks=999999` blocked with `max_ticks_exceeds_g11_limit`.
+- events appended: passed for required event types; repeated completed/blocked execution did not add duplicate execute/block events during re-review.
 - timeline updated: passed for event reflection.
+- audit integration: passed. Audit covered status, shell, manual-os, decision, feynman, and loop commands with result summaries and safety boundaries.
 - evidence integration: passed. Artifact index included `discord_inbound_message`, `gm_command`, `gm_command_result`, and `gm_discord_audit`.
-- delivery integration: failed. Delivery marked the oversized loop command completed and did not adequately distinguish out-of-policy completion.
-- GM report integration: failed. Report disclosed fake adapter and static safety flags, but did not disclose key blocked/oversized command failures.
-- idempotency/read-only: partially passed. `gm-discord status` and `audit` did not change hashes, but audit idempotency is stale/incomplete and repeated blocked execute appends duplicate events.
+- delivery integration: passed functionally. Delivery disclosed blocked commands and reasons, including `max_ticks_exceeds_g11_limit`, `real_runtime_loop_forbidden`, `missing_max_ticks`, and `prohibited_shell_command`.
+- GM report integration: passed functionally. GM report disclosed fake adapter only, no real Discord token/send, no shell execution, no bypasses, bounded loop, command statuses, reasons, and next actions.
+- idempotency/read-only: passed for status/audit hash stability after content reached current state; repeated completed/blocked command execution did not duplicate events.
 
 ## Boundary Check
 
@@ -107,8 +88,8 @@ G12 remains locked. Antigravity must fix the blocking issues in the G11 branch b
 - sudo executed: no.
 - docker/systemctl executed: no.
 - Manual OS bypassed: no evidence observed.
-- Decision/Feynman bypassed: no evidence observed; however required Discord command integration failed to parse.
-- unbounded loop: no infinite loop observed, but oversized `max_ticks=999999` was accepted as completed and must be rejected or capped.
+- Decision/Feynman bypassed: no evidence observed.
+- unbounded loop: no.
 - daemon/background service: no evidence observed.
 - Worker Evolution: no implementation observed.
 - Auto Versioner: no implementation observed.
@@ -126,5 +107,5 @@ G12 remains locked. Antigravity must fix the blocking issues in the G11 branch b
 
 ## Notes
 
-- The worktree was clean after runtime cleanup before this acceptance report was edited.
-- G11 remains failed. Real Discord deployment and production bridge remain locked until a future controlled phase.
+- The shorthand message `feynman result TF-002 pass` is not accepted; supported syntax is `feynman result TF-002 passed` or the tested alternate command forms in `tests/test_g11_gm_discord_commands.py`. This is noted but not treated as the remaining blocker because the original acceptance checklist did not mandate that exact shorthand.
+- G11 remains failed solely under the strict requested file-scope gate. G12 remains locked.
