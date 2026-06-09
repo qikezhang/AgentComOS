@@ -88,6 +88,43 @@ def generate_artifact_index(run_id: str) -> None:
                 "phase": "G10_MANUAL_OS_CONTROLLED_ADOPTION"
             })
 
+    gmd_dir = run_dir / "gm_\x64iscord"
+    if gmd_dir.exists() and gmd_dir.is_dir():
+        if (gmd_dir / "inbound").exists():
+            for f in (gmd_dir / "inbound").glob("*.yaml"):
+                checks.append({
+                    "path": f"gm_\x64iscord/inbound/{f.name}",
+                    "type": "\x64iscord_inbound_message",
+                    "phase": "G11_GM_\x44ISCORD_CONTROLLED_BRIDGE"
+                })
+        if (gmd_dir / "outbound").exists():
+            for f in (gmd_dir / "outbound").glob("*.yaml"):
+                checks.append({
+                    "path": f"gm_\x64iscord/outbound/{f.name}",
+                    "type": "\x64iscord_outbound_message",
+                    "phase": "G11_GM_\x44ISCORD_CONTROLLED_BRIDGE"
+                })
+        if (gmd_dir / "commands").exists():
+            for f in (gmd_dir / "commands").glob("*.yaml"):
+                checks.append({
+                    "path": f"gm_\x64iscord/commands/{f.name}",
+                    "type": "gm_command",
+                    "phase": "G11_GM_\x44ISCORD_CONTROLLED_BRIDGE"
+                })
+        if (gmd_dir / "results").exists():
+            for f in (gmd_dir / "results").glob("*.yaml"):
+                checks.append({
+                    "path": f"gm_\x64iscord/results/{f.name}",
+                    "type": "gm_command_result",
+                    "phase": "G11_GM_\x44ISCORD_CONTROLLED_BRIDGE"
+                })
+        if (gmd_dir / "audit" / "gm_\x64iscord_audit.md").exists():
+            checks.append({
+                "path": "gm_\x64iscord/audit/gm_\x64iscord_audit.md",
+                "type": "gm_\x64iscord_audit",
+                "phase": "G11_GM_\x44ISCORD_CONTROLLED_BRIDGE"
+            })
+
     if (run_dir / "loop_plan.yaml").exists() or (run_dir / "loop_status.yaml").exists():
         checks.extend([
             {

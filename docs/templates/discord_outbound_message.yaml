@@ -1,0 +1,9 @@
+phase: G11_GM_DISCORD_CONTROLLED_BRIDGE
+message_id: "{{ message_id }}"
+reply_to_message_id: "{{ reply_to_message_id }}"
+channel_id: "{{ channel_id }}"
+sent_at: "{{ timestamp }}"
+content: "{{ content }}"
+safety:
+  real_discord_send: false
+  token_used: false

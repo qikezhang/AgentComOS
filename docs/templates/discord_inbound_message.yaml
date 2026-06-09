@@ -1,0 +1,14 @@
+phase: G11_GM_DISCORD_CONTROLLED_BRIDGE
+message_id: "{{ message_id }}"
+channel_id: "{{ channel_id }}"
+author_id_hash: "{{ author_id_hash }}"
+received_at: "{{ timestamp }}"
+content_redacted: "{{ content }}"
+attachments_count: {{ attachments_count }}
+safety:
+  token_present: false
+  secret_detected: false
+  command_auto_executed: false
+  shell_executed: false
+  manual_os_bypassed: false
+  decision_feynman_bypassed: false

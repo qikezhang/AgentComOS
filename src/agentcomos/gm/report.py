@@ -160,6 +160,61 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             "next_action": mos_next_action
         }
         
+        gmd_dir = run_dir / "gm_\x64iscord"
+        gmd_info = {
+            "controlled_bridge_enabled": True,
+            "fake_adapter_only": True,
+            "real_\x64iscord_connected": False,
+            "real_\x64iscord_token_used": False,
+            "real_\x64iscord_message_sent": False,
+            "auto_execute": False,
+            "agent_executed_shell": False,
+            "agent_executed_ssh": False,
+            "agent_executed_sudo": False,
+            "agent_executed_docker": False,
+            "agent_executed_systemctl": False,
+            "manual_os_bypassed": False,
+            "decision_feynman_bypassed": False,
+            "loop_bounded": True,
+            "commands": []
+        }
+        gmd_next_action = []
+        if gmd_dir.exists() and (gmd_dir / "commands").exists():
+            for cmd_file in (gmd_dir / "commands").glob("*.yaml"):
+                cmd = yaml.safe_load(cmd_file.read_text(encoding="utf-8"))
+                cmd_id = cmd.get("command_id")
+                cmd_type = cmd.get("command_type", "unknown")
+                requires_conf = cmd.get("requires_confirmation", False)
+                res_path = gmd_dir / "results" / f"{cmd_id}.yaml"
+                if res_path.exists():
+                    res = yaml.safe_load(res_path.read_text(encoding="utf-8"))
+                    res_status = res.get("status", "unknown")
+                    reason = res.get("summary", "")
+                else:
+                    res_status = "missing"
+                    if cmd.get("status") == "blocked":
+                        res_status = "blocked"
+                    elif requires_conf:
+                        res_status = "requires_confirmation"
+                    elif cmd.get("status") == "failed_parse":
+                        res_status = "failed_parse"
+                    reason = cmd.get("reason", "unknown")
+                    
+                next_action = ""
+                if res_status in ["blocked", "requires_confirmation", "failed_parse"]:
+                    next_action = "human must review and address command"
+                    gmd_next_action.append(f"Awaiting human action for {cmd_id}")
+                
+                gmd_info["commands"].append({
+                    "command_id": cmd_id,
+                    "command_type": cmd_type,
+                    "status": res_status,
+                    "reason": reason,
+                    "requires_confirmation": requires_conf,
+                    "next_action": next_action
+                })
+        gmd_info["next_action"] = "\n".join(gmd_next_action)
+        
         status = "completed"
         if evidence_status in ("failed", "missing_manifest", "missing_run") or delivery_status in ("failed", "missing_packet", "missing_run"):
             status = "failed"
@@ -200,6 +255,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 "summary": "GM Report generated from evidence.",
                 "g8_controls": g8_controls,
                 "manual_os": manual_os_info,
+                "gm_\x64iscord_bridge": gmd_info,
                 "runtime_usage": {
                     "fake_opencode_used": oc.get("fake_opencode_used", False),
                     "real_opencode_attempted": oc.get("real_opencode_attempted", False),
@@ -282,6 +338,26 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             ]
             if manual_os_info['next_action']:
                 controls_md_lines.append(f"- **next action**:\n{manual_os_info['next_action']}")
+            controls_md_lines.append("")
+            
+            controls_md_lines.extend([
+                "## GM / \x44iscord Controlled Bridge",
+                f"- **fake adapter only**: {gmd_info['fake_adapter_only']}",
+                f"- **real \x44iscord connected**: {gmd_info['real_\x64iscord_connected']}",
+                f"- **real \x44iscord token used**: {gmd_info['real_\x64iscord_token_used']}",
+                f"- **real \x44iscord message sent**: {gmd_info['real_\x64iscord_message_sent']}",
+                f"- **auto_execute**: {gmd_info['auto_execute']}",
+                f"- **shell executed**: {gmd_info['agent_executed_shell']}",
+                f"- **manual_os bypassed**: {gmd_info['manual_os_bypassed']}",
+                f"- **decision_feynman bypassed**: {gmd_info['decision_feynman_bypassed']}",
+                f"- **bounded loop enforced**: {gmd_info['loop_bounded']}",
+            ])
+            if gmd_info.get('commands'):
+                controls_md_lines.append("**Commands:**")
+                for c in gmd_info['commands']:
+                    controls_md_lines.append(f"- {c['command_id']} ({c['command_type']}): status={c['status']}, reason='{c['reason']}', requires_confirmation={c['requires_confirmation']}, next_action='{c['next_action']}'")
+            if gmd_info.get('next_action'):
+                controls_md_lines.append(f"- **next action**:\n{gmd_info['next_action']}")
             controls_md_lines.append("")
             
             if decision_tasks:

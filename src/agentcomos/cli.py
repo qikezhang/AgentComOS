@@ -163,6 +163,8 @@ app.add_typer(feynman_app, name="feynman")
 manual_os_app = typer.Typer(help="Manual OS Controlled Adoption operations")
 app.add_typer(manual_os_app, name="manual-os")
 
+gm_discord_app = typer.Typer(help="GM Discord Controlled Bridge operations")
+app.add_typer(gm_discord_app, name="gm-discord")
 @run_app.command("create")
 def run_create(intent: Path = typer.Option(..., help="Path to operating_intent.yaml")) -> None:
     """Create a new run from an operating intent."""
@@ -798,5 +800,62 @@ def manual_os_audit_cmd(run: str = typer.Option(..., "--run", help="Run ID")) ->
     except ValueError as e:
         raise typer.BadParameter(str(e))
 
+@gm_discord_app.command("ingest")
+def gm_discord_ingest(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    message_file: str = typer.Option(..., "--message-file", help="Path to inbound message file"),
+    fake: bool = typer.Option(False, "--fake", help="Must be true for G11")
+) -> None:
+    if not fake:
+        raise typer.BadParameter("G11 requires --fake")
+    from agentcomos.gm_discord.ingest import ingest_message
+    try:
+        path = ingest_message(run, message_file, fake)
+        print(f"Message ingested: {path}")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@gm_discord_app.command("parse")
+def gm_discord_parse(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    message: str = typer.Option(..., "--message", help="Message ID")
+) -> None:
+    from agentcomos.gm_discord.parser import parse_message
+    try:
+        path = parse_message(run, message)
+        print(f"Command parsed: {path}")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@gm_discord_app.command("execute")
+def gm_discord_execute(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    command: str = typer.Option(..., "--command", help="Command ID"),
+    confirm: str = typer.Option(None, "--confirm", help="Confirmation type, e.g. explicit")
+) -> None:
+    from agentcomos.gm_discord.executor import execute_command
+    try:
+        path = execute_command(run, command, confirm)
+        print(f"Command executed: {path}")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@gm_discord_app.command("status")
+def gm_discord_status(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    from agentcomos.gm_discord.status import get_gm_discord_status
+    import yaml
+    try:
+        print(yaml.dump(get_gm_discord_status(run), sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@gm_discord_app.command("audit")
+def gm_discord_audit(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    from agentcomos.gm_discord.audit import generate_audit
+    try:
+        path = generate_audit(run)
+        print(f"Audit generated: {path}")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
 if __name__ == "__main__":
     app()

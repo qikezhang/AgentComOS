@@ -1,0 +1,16 @@
+phase: G11_GM_DISCORD_CONTROLLED_BRIDGE
+command_id: "{{ command_id }}"
+source: discord
+message_id: "{{ message_id }}"
+run_id: "{{ run_id }}"
+command_type: "{{ command_type }}"
+status: parsed
+requires_confirmation: {{ requires_confirmation }}
+risk_level: "{{ risk_level }}"
+safety:
+  read_only: {{ read_only }}
+  auto_execute: false
+  requires_explicit_confirmation: {{ requires_confirmation }}
+  real_os_execution_allowed: false
+  shell_executed: false
+  token_redacted: true

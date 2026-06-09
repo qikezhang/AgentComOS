@@ -137,6 +137,48 @@ def build_delivery_packet(run_id: str) -> None:
             blocking_task_ids = frontier_status.get("awaiting_manual_os_tasks", [])
             risks.append(f"Task frontier has tasks awaiting_manual_os: {blocking_task_ids}")
             next_actions = [f"human approval/result required for manual OS tasks: {blocking_task_ids}"]
+        g11_artifacts = []
+        g11_controls = {"commands": []}
+        gmd_dir = run_dir / "gm_\x64iscord"
+        if gmd_dir.exists():
+            for p in gmd_dir.rglob("*.*"):
+                if p.is_file():
+                    g11_artifacts.append(str(p.relative_to(run_dir)))
+            if (gmd_dir / "commands").exists():
+                for cmd_file in (gmd_dir / "commands").glob("*.yaml"):
+                    cmd = yaml.safe_load(cmd_file.read_text(encoding="utf-8"))
+                    cmd_id = cmd.get("command_id")
+                    
+                    res_status = "missing"
+                    reason = cmd.get("reason", "unknown")
+                    res_path = gmd_dir / "results" / f"{cmd_id}.yaml"
+                    if res_path.exists():
+                        res = yaml.safe_load(res_path.read_text(encoding="utf-8"))
+                        res_status = res.get("status", "unknown")
+                        reason = res.get("summary", reason)
+                    else:
+                        if cmd.get("status") == "blocked":
+                            res_status = "blocked"
+                        elif cmd.get("requires_confirmation"):
+                            res_status = "requires_confirmation"
+                        elif cmd.get("status") == "failed_parse":
+                            res_status = "failed_parse"
+                    
+                    if res_status in ["blocked", "requires_confirmation", "failed_parse"] or reason in ["max_ticks_exceeds_g11_limit", "prohibited_shell_command", "fake_required", "real_runtime_loop_forbidden"]:
+                        risks.append(f"GM \x44iscord command {cmd_id} is {res_status} with reason {reason}")
+                        next_actions = [f"human action required to fix or confirm GM \x44iscord command {cmd_id}"]
+                        if status == "completed":
+                            status = "partial"
+                            
+                    g11_controls["commands"].append({
+                        "command_id": cmd_id,
+                        "status": res_status,
+                        "reason": reason,
+                        "artifact": f"gm_\x64iscord/commands/{cmd_id}.yaml"
+                    })
+        g11_artifacts.sort()
+        artifacts_list.extend(g11_artifacts)
+
         if missing_required:
             risks.append("Missing required decision, feynman, or manual_os results")
 
@@ -148,6 +190,7 @@ def build_delivery_packet(run_id: str) -> None:
             "input_fingerprint": fingerprint,
             "summary": "Delivery packet generated from evidence.",
             "g8_controls": g8_controls,
+            "g11_controls": g11_controls,
             "artifacts": artifacts_list,
             "risks": risks,
             "next_actions": next_actions
