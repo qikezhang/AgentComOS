@@ -198,6 +198,15 @@ Result: passed for tracked files
 - `.env.example` contains only `DISCORD_BOT_TOKEN=replace-with-deployment-secret`, accepted as a placeholder.
 - Documentation contains safe negative references to missing tokens.
 
+## Antigravity follow-up fix: runtime artifact baseline conflict
+
+- Runtime artifact deletion was moved out of R2 into a baseline hygiene cleanup.
+- R2 was rebased/merged onto clean main.
+- git ls-files .agentcomos/runs returns empty.
+- git diff origin/main...HEAD no longer contains .agentcomos/runs.
+- make test passes and leaves no tracked runtime files dirty.
+- R2 remains ready for Codex re-review.
+
 ## Next Step
 
 Antigravity must resolve the hygiene-test conflict around removing inherited `.agentcomos/runs` artifacts so that `make test` passes and the R2 diff policy is satisfied. R3 remains locked until R2 passes Codex review and merges to main.
