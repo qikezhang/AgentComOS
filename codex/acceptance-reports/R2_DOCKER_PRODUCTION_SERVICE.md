@@ -3,37 +3,41 @@
 Status: failed
 
 Branch: antigravity/r2-docker-production-service
-Commit reviewed: af1e056
+Commit reviewed: 0fad517
 Reviewer: Codex
 Review date: 2026-06-10
 
 ## Final Decision
 
-R2 is not accepted. The original Dockerfile packaging blocker is fixed, but R2 still fails strict release hygiene. R3 remains locked until Antigravity removes the remaining blocking issues and Codex re-reviews the updated branch.
+R2 is not accepted. The prior Dockerfile and tracked-runtime-artifact blockers are materially improved, but the full release test gate fails on the current branch. R3 remains locked until Antigravity fixes the failing tests and Codex re-reviews the updated branch.
 
 ## Blocking Issues
 
-1. `.agentcomos/runs` is still tracked in the repository.
-   - Evidence: `git ls-files | rg "^\\.env$|uv\\.lock|\\.agentcomos/runs"` reports `.agentcomos/runs/.gitkeep` and `.agentcomos/runs/OI-TECHAI8-001/*`.
-   - Evidence: the clean `git archive` used for review includes `.agentcomos/runs/OI-TECHAI8-001` runtime files.
-   - Impact: this violates the R2 hygiene requirement that `.agentcomos/runs` must not be tracked. These files are inherited from `origin/main`, not newly added by R2, but the R2 release branch still cannot be marked clean while they remain tracked.
+1. `make test` fails.
+   - Evidence: `make test` returned non-zero with 3 failed and 422 passed.
+   - Failed tests:
+     - `tests/test_g6_evidence_packet.py::test_no_agentcomos_runs_artifacts_committed`
+     - `tests/test_g7_cli.py::test_no_agentcomos_runs_artifacts_committed`
+     - `tests/test_worker_g5_real_hermes.py::test_no_agentcomos_runs_artifacts_committed`
+   - Root cause: R2 untracks inherited `.agentcomos/runs` artifacts by deleting them from the branch, but existing hygiene tests reject any `origin/main...HEAD` diff path containing `.agentcomos/runs`, including deletions.
+   - Impact: the required full test suite does not pass, so R2 cannot be accepted.
 
-2. `make test` still dirties tracked runtime artifacts.
-   - Evidence: after `make test`, `git status --short` showed deleted tracked files under `.agentcomos/runs/OI-TECHAI8-001`.
-   - Evidence: Codex restored those files before continuing review so the final worktree would stay clean.
-   - Impact: the test suite is still coupled to tracked runtime artifacts, which conflicts with R2 production release hygiene.
+2. `.agentcomos/runs` still appears in the branch diff as deletions.
+   - Evidence: `git diff --name-status origin/main...HEAD` reports deleted paths under `.agentcomos/runs/`.
+   - Impact: this resolves tracked artifacts in the branch snapshot, but conflicts with existing release hygiene tests and the review expectation that R2 diff should not contain runtime artifact paths.
 
 3. Docker image build could not be independently executed in this Codex environment.
-   - Evidence: `docker build --no-cache --progress=plain -t agentcomos-r2-audit-af1e056 /tmp/r2_codex_clean` failed because the local Docker daemon socket was unavailable.
-   - Impact: Codex verified the Dockerfile by static review and package simulation, but did not obtain a real Docker build success signal in this environment.
+   - Evidence: `docker build --no-cache --progress=plain -t agentcomos-r2-audit-0fad517 /tmp/r2_codex_clean` failed because the local Docker daemon socket was unavailable.
+   - Impact: Codex verified Dockerfile behavior by static review and clean package simulation, but did not obtain a real Docker build success signal in this environment.
 
 ## Fixed Since Prior Review
 
-- Dockerfile now copies `src/` before `pip install --no-cache-dir .`.
-- A wheel built from the same source set now contains the `agentcomos` package and `agentcomos/cli.py`.
-- A clean install target provides `bin/agentcomos`, and `agentcomos healthcheck` returns exit code 0.
-- Compose config was re-run from a clean git archive with `.env.example` copied to `.env`, avoiding local `.env` secret contamination.
-- R2 targeted tests increased from 9 to 11 and pass.
+- `git ls-files` no longer reports `.agentcomos/runs`, `.env`, or `uv.lock`.
+- A clean `git archive` no longer contains `.agentcomos/runs`, `.env`, or `uv.lock`.
+- Loop/G6 tests that previously wrote into the repository now use `tmp_path` and `monkeypatch.chdir`.
+- `make test` no longer dirties the tracked worktree before failing.
+- Dockerfile still copies `src/` before `pip install --no-cache-dir .`.
+- Clean package simulation still provides `bin/agentcomos`, and `agentcomos healthcheck` returns exit code 0.
 
 ## Validation Results
 
@@ -42,23 +46,25 @@ R2 is not accepted. The original Dockerfile packaging blocker is fixed, but R2 s
 - `git pull origin antigravity/r2-docker-production-service`: passed
 - Current branch: `antigravity/r2-docker-production-service`
 - Initial tracked worktree: clean
-- Latest commit reviewed: `af1e056`
+- Latest commit reviewed: `0fad517`
 - `origin/main` ancestry: passed
 
 ## Diff Scope
 
-R2 diff against `origin/main` remains narrow:
+R2 diff against `origin/main` includes:
 
+- deleted inherited `.agentcomos/runs` artifacts
 - `.dockerignore`
 - `.env.example`
 - `Dockerfile`
 - `docker-compose.yml`
 - `src/agentcomos/cli.py`
+- selected G6/G9 test isolation updates
 - R2 tests
 - R2 Antigravity task
 - Codex R2 acceptance report
 
-No R3+ services, real Discord adapter, Controlled Executor implementation, operation adapter implementation, `.env`, `uv.lock`, or new runtime artifact additions were found in the R2 diff.
+No R3+ services, real Discord adapter, Controlled Executor implementation, operation adapter implementation, `.env`, `uv.lock`, or new runtime artifact additions were found.
 
 ## Required Files
 
@@ -79,7 +85,7 @@ No R3+ services, real Discord adapter, Controlled Executor implementation, opera
 
 ## Dockerfile Review
 
-Result: passed by static/package simulation; real Docker build not available
+Result: passed by static/package simulation; real Docker build unavailable
 
 - Base image `python:3.12-slim`: passed
 - Workdir `/app`: passed
@@ -141,14 +147,14 @@ Result: passed
 - Project CLI command: `PYTHONPATH=src ./.venv/bin/python3 -m agentcomos.cli healthcheck`
 - Clean install command: `PYTHONPATH=/tmp/r2_codex_install /tmp/r2_codex_install/bin/agentcomos healthcheck`
 - Exit code: 0
-- Output: stable JSON with `status: ok`, `component: agentcomos`, and `mode: healthcheck`
+- Output: stable single-line JSON with `status: ok`, `component: agentcomos`, and `mode: healthcheck`
 - Read-only check: passed; `git status --short` before and after healthcheck was identical
 - Does not require Discord, Controlled Executor, docker.sock, network, shell, ssh, sudo, docker, or systemctl
 
 ## Test Results
 
 - `make compile`: passed
-- `make test`: passed, 425 passed
+- `make test`: failed, 3 failed and 422 passed
 - `make validate-examples`: passed
 - Targeted R2 tests: passed, 11 passed
 
@@ -175,12 +181,12 @@ Notes:
 
 ## Hygiene Checks
 
-- `.agentcomos/runs` clean in R2 diff: passed; R2 does not add new runtime artifacts
-- `.agentcomos/runs` clean in tracked repository: failed; inherited tracked runtime files remain
-- `make test` leaves tracked worktree clean: failed until Codex restored `.agentcomos/runs/OI-TECHAI8-001`
+- `.agentcomos/runs` tracked files: passed; none reported by `git ls-files`
+- `.agentcomos/runs` clean archive: passed; no `.agentcomos/runs` paths found
+- `.agentcomos/runs` clean branch diff: failed; deletion paths remain in `origin/main...HEAD`
+- `make test` leaves tracked worktree clean: passed in this run
 - `uv.lock` clean: passed; not tracked and not in R2 diff
 - `.env` not committed: passed
-- Local ignored `.env` absent: failed in this reviewer workspace, but clean compose evidence was produced from a sanitized archive
 - Secrets clean in tracked files: passed
 
 ## Secret Scan
@@ -194,4 +200,4 @@ Result: passed for tracked files
 
 ## Next Step
 
-Antigravity must remove or relocate tracked `.agentcomos/runs` runtime artifacts and ensure `make test` does not dirty tracked runtime files. R3 remains locked until R2 passes Codex review and merges to main.
+Antigravity must resolve the hygiene-test conflict around removing inherited `.agentcomos/runs` artifacts so that `make test` passes and the R2 diff policy is satisfied. R3 remains locked until R2 passes Codex review and merges to main.
