@@ -1,0 +1,11 @@
+message_id: MSG-PERM-CONFLICT-001
+channel_id: CH_ALLOWED_PLACEHOLDER
+author_id_hash: USER_HASH_PLACEHOLDER
+roles:
+  - ops
+  - denied-role-example
+content: "restart service agentcomos-app"
+expected:
+  status: blocked
+  reason: role_denied
+  deny_overrides_allow: true

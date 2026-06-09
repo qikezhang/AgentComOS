@@ -1,0 +1,7 @@
+case_id: EXEC-BLOCK-SSH
+adapter: ssh
+raw_command: "ssh root@example.internal"
+expected:
+  policy_result: blocked
+  reason: arbitrary_ssh_blocked
+  executed: false

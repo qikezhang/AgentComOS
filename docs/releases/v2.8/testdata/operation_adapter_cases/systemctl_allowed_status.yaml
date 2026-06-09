@@ -1,0 +1,6 @@
+case_id: OP-SYSTEMCTL-STATUS
+adapter: systemctl
+service: agentcomos-app
+action: status
+expected:
+  allowed: true

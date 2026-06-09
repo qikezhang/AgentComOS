@@ -1,0 +1,6 @@
+case_id: OP-SUDO-RESTART
+adapter: sudo
+command_ref: sudo_restart_agentcomos
+expected:
+  allowed: true
+  least_privilege_required: true

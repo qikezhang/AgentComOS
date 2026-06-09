@@ -1,0 +1,7 @@
+case_id: EXEC-BLOCK-DOCKER-PRUNE
+adapter: docker
+raw_command: "docker system prune -af"
+expected:
+  policy_result: blocked
+  reason: destructive_docker_command_blocked
+  executed: false

@@ -1,0 +1,12 @@
+command_id: EXEC-CMD-EXAMPLE
+source: discord
+requested_by_hash: USER_HASH_PLACEHOLDER
+channel_id: CH_ALLOWED_PLACEHOLDER
+adapter: docker
+command_ref: docker_compose_restart_agentcomos
+parameters:
+  service: agentcomos-app
+risk_level: high
+requires_approval: true
+timeout_seconds: 60
+status: requested

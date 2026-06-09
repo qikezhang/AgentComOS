@@ -1,0 +1,13 @@
+message_id: MSG-REAL-RESTART-001
+channel_id: CH_ALLOWED_PLACEHOLDER
+author_id_hash: USER_HASH_PLACEHOLDER
+roles:
+  - ops
+content: "restart service agentcomos-app"
+expected:
+  command_type: service_restart
+  risk_level: high
+  requires_executor: true
+  adapter: systemctl
+  action: restart
+  requires_approval_or_policy: true

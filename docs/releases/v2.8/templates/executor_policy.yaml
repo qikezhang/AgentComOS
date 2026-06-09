@@ -1,0 +1,57 @@
+policy_id: EXEC-POLICY-EXAMPLE
+version: 1
+description: Example controlled executor policy with placeholders only.
+default_action: block
+allowed_sources:
+  - discord
+allowed_channels:
+  - CH_ALLOWED_PLACEHOLDER
+allowed_roles:
+  - ops
+allowed_users:
+  - USER_HASH_PLACEHOLDER
+denied_roles:
+  - denied-role-example
+adapters:
+  shell:
+    enabled: true
+    allowed_commands:
+      - id: shell_healthcheck
+        template: "python -m agentcomos.healthcheck"
+        cwd: "/app"
+        timeout_seconds: 30
+  ssh:
+    enabled: true
+    allowed_hosts:
+      - host: "example.internal"
+        user: "agentcomos"
+    allowed_commands:
+      - id: ssh_status
+        template: "systemctl status agentcomos-app"
+        timeout_seconds: 30
+  sudo:
+    enabled: true
+    allowed_commands:
+      - id: sudo_restart_agentcomos
+        template: "sudo systemctl restart agentcomos-app"
+        timeout_seconds: 60
+  docker:
+    enabled: true
+    allowed_commands:
+      - id: docker_compose_ps
+        template: "docker compose ps"
+        timeout_seconds: 30
+      - id: docker_compose_restart_agentcomos
+        template: "docker compose restart agentcomos-app"
+        timeout_seconds: 60
+  systemctl:
+    enabled: true
+    allowed_services:
+      - agentcomos-app
+    allowed_actions:
+      - status
+      - restart
+redaction_patterns:
+  - "(?i)token=[^\s]+"
+  - "(?i)password=[^\s]+"
+  - "(?i)secret=[^\s]+"

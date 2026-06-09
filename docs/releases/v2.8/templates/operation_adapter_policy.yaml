@@ -1,0 +1,17 @@
+adapter_policy_id: OP-ADAPTER-POLICY-EXAMPLE
+shell:
+  allow_arbitrary_shell: false
+ssh:
+  allow_arbitrary_ssh: false
+  host_allowlist:
+    - example.internal
+sudo:
+  allow_arbitrary_sudo: false
+docker:
+  allow_arbitrary_docker: false
+  service_allowlist:
+    - agentcomos-app
+systemctl:
+  allow_arbitrary_systemctl: false
+  service_allowlist:
+    - agentcomos-app

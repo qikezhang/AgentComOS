@@ -1,0 +1,22 @@
+discord_bot:
+  enabled: true
+  token_source: env
+  token_env_name: DISCORD_BOT_TOKEN
+  guild_allowlist:
+    - GUILD_PLACEHOLDER
+  channel_allowlist:
+    - CH_ALLOWED_PLACEHOLDER
+  role_allowlist:
+    - ops
+  denied_roles:
+    - denied-role-example
+  user_allowlist:
+    - USER_HASH_PLACEHOLDER
+  outbound_replies: true
+  audit_all_messages: true
+  default_command_mode: controlled
+  reconnect:
+    enabled: true
+    max_attempts: 5
+  rate_limit:
+    max_retries: 3

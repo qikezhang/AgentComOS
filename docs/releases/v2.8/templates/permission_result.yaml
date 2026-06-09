@@ -1,0 +1,10 @@
+permission_result_id: PERM-RESULT-EXAMPLE
+source: discord
+subject_user_hash: USER_HASH_PLACEHOLDER
+channel_id: CH_ALLOWED_PLACEHOLDER
+roles:
+  - ops
+command_risk: high_risk
+decision: allowed
+reason: policy_allowed
+evaluated_at: "YYYY-MM-DDTHH:MM:SSZ"
