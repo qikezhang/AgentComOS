@@ -2,32 +2,35 @@
 
 ## Status
 
-failed
+passed
 
 ## Summary
-G10 failed Codex acceptance.
 
-G11 remains locked. Antigravity must fix the blocking issues below in the G10 branch before merge. G11 GM/Discord Controlled Bridge must still be created later from latest `main` only after G10 passes and merges.
+G10 passed Codex acceptance after Antigravity fix commit `b81be861914cf3346945c89fcbcef204de2d0631`.
+
+G10 Manual OS Controlled Adoption is accepted for merge. G11 GM/Discord Controlled Bridge may start only after the G10 PR is merged, and must be created from latest `main`.
 
 ## Audit Metadata
 
-- Audit time: 2026-06-10 02:09:57 CST
+- Initial audit time: 2026-06-10 02:09:57 CST
+- Re-audit time: 2026-06-10 02:49:03 CST
 - Auditor: Codex
 - Branch: `antigravity/g10-manual-os-controlled-adoption`
-- Commit reviewed: `efa28f4841372210d389154e7d6a830d45b9dde7`
+- Initial commit reviewed: `efa28f4841372210d389154e7d6a830d45b9dde7`
+- Fix commit reviewed: `b81be861914cf3346945c89fcbcef204de2d0631`
 - PR: https://github.com/qikezhang/AgentComOS/pull/5
 
 ## Verification Results
 
 - `make compile`: passed
-- `make test`: passed, 325 tests passed
+- `make test`: passed, 362 tests passed
 - `make validate-examples`: passed
-- G1 Controller regression: passed with clean runtime directory and fake tick/recover
+- G1 Controller regression: passed
 - G2 Fake OpenCode regression: passed
 - G3 OpenCode availability: passed; local probe returned available
 - G4 Fake Hermes Worker regression: passed
 - G5 Hermes availability: passed; local probe reported `hermes not found` cleanly
-- G6 Evidence / Delivery / GM regression: passed for prior-phase commands
+- G6 Evidence / Delivery / GM regression: passed
 - G7 Program / Frontier regression: passed
 - G8 Decision/Feynman explicit regression: passed
 - G9 bounded loop regression: passed
@@ -36,10 +39,10 @@ G11 remains locked. Antigravity must fix the blocking issues below in the G10 br
 
 - `manual-os request`: passed; request file created with `manual_os_required: true`, `auto_execute: false`, human approval required, and all agent execution flags false
 - `manual-os status`: passed; status read reported request/approval/result state
-- `manual-os approve`: partially passed; approval file created with explicit approver and `auto_execute: false`
-- `manual-os reject`: failed; reject can overwrite an existing approved request
-- `manual-os result`: passed after re-approval; completed result requires prior approved status and records manual execution safety flags
-- `manual-os audit`: passed for generated audit contents
+- `manual-os approve`: passed; approval file created with explicit approver and `auto_execute: false`
+- `manual-os reject`: passed; rejection records reviewer and reason
+- `manual-os result`: passed; completed result requires prior approval and records manual execution safety flags
+- `manual-os audit`: passed; audit includes request, approval, result, safety boundary, evidence paths, risks, and next action
 - Missing run negative: passed; command failed
 - Missing task negative: passed; command failed
 - Approve without request negative: passed; command failed
@@ -47,45 +50,39 @@ G11 remains locked. Antigravity must fix the blocking issues below in the G10 br
 - Result without approval negative: passed; command failed
 - Result without `--executed-by` / required fields negative: passed; command failed
 
-## Blocking Issues
+## Rechecked Blocking Issues
 
-1. Approval/rejection state is not immutable.
+1. Approval/rejection state immutability: passed.
 
-   `agentcomos manual-os reject --run OI-TECHAI8-001 --task TF-001 ...` succeeded after `TF-001` had already been approved and overwrote `manual_os_approval.yaml` from `status: approved` to `status: rejected`. Re-approval after rejection also succeeded. G10 requires reject-after-approve to fail or not overwrite, and controlled adoption must not allow terminal manual approval decisions to be silently flipped.
+   Reject-after-approve now fails with a clear error and leaves `status: approved` unchanged. Approve-after-reject now fails with a clear error and leaves `status: rejected` unchanged.
 
-   Required fix: once `manual_os_approval.yaml` exists with `approved` or `rejected`, opposite-state commands must fail clearly or return already-current without changing the existing decision. Add regression coverage for approve-after-reject and reject-after-approve.
+2. Loop stops on `awaiting_manual_os`: passed.
 
-2. Loop does not stop on `awaiting_manual_os`.
+   In isolated run `OI-G10-BLOCKED-MANUAL-OS`, `frontier status` marked `TF-001` as `awaiting_manual_os`, `frontier next` returned `null`, and `loop run --max-ticks 3 --fake` stopped with `loop_status.status: blocked` and `stop_reason: awaiting_manual_os`.
 
-   In isolated run `OI-G10-BLOCKED-MANUAL-OS`, `frontier status` correctly marked `TF-001` as `awaiting_manual_os` and `frontier next` returned `null`, but `loop run --max-ticks 3 --fake` produced `loop_status.status: completed` and `stop_reason: no_ready_task` instead of `status: blocked` and `stop_reason: awaiting_manual_os`.
+3. Loop trace and event trail for Manual OS blockers: passed.
 
-   The loop trace recorded a normal `no_ready_task` tick, not a blocked Manual OS tick, and `controller_tick_called` was not recorded as `false`. Events also lacked `loop.tick.blocked_manual_os`.
+   `loop_trace.yaml` recorded a blocked tick with `blocked_on.type: manual_os`, `controller_tick_called: false`, and `real_runtime_used: false`. `events.jsonl` included `frontier.task.awaiting_manual_os`, `loop.tick.blocked_manual_os`, and `loop.stopped`.
 
-   Required fix: loop blocker detection must treat tasks already in `awaiting_manual_os` as a Manual OS blocker, record a blocked tick with `blocked_on.type: manual_os`, set `controller_tick_called: false`, and stop with `awaiting_manual_os`.
+4. Completed Manual OS result unblocks task: passed.
 
-3. Manual OS evidence integration is incomplete.
+   After explicit request, approval, result, and audit, the same task became ready again and the bounded fake loop advanced through the run without bypassing the other G8/G9 gates.
 
-   On a run containing `manual_os_request.yaml`, `manual_os_approval.yaml`, `manual_os_result.yaml`, and `manual_os_audit.md`, `evidence_packet/artifact_index.yaml` did not index the Manual OS artifacts.
+5. Manual OS evidence integration: passed.
 
-   Required fix: evidence artifact indexing must include `manual_os_request.yaml`, `manual_os_approval.yaml`, `manual_os_result.yaml`, and `manual_os_audit.md`.
+   `evidence_packet/artifact_index.yaml` indexed `manual_os_request.yaml`, `manual_os_approval.yaml`, `manual_os_result.yaml`, and `manual_os_audit.md`.
 
-4. Delivery integration omits the Manual OS audit artifact.
+6. Delivery integration: passed.
 
-   `delivery_packet.yaml` included request, approval, and result artifacts, but omitted `manual_os_audit.md`.
+   `delivery_packet.yaml` included Manual OS request, approval, result, and audit artifacts.
 
-   Required fix: delivery artifacts must include all Manual OS audit artifacts and disclose blocked `awaiting_manual_os` state without marking delivery completed when the run is blocked.
+7. GM report safety disclosure: passed.
 
-5. GM report safety disclosure is incomplete.
+   `gm_report.md` and `gm_report.yaml` disclose Manual OS Controlled Adoption, `auto_execute: false`, human approval required, human result report required, and agent executed shell/ssh/sudo/docker/systemctl false.
 
-   `gm_report.md` and `gm_report.yaml` listed Manual OS task status, but did not disclose the required G10 safety controls: `auto_execute: false`, human approval required, human result report required, agent executed shell/ssh/sudo/docker/systemd false, and next action when awaiting Manual OS.
+8. Audit idempotency: passed.
 
-   Required fix: GM report must explicitly disclose Manual OS Controlled Adoption boundaries and must not imply autonomous OS operation.
-
-6. Audit idempotency appends duplicate audit events.
-
-   Re-running `manual-os audit` left file hashes unchanged, but appended another `manual_os.audit.generated` event. G10 requires repeated audit to be idempotent or already-current, without meaningless duplicate completed events.
-
-   Required fix: repeated audit generation should avoid duplicate completed events when content is already current, or return an explicit already-current status.
+   Re-running `manual-os status` and `manual-os audit` left the audit file hash unchanged and did not append a duplicate `manual_os.audit.generated` event.
 
 ## Boundary Check
 
@@ -99,16 +96,19 @@ G11 remains locked. Antigravity must fix the blocking issues below in the G10 br
 - Worker Evolution implementation in Manual OS runtime: not found
 - Auto Versioner implementation in Manual OS runtime: not found
 - Daemon/background service: not found in G10 Manual OS runtime
-- Auto approval: not found, but approval state mutability is blocking
+- Auto approval: not found
 - Auto result: not found
 - Secrets scan: no usable secret/key found; matches were documentation references only
+- `uv.lock`: not committed
+- `.env`: not committed
+- `.agentcomos/runs`: not committed as G10 runtime artifact
 
-## Cleanup Requirements
+## Runtime Artifact Cleanup
 
-Runtime artifacts generated during audit were cleaned after the report update. `uv.lock`, `.env`, `.agentcomos/runs`, and runtime byproducts must not be committed.
+Runtime artifacts generated during re-audit were cleaned before committing this report. The only intended Codex change is this acceptance report.
 
 ## Final Decision
 
-failed
+passed
 
-Antigravity must fix the blocking issues in G10. G11 remains locked.
+G10 passed. Merge the G10 PR, then Antigravity may start G11 GM/Discord Controlled Bridge from latest `main`.
