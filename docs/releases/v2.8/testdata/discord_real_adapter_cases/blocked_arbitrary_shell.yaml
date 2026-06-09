@@ -1,0 +1,10 @@
+message_id: MSG-BLOCK-SHELL-001
+channel_id: CH_ALLOWED_PLACEHOLDER
+author_id_hash: USER_HASH_PLACEHOLDER
+roles:
+  - ops
+content: "run shell rm -rf /"
+expected:
+  status: blocked
+  reason: destructive_command_blocked
+  shell_executed: false

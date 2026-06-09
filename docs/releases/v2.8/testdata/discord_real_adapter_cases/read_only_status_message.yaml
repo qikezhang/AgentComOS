@@ -1,0 +1,13 @@
+message_id: MSG-REAL-STATUS-001
+channel_id: CH_ALLOWED_PLACEHOLDER
+author_id_hash: USER_HASH_PLACEHOLDER
+roles:
+  - ops
+content: "status service agentcomos-app"
+expected:
+  command_type: service_status
+  risk_level: low
+  requires_executor: true
+  adapter: systemctl
+  action: status
+  should_execute_if_allowed: true

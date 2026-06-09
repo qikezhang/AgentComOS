@@ -1,0 +1,16 @@
+services:
+  agentcomos:
+    image: agentcomos:v2.8
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./runtime/.agentcomos/runs:/app/.agentcomos/runs
+      - ./runtime/logs:/app/logs
+      - ./runtime/reports:/app/reports
+      - ./runtime/backups:/app/backups
+    healthcheck:
+      test: ["CMD", "agentcomos", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

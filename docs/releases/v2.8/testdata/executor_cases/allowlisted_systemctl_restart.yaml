@@ -1,0 +1,7 @@
+case_id: EXEC-SYSTEMCTL-RESTART-ALLOW
+adapter: systemctl
+service: agentcomos-app
+action: restart
+expected:
+  policy_result: allowed
+  requires_approval_or_policy: true

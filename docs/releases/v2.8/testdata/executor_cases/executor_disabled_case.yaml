@@ -1,0 +1,8 @@
+case_id: EXEC-DISABLED
+adapter: docker
+command_ref: docker_compose_restart_agentcomos
+executor_enabled: false
+expected:
+  policy_result: blocked
+  reason: executor_disabled
+  executed: false

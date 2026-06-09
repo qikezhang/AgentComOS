@@ -1,0 +1,7 @@
+case_id: EXEC-SYSTEMCTL-STATUS-ALLOW
+adapter: systemctl
+service: agentcomos-app
+action: status
+expected:
+  policy_result: allowed
+  executed_if_policy_allows: true

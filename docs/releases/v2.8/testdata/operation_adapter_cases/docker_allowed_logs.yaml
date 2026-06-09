@@ -1,0 +1,8 @@
+case_id: OP-DOCKER-LOGS
+adapter: docker
+command_ref: docker_compose_logs_agentcomos
+parameters:
+  service: agentcomos-app
+expected:
+  allowed: true
+  output_redaction_required: true

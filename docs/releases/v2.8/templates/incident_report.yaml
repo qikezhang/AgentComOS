@@ -1,0 +1,18 @@
+incident_id: INCIDENT-EXAMPLE
+detected_at: "YYYY-MM-DDTHH:MM:SSZ"
+detected_by: operator
+incident_type: token_leak
+severity: high
+immediate_actions:
+  - disable_discord_bot
+  - rotate_token
+systems_disabled:
+  - discord_bot
+tokens_rotated: true
+artifacts_reviewed:
+  - gm_report
+commands_reviewed:
+  - recent_executor_commands
+final_status: contained
+prevention_actions:
+  - improve_secret_scan

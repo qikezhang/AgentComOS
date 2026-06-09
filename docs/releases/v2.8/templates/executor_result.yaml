@@ -1,0 +1,12 @@
+command_id: EXEC-CMD-EXAMPLE
+policy_id: EXEC-POLICY-EXAMPLE
+adapter: docker
+status: completed
+started_at: "YYYY-MM-DDTHH:MM:SSZ"
+completed_at: "YYYY-MM-DDTHH:MM:SSZ"
+exit_code: 0
+stdout_redacted: "<redacted or summarized output>"
+stderr_redacted: ""
+blocked_reason: null
+timeout_seconds: 60
+audit_id: EXEC-AUDIT-EXAMPLE

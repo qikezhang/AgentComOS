@@ -1,0 +1,6 @@
+case_id: OP-SHELL-HEALTHCHECK
+adapter: shell
+command_ref: shell_healthcheck
+expected:
+  allowed: true
+  timeout_seconds: 30

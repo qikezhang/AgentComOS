@@ -1,0 +1,7 @@
+case_id: EXEC-BLOCK-RM-RF
+adapter: shell
+raw_command: "rm -rf /"
+expected:
+  policy_result: blocked
+  reason: destructive_command_blocked
+  executed: false

@@ -1,0 +1,8 @@
+case_id: OP-SSH-STATUS
+adapter: ssh
+host: example.internal
+user: agentcomos
+command_ref: ssh_status
+expected:
+  allowed: true
+  arbitrary_shell: false

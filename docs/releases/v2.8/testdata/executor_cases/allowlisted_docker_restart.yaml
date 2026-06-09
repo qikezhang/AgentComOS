@@ -1,0 +1,9 @@
+case_id: EXEC-DOCKER-RESTART-ALLOW
+adapter: docker
+command_ref: docker_compose_restart_agentcomos
+parameters:
+  service: agentcomos-app
+expected:
+  policy_result: allowed
+  timeout_required: true
+  audit_required: true

@@ -1,0 +1,15 @@
+policy_id: RETENTION-POLICY-EXAMPLE
+logs_retention_days: 14
+run_artifacts_retention_days: 30
+gm_reports_retention_days: 90
+incident_reports_retention_days: 180
+backup_retention_days: 30
+backup_includes:
+  - runtime/.agentcomos/runs
+  - runtime/reports
+  - runtime/logs
+backup_excludes:
+  - .env
+  - "**/*token*"
+  - "**/*private_key*"
+  - "**/*.pem"
