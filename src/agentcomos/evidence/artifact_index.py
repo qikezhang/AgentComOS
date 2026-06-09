@@ -88,6 +88,43 @@ def generate_artifact_index(run_id: str) -> None:
                 "phase": "G10_MANUAL_OS_CONTROLLED_ADOPTION"
             })
 
+    gm_discord_dir = run_dir / "gm_discord"
+    if gm_discord_dir.exists() and gm_discord_dir.is_dir():
+        if (gm_discord_dir / "inbound").exists():
+            for f in (gm_discord_dir / "inbound").glob("*.yaml"):
+                checks.append({
+                    "path": f"gm_discord/inbound/{f.name}",
+                    "type": "discord_inbound_message",
+                    "phase": "G11_GM_DISCORD_CONTROLLED_BRIDGE"
+                })
+        if (gm_discord_dir / "outbound").exists():
+            for f in (gm_discord_dir / "outbound").glob("*.yaml"):
+                checks.append({
+                    "path": f"gm_discord/outbound/{f.name}",
+                    "type": "discord_outbound_message",
+                    "phase": "G11_GM_DISCORD_CONTROLLED_BRIDGE"
+                })
+        if (gm_discord_dir / "commands").exists():
+            for f in (gm_discord_dir / "commands").glob("*.yaml"):
+                checks.append({
+                    "path": f"gm_discord/commands/{f.name}",
+                    "type": "gm_command",
+                    "phase": "G11_GM_DISCORD_CONTROLLED_BRIDGE"
+                })
+        if (gm_discord_dir / "results").exists():
+            for f in (gm_discord_dir / "results").glob("*.yaml"):
+                checks.append({
+                    "path": f"gm_discord/results/{f.name}",
+                    "type": "gm_command_result",
+                    "phase": "G11_GM_DISCORD_CONTROLLED_BRIDGE"
+                })
+        if (gm_discord_dir / "audit" / "gm_discord_audit.md").exists():
+            checks.append({
+                "path": "gm_discord/audit/gm_discord_audit.md",
+                "type": "gm_discord_audit",
+                "phase": "G11_GM_DISCORD_CONTROLLED_BRIDGE"
+            })
+
     if (run_dir / "loop_plan.yaml").exists() or (run_dir / "loop_status.yaml").exists():
         checks.extend([
             {

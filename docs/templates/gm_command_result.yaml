@@ -1,0 +1,10 @@
+phase: G11_GM_DISCORD_CONTROLLED_BRIDGE
+command_id: "{{ command_id }}"
+status: "{{ status }}"
+summary: "{{ summary }}"
+artifacts: []
+safety:
+  auto_execute: false
+  shell_executed: false
+  manual_os_bypassed: false
+  decision_feynman_bypassed: false

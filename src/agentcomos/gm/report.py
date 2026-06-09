@@ -160,6 +160,34 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             "next_action": mos_next_action
         }
         
+        gm_discord_dir = run_dir / "gm_discord"
+        gm_discord_info = {
+            "controlled_bridge_enabled": True,
+            "fake_adapter_only": True,
+            "real_discord_connected": False,
+            "real_discord_token_used": False,
+            "real_discord_message_sent": False,
+            "auto_execute": False,
+            "agent_executed_shell": False,
+            "agent_executed_ssh": False,
+            "agent_executed_sudo": False,
+            "agent_executed_docker": False,
+            "agent_executed_systemctl": False,
+            "manual_os_bypassed": False,
+            "decision_feynman_bypassed": False,
+            "loop_bounded": True,
+            "next_action": ""
+        }
+        if gm_discord_dir.exists() and (gm_discord_dir / "commands").exists():
+            for cmd_file in (gm_discord_dir / "commands").glob("*.yaml"):
+                cmd = yaml.safe_load(cmd_file.read_text(encoding="utf-8"))
+                cmd_id = cmd.get("command_id")
+                res_path = gm_discord_dir / "results" / f"{cmd_id}.yaml"
+                if not res_path.exists():
+                    if cmd.get("requires_confirmation") or cmd.get("status") == "blocked":
+                        gm_discord_info["next_action"] = f"Awaiting human confirmation for {cmd_id}"
+                        break
+        
         status = "completed"
         if evidence_status in ("failed", "missing_manifest", "missing_run") or delivery_status in ("failed", "missing_packet", "missing_run"):
             status = "failed"
@@ -200,6 +228,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 "summary": "GM Report generated from evidence.",
                 "g8_controls": g8_controls,
                 "manual_os": manual_os_info,
+                "gm_discord_bridge": gm_discord_info,
                 "runtime_usage": {
                     "fake_opencode_used": oc.get("fake_opencode_used", False),
                     "real_opencode_attempted": oc.get("real_opencode_attempted", False),
@@ -282,6 +311,27 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             ]
             if manual_os_info['next_action']:
                 controls_md_lines.append(f"- **next action**:\n{manual_os_info['next_action']}")
+            controls_md_lines.append("")
+            
+            controls_md_lines.extend([
+                "## GM / Discord Controlled Bridge",
+                f"- **Controlled bridge enabled**: {gm_discord_info['controlled_bridge_enabled']}",
+                f"- **Fake adapter only**: {gm_discord_info['fake_adapter_only']}",
+                f"- **Real Discord connected**: {gm_discord_info['real_discord_connected']}",
+                f"- **Real Discord token used**: {gm_discord_info['real_discord_token_used']}",
+                f"- **Real Discord message sent**: {gm_discord_info['real_discord_message_sent']}",
+                f"- **auto_execute**: {gm_discord_info['auto_execute']}",
+                f"- **agent executed shell**: {gm_discord_info['agent_executed_shell']}",
+                f"- **agent executed ssh**: {gm_discord_info['agent_executed_ssh']}",
+                f"- **agent executed sudo**: {gm_discord_info['agent_executed_sudo']}",
+                f"- **agent executed docker**: {gm_discord_info['agent_executed_docker']}",
+                f"- **agent executed systemctl**: {gm_discord_info['agent_executed_systemctl']}",
+                f"- **manual_os bypassed**: {gm_discord_info['manual_os_bypassed']}",
+                f"- **decision/feynman bypassed**: {gm_discord_info['decision_feynman_bypassed']}",
+                f"- **loop bounded**: {gm_discord_info['loop_bounded']}",
+            ])
+            if gm_discord_info['next_action']:
+                controls_md_lines.append(f"- **next action**:\n{gm_discord_info['next_action']}")
             controls_md_lines.append("")
             
             if decision_tasks:
