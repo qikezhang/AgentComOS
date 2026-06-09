@@ -8,11 +8,19 @@ build/
 .venv/
 
 # runtime state
-.agentcomos/runs/*/tmp/
-logs/
-.env
-
 .agentcomos/runs/
+runtime/
+logs/
+reports/
+backups/
+.env
+*.pem
+*.key
+.p12
+.pfx
+
+# legacy / specific runtime paths
+.agentcomos/runs/*/tmp/
 .agentcomos/runtime/
 
 # OS/editor
