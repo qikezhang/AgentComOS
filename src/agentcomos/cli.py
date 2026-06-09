@@ -151,6 +151,12 @@ app.add_typer(program_app, name="program")
 frontier_app = typer.Typer(help="Task Frontier operations")
 app.add_typer(frontier_app, name="frontier")
 
+decision_app = typer.Typer(help="Decision operations")
+app.add_typer(decision_app, name="decision")
+
+feynman_app = typer.Typer(help="Feynman operations")
+app.add_typer(feynman_app, name="feynman")
+
 @run_app.command("create")
 def run_create(intent: Path = typer.Option(..., help="Path to operating_intent.yaml")) -> None:
     """Create a new run from an operating intent."""
@@ -582,6 +588,78 @@ def gm_report_cmd(run: str = typer.Option(..., "--run", help="Run ID"), format: 
         generate_gm_report(run, format=format)
         print("GM report generated.")
     except Exception as e:
+        raise typer.BadParameter(str(e))
+
+@decision_app.command("request")
+def decision_request(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    task: str = typer.Option(..., "--task", help="Task ID"),
+    mode: str = typer.Option(None, "--mode", help="Mode (must be explicit)")
+) -> None:
+    if mode != "explicit":
+        raise typer.BadParameter("mode must be 'explicit'")
+    from agentcomos.decision.builder import request_decision
+    try:
+        request_decision(run, task, mode)
+        print("Decision requested and deterministic result generated.")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@decision_app.command("status")
+def decision_status(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    from agentcomos.decision.status import get_decision_status
+    import yaml
+    try:
+        print(yaml.dump(get_decision_status(run), sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@decision_app.command("result")
+def decision_result(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    task: str = typer.Option(..., "--task", help="Task ID")
+) -> None:
+    from agentcomos.decision.status import get_decision_result
+    import yaml
+    try:
+        print(yaml.dump(get_decision_result(run, task), sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@feynman_app.command("check")
+def feynman_check_cmd(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    task: str = typer.Option(..., "--task", help="Task ID"),
+    mode: str = typer.Option(None, "--mode", help="Mode (must be explicit)")
+) -> None:
+    if mode != "explicit":
+        raise typer.BadParameter("mode must be 'explicit'")
+    from agentcomos.feynman.builder import check_feynman
+    try:
+        check_feynman(run, task, mode)
+        print("Feynman check requested and deterministic result generated.")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@feynman_app.command("status")
+def feynman_status_cmd(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    from agentcomos.feynman.status import get_feynman_status
+    import yaml
+    try:
+        print(yaml.dump(get_feynman_status(run), sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@feynman_app.command("result")
+def feynman_result_cmd(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    task: str = typer.Option(..., "--task", help="Task ID")
+) -> None:
+    from agentcomos.feynman.status import get_feynman_result
+    import yaml
+    try:
+        print(yaml.dump(get_feynman_result(run, task), sort_keys=False))
+    except ValueError as e:
         raise typer.BadParameter(str(e))
 if __name__ == "__main__":
     app()

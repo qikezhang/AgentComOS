@@ -1,0 +1,17 @@
+run_id: OI-TECHAI8-001
+task_id: TF-001
+mode: explicit
+status: completed
+created_by: controller
+real_runtime_used: false
+options:
+  - option_id: option_a
+    score: 0.7
+  - option_id: option_b
+    score: 0.3
+selected_option: option_a
+rationale: "Controlled deterministic decision result generated for explicit G8 adoption."
+risks:
+  - id: RISK-G8-DECISION-001
+    severity: low
+    summary: "Decision is deterministic and not a real multi-agent market."

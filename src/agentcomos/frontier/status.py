@@ -99,6 +99,8 @@ def generate_frontier_status(run_id: str, append_status_event: bool = True) -> d
         "running_tasks": by_status.get("running", []),
         "completed_tasks": by_status.get("completed", []),
         "failed_tasks": by_status.get("failed", []),
+        "awaiting_decision_tasks": by_status.get("awaiting_decision", []),
+        "awaiting_feynman_tasks": by_status.get("awaiting_feynman", []),
         "invalid_dependencies": invalid_dependencies(frontier),
     }
     index_doc = {
@@ -116,7 +118,7 @@ def generate_frontier_status(run_id: str, append_status_event: bool = True) -> d
     fingerprint = _frontier_fingerprint(frontier)
     for task in frontier.get("tasks") or []:
         task_status = str(task.get("status"))
-        if task_status in {"ready", "blocked"}:
+        if task_status in {"ready", "blocked", "awaiting_decision", "awaiting_feynman"}:
             event_type = f"frontier.task.{task_status}"
             task_id = str(task.get("task_id"))
             if not _has_task_event(run_id, event_type, task_id):

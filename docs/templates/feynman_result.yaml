@@ -1,0 +1,15 @@
+run_id: OI-TECHAI8-001
+task_id: TF-001
+mode: explicit
+status: completed
+created_by: controller
+real_runtime_used: false
+original_task: "..."
+explanation: "Deterministic Feynman-style explanation generated for explicit G8 adoption."
+detected_ambiguities: []
+missing_inputs: []
+execution_risks:
+  - id: RISK-G8-FEYNMAN-001
+    severity: low
+    summary: "This is a deterministic check, not a real LLM critique."
+pass: true
