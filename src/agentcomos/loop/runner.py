@@ -39,6 +39,41 @@ def run_loop(run_id: str, max_ticks: int, fake: bool) -> None:
         if _is_blocked_on_decision_or_feynman(frontier, status, run_id):
             stop_reason = status["stop_reason"]
             append_event(run_id, "loop.tick.blocked", {"stop_reason": stop_reason})
+            
+            if stop_reason in ("awaiting_decision", "awaiting_feynman"):
+                status["ticks_executed"] += 1
+                now_str = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+                task_id = status["blocked_on"].get("task_id")
+                task_before_status = "ready"
+                if task_id:
+                    for t in frontier.get("tasks", []):
+                        if t["task_id"] == task_id:
+                            task_before_status = t["status"]
+                            break
+                            
+                trace_entry = {
+                    "tick_number": status["ticks_executed"],
+                    "started_at": now_str,
+                    "result": "blocked",
+                    "advanced_task_id": None,
+                    "task_before": task_id,
+                    "task_after": task_id,
+                    "status_before": task_before_status,
+                    "status_after": "blocked",
+                    "blocked_on": {
+                        "type": status["blocked_on"].get("type"),
+                        "task_id": task_id,
+                        "reason": stop_reason
+                    },
+                    "controller_tick_called": False,
+                    "fake_runtime": True,
+                    "real_runtime_used": False,
+                    "stop_reason": stop_reason
+                }
+                trace["ticks"].append(trace_entry)
+                status["latest_tick"]["tick_number"] = status["ticks_executed"]
+                status["latest_tick"]["result"] = "blocked"
+            
             break
             
         g7_result = handle_controller_tick(run_id, fake=fake)
