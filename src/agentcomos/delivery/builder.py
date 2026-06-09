@@ -150,25 +150,30 @@ def build_delivery_packet(run_id: str) -> None:
                     cmd_id = cmd.get("command_id")
                     
                     res_status = "missing"
+                    reason = cmd.get("reason", "unknown")
                     res_path = gm_discord_dir / "results" / f"{cmd_id}.yaml"
                     if res_path.exists():
                         res = yaml.safe_load(res_path.read_text(encoding="utf-8"))
-                        res_status = res.get("status")
+                        res_status = res.get("status", "unknown")
+                        reason = res.get("summary", reason)
                     else:
                         if cmd.get("status") == "blocked":
                             res_status = "blocked"
                         elif cmd.get("requires_confirmation"):
                             res_status = "requires_confirmation"
+                        elif cmd.get("status") == "failed_parse":
+                            res_status = "failed_parse"
                     
-                    if res_status in ["blocked", "requires_confirmation"]:
-                        risks.append(f"GM Discord command {cmd_id} is {res_status}")
-                        next_actions = [f"human action required for GM Discord command {cmd_id}"]
+                    if res_status in ["blocked", "requires_confirmation", "failed_parse"] or reason in ["max_ticks_exceeds_g11_limit", "prohibited_shell_command", "fake_required", "real_runtime_loop_forbidden"]:
+                        risks.append(f"GM Discord command {cmd_id} is {res_status} with reason {reason}")
+                        next_actions = [f"human action required to fix or confirm GM Discord command {cmd_id}"]
                         if status == "completed":
                             status = "partial"
                             
                     g11_controls["commands"].append({
                         "command_id": cmd_id,
                         "status": res_status,
+                        "reason": reason,
                         "artifact": f"gm_discord/commands/{cmd_id}.yaml"
                     })
         g11_artifacts.sort()

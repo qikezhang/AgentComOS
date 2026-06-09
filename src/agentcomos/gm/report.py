@@ -176,17 +176,44 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             "manual_os_bypassed": False,
             "decision_feynman_bypassed": False,
             "loop_bounded": True,
-            "next_action": ""
+            "commands": []
         }
+        gm_discord_next_action = []
         if gm_discord_dir.exists() and (gm_discord_dir / "commands").exists():
             for cmd_file in (gm_discord_dir / "commands").glob("*.yaml"):
                 cmd = yaml.safe_load(cmd_file.read_text(encoding="utf-8"))
                 cmd_id = cmd.get("command_id")
+                cmd_type = cmd.get("command_type", "unknown")
+                requires_conf = cmd.get("requires_confirmation", False)
                 res_path = gm_discord_dir / "results" / f"{cmd_id}.yaml"
-                if not res_path.exists():
-                    if cmd.get("requires_confirmation") or cmd.get("status") == "blocked":
-                        gm_discord_info["next_action"] = f"Awaiting human confirmation for {cmd_id}"
-                        break
+                if res_path.exists():
+                    res = yaml.safe_load(res_path.read_text(encoding="utf-8"))
+                    res_status = res.get("status", "unknown")
+                    reason = res.get("summary", "")
+                else:
+                    res_status = "missing"
+                    if cmd.get("status") == "blocked":
+                        res_status = "blocked"
+                    elif requires_conf:
+                        res_status = "requires_confirmation"
+                    elif cmd.get("status") == "failed_parse":
+                        res_status = "failed_parse"
+                    reason = cmd.get("reason", "unknown")
+                    
+                next_action = ""
+                if res_status in ["blocked", "requires_confirmation", "failed_parse"]:
+                    next_action = "human must review and address command"
+                    gm_discord_next_action.append(f"Awaiting human action for {cmd_id}")
+                
+                gm_discord_info["commands"].append({
+                    "command_id": cmd_id,
+                    "command_type": cmd_type,
+                    "status": res_status,
+                    "reason": reason,
+                    "requires_confirmation": requires_conf,
+                    "next_action": next_action
+                })
+        gm_discord_info["next_action"] = "\n".join(gm_discord_next_action)
         
         status = "completed"
         if evidence_status in ("failed", "missing_manifest", "missing_run") or delivery_status in ("failed", "missing_packet", "missing_run"):
@@ -315,22 +342,21 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             
             controls_md_lines.extend([
                 "## GM / Discord Controlled Bridge",
-                f"- **Controlled bridge enabled**: {gm_discord_info['controlled_bridge_enabled']}",
-                f"- **Fake adapter only**: {gm_discord_info['fake_adapter_only']}",
-                f"- **Real Discord connected**: {gm_discord_info['real_discord_connected']}",
-                f"- **Real Discord token used**: {gm_discord_info['real_discord_token_used']}",
-                f"- **Real Discord message sent**: {gm_discord_info['real_discord_message_sent']}",
+                f"- **fake adapter only**: {gm_discord_info['fake_adapter_only']}",
+                f"- **real Discord connected**: {gm_discord_info['real_discord_connected']}",
+                f"- **real Discord token used**: {gm_discord_info['real_discord_token_used']}",
+                f"- **real Discord message sent**: {gm_discord_info['real_discord_message_sent']}",
                 f"- **auto_execute**: {gm_discord_info['auto_execute']}",
-                f"- **agent executed shell**: {gm_discord_info['agent_executed_shell']}",
-                f"- **agent executed ssh**: {gm_discord_info['agent_executed_ssh']}",
-                f"- **agent executed sudo**: {gm_discord_info['agent_executed_sudo']}",
-                f"- **agent executed docker**: {gm_discord_info['agent_executed_docker']}",
-                f"- **agent executed systemctl**: {gm_discord_info['agent_executed_systemctl']}",
+                f"- **shell executed**: {gm_discord_info['agent_executed_shell']}",
                 f"- **manual_os bypassed**: {gm_discord_info['manual_os_bypassed']}",
-                f"- **decision/feynman bypassed**: {gm_discord_info['decision_feynman_bypassed']}",
-                f"- **loop bounded**: {gm_discord_info['loop_bounded']}",
+                f"- **decision_feynman bypassed**: {gm_discord_info['decision_feynman_bypassed']}",
+                f"- **bounded loop enforced**: {gm_discord_info['loop_bounded']}",
             ])
-            if gm_discord_info['next_action']:
+            if gm_discord_info.get('commands'):
+                controls_md_lines.append("**Commands:**")
+                for c in gm_discord_info['commands']:
+                    controls_md_lines.append(f"- {c['command_id']} ({c['command_type']}): status={c['status']}, reason='{c['reason']}', requires_confirmation={c['requires_confirmation']}, next_action='{c['next_action']}'")
+            if gm_discord_info.get('next_action'):
                 controls_md_lines.append(f"- **next action**:\n{gm_discord_info['next_action']}")
             controls_md_lines.append("")
             

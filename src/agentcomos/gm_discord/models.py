@@ -9,6 +9,8 @@ class SafetyInbound:
     shell_executed: bool = False
     manual_os_bypassed: bool = False
     decision_feynman_bypassed: bool = False
+    bounded_loop: bool = False
+    real_runtime_used: bool = False
 
 @dataclass
 class DiscordInboundMessage:
@@ -50,6 +52,9 @@ class SafetyCommand:
     real_os_execution_allowed: bool = False
     shell_executed: bool = False
     token_redacted: bool = True
+    decision_feynman_bypassed: bool = False
+    bounded_loop: bool = False
+    real_runtime_used: bool = False
 
 @dataclass
 class GMCommand:
@@ -63,9 +68,24 @@ class GMCommand:
     source: str = "discord"
     status: str = "parsed"
     phase: str = "G11_GM_DISCORD_CONTROLLED_BRIDGE"
+    task_id: Optional[str] = None
+    max_ticks: Optional[int] = None
+    fake: Optional[bool] = None
+    real_runtime_used: Optional[bool] = None
+    reason: Optional[str] = None
 
     def model_dump(self):
-        return asdict(self)
+        # Exclude None values to match expected YAML structure cleanly, except if needed
+        d = asdict(self)
+        return {k: v for k, v in d.items() if v is not None}
+
+@dataclass
+class GMLoopResult:
+    max_ticks: int
+    fake: bool
+    real_runtime_used: bool
+    ticks_executed: int
+    stop_reason: str
 
 @dataclass
 class SafetyCommandResult:
@@ -73,6 +93,8 @@ class SafetyCommandResult:
     shell_executed: bool = False
     manual_os_bypassed: bool = False
     decision_feynman_bypassed: bool = False
+    bounded_loop: bool = False
+    real_runtime_used: bool = False
 
 @dataclass
 class GMCommandResultArtifact:
@@ -86,6 +108,8 @@ class GMCommandResult:
     artifacts: List[GMCommandResultArtifact] = field(default_factory=list)
     phase: str = "G11_GM_DISCORD_CONTROLLED_BRIDGE"
     safety: SafetyCommandResult = field(default_factory=SafetyCommandResult)
+    loop: Optional[GMLoopResult] = None
 
     def model_dump(self):
-        return asdict(self)
+        d = asdict(self)
+        return {k: v for k, v in d.items() if v is not None}

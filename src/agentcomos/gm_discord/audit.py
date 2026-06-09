@@ -8,9 +8,6 @@ def generate_audit(run_id: str) -> str:
     discord_dir = run_dir / "gm_discord"
     audit_path = discord_dir / "audit" / "gm_discord_audit.md"
     
-    if audit_path.exists():
-        return str(audit_path)
-    
     audit_path.parent.mkdir(parents=True, exist_ok=True)
     
     commands = []
@@ -67,10 +64,20 @@ def generate_audit(run_id: str) -> str:
         content += f"- GM Command Result: `{(result_path.relative_to(run_dir.parent.parent) if result_path.exists() else 'None')}`\n\n"
         
         content += f"## Next Action\n"
-        if result.get("status") == "requires_confirmation":
-            content += "Awaiting explicit human confirmation.\n\n"
+        if result.get("status") == "requires_confirmation" or cmd.get("status") == "blocked":
+            content += "Awaiting explicit human confirmation or review.\n\n"
         else:
             content += "Review audit trail.\n\n"
+            
+    if audit_path.exists():
+        existing_content = audit_path.read_text(encoding="utf-8")
+        if existing_content == content:
+            return str(audit_path)
+            
+        with open(audit_path, 'w') as f:
+            f.write(content)
+        append_event(run_id, "gm_discord.audit.updated", {"path": str(audit_path.relative_to(run_dir.parent.parent))})
+        return str(audit_path)
             
     with open(audit_path, 'w') as f:
         f.write(content)
