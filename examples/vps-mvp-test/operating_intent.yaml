@@ -1,0 +1,17 @@
+version: 1.0
+type: operating_intent
+intent_id: OI-VPS-MVP-001
+objective: "编写一个能够获取服务器基础信息的 Python 脚本，并在当前目录下保存为 system_info.py。"
+context:
+  - "这是在一台运行 Linux 的真实 VPS 环境上进行的首次 MVP 实体测试。"
+  - "该脚本应拉取操作系统的发行版版本、CPU 核心数、内存使用情况及当前系统时间。"
+constraints:
+  - "禁止在系统中直接运行高危命令或执行关机等操作。"
+  - "只能在当前工作目录下创建 system_info.py，不得污染其他系统文件。"
+success_criteria:
+  - "成功输出一个合法且可运行的 system_info.py 文件。"
+  - "脚本运行时无语法错误，且包含期望的所有系统信息拉取逻辑。"
+metadata:
+  target_environment: vps_production
+  real_opencode_used: true
+  author: gm

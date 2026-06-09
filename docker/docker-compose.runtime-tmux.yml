@@ -13,6 +13,8 @@ services:
     environment:
       TERM: xterm-256color # 必须：TERM/terminfo 正常
       AGENTCOMOS_RUNTIME_PROFILE: docker-tmux-runtime
+    env_file:
+      - ../.env
     restart: unless-stopped
     command: ["bash", "-lc", "tmux start-server; tail -f /dev/null"] # 必须：容器常驻
 volumes:

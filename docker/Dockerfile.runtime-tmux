@@ -4,12 +4,21 @@ FROM python:3.11-slim
 ENV TERM=xterm-256color
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update     && apt-get install -y --no-install-recommends        bash git tmux ncurses-term curl ca-certificates docker-cli procps     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       bash git tmux ncurses-term curl ca-certificates docker-cli procps \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 COPY pyproject.toml README.md ./
 COPY src ./src
 RUN pip install -e .
+
+# [请根据实际情况配置] 如果 Hermes CLI 需要通过 npm 或 pip 单独安装，请取消注释并配置：
+# RUN npm install -g @with-hermes/cli 
+# 或如果是独立二进制文件，可以挂载或者直接在 docker build 时下载。
 
 # OpenCode 和 Hermes 的安装步骤在生产镜像派生层中 pin 具体版本。
 # 这里保留 contract image，用于验证 tmux runtime 条件。
