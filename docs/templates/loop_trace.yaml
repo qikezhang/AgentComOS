@@ -1,0 +1,35 @@
+# Loop Trace Artifact Schema
+loop_id: LOOP-OI-TECHAI8-001
+run_id: OI-TECHAI8-001
+runtime_mode: fake
+ticks:
+  - tick_number: 1
+    started_at: "2026-06-08T00:00:00Z"
+    task_before: ready
+    task_after: completed
+    status_before: active
+    status_after: active
+    result: task_completed
+    advanced_task_id: TF-001
+    fake_runtime: true
+    real_runtime_used: false
+  - tick_number: 2
+    started_at: "2026-06-08T00:01:00Z"
+    task_before: ready
+    task_after: completed
+    status_before: active
+    status_after: active
+    result: task_completed
+    advanced_task_id: TF-002
+    fake_runtime: true
+    real_runtime_used: false
+  - tick_number: 3
+    started_at: "2026-06-08T00:02:00Z"
+    task_before: ready
+    task_after: completed
+    status_before: active
+    status_after: completed
+    result: task_completed
+    advanced_task_id: TF-003
+    fake_runtime: true
+    real_runtime_used: false

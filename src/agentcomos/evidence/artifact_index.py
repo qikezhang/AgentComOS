@@ -59,6 +59,30 @@ def generate_artifact_index(run_id: str) -> None:
                     "phase": "G8_DECISION_FEYNMAN_CONTROLLED_ADOPTION"
                 })
 
+    if (run_dir / "loop_plan.yaml").exists() or (run_dir / "loop_status.yaml").exists():
+        checks.extend([
+            {
+                "path": "loop_plan.yaml",
+                "type": "loop_plan",
+                "phase": "G9_LOOP_EXECUTION"
+            },
+            {
+                "path": "loop_status.yaml",
+                "type": "loop_status",
+                "phase": "G9_LOOP_EXECUTION"
+            },
+            {
+                "path": "loop_trace.yaml",
+                "type": "loop_trace",
+                "phase": "G9_LOOP_EXECUTION"
+            },
+            {
+                "path": "loop_summary.md",
+                "type": "loop_summary",
+                "phase": "G9_LOOP_EXECUTION"
+            }
+        ])
+
 
 
     checks.sort(key=lambda x: x["path"])

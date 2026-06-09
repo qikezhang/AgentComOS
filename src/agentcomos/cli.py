@@ -139,6 +139,9 @@ app.add_typer(run_app, name="run")
 controller_app = typer.Typer(help="Controller operations")
 app.add_typer(controller_app, name="controller")
 
+loop_app = typer.Typer(help="Loop Execution operations")
+app.add_typer(loop_app, name="loop")
+
 opencode_app = typer.Typer(help="OpenCode runtime operations")
 app.add_typer(opencode_app, name="opencode")
 
@@ -190,6 +193,65 @@ def controller_recover(run: str = typer.Option(..., help="Run ID")) -> None:
     from agentcomos.controller.runner import handle_controller_recover
     try:
         handle_controller_recover(run)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@loop_app.command("plan")
+def loop_plan_cmd(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """Create a loop plan."""
+    from agentcomos.loop.plan import create_loop_plan
+    import yaml
+    try:
+        plan = create_loop_plan(run)
+        print(yaml.dump(plan, sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@loop_app.command("status")
+def loop_status_cmd(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """Show the status of a loop."""
+    from agentcomos.loop.status import get_loop_status
+    import yaml
+    try:
+        status = get_loop_status(run)
+        print(yaml.dump(status, sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@loop_app.command("run")
+def loop_run_cmd(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    max_ticks: int = typer.Option(..., "--max-ticks", help="Maximum number of ticks to run"),
+    fake: bool = typer.Option(False, "--fake", help="Fake execution")
+) -> None:
+    """Execute loop runner."""
+    from agentcomos.loop.runner import run_loop
+    try:
+        run_loop(run, max_ticks, fake)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@loop_app.command("trace")
+def loop_trace_cmd(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """Show the trace of a loop."""
+    from agentcomos.loop.trace import read_loop_trace
+    import yaml
+    try:
+        trace = read_loop_trace(run)
+        print(yaml.dump(trace, sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@loop_app.command("recover")
+def loop_recover_cmd(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """Recover the status of a loop from trace."""
+    from agentcomos.loop.recover import recover_loop_status
+    import yaml
+    try:
+        status = recover_loop_status(run)
+        print("Loop recovered successfully:")
+        print(yaml.dump(status, sort_keys=False))
     except ValueError as e:
         raise typer.BadParameter(str(e))
 

@@ -58,6 +58,21 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
         awaiting_d = len(frontier_status.get("awaiting_decision_tasks", [])) > 0
         awaiting_f = len(frontier_status.get("awaiting_feynman_tasks", [])) > 0
         
+        loop_status_path = run_dir / "loop_status.yaml"
+        loop_status = {}
+        if loop_status_path.exists():
+            loop_status = yaml.safe_load(loop_status_path.read_text(encoding="utf-8")) or {}
+            loop_status.update({
+                "mode": "bounded",
+                "automatic_decision_market_enabled": False,
+                "automatic_feynman_executor_enabled": False,
+                "manual_os_enabled": False,
+                "worker_evolution_enabled": False,
+                "auto_versioner_enabled": False,
+                "recursive_task_expansion_enabled": False,
+                "daemon_enabled": False
+            })
+        
         for task in frontier.get("tasks", []):
             task_id = task.get("task_id")
             if task.get("decision_required") or (run_dir / "decision" / task_id / "decision_request.yaml").exists():
@@ -105,7 +120,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
         status = "completed"
         if evidence_status in ("failed", "missing_manifest", "missing_run") or delivery_status in ("failed", "missing_packet", "missing_run"):
             status = "failed"
-        elif evidence_status == "partial" or delivery_status == "partial" or len(frontier_status.get("failed_tasks", [])) > 0 or awaiting_d or awaiting_f or missing_required:
+        elif evidence_status == "partial" or delivery_status == "partial" or len(frontier_status.get("failed_tasks", [])) > 0 or awaiting_d or awaiting_f or missing_required or loop_status.get("status") == "blocked":
             status = "partial"
 
         # Artifact gaps
@@ -161,6 +176,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                     "failed_tasks": frontier_status.get("failed_tasks", []),
                     "next_task_id": frontier_status.get("next_task_id"),
                 },
+                "loop_execution": loop_status,
                 "failed_tasks_disclosure": failed_tasks_info,
                 "artifacts": [
                     "evidence_packet/manifest.yaml",
@@ -177,6 +193,9 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 "risks": gaps + unavailable_disclosure + failed_tasks_info,
                 "next_actions": ["Ready for Codex review."]
             }
+            for lf in ["loop_plan.yaml", "loop_status.yaml", "loop_trace.yaml", "loop_summary.md"]:
+                if (run_dir / lf).exists():
+                    report_yaml["artifacts"].append(lf)
             path.write_text(yaml.dump(report_yaml, sort_keys=False), encoding="utf-8")
         else:
             gaps_md = "\n".join(f"- {g}" for g in gaps) if gaps else "None detected."
@@ -280,6 +299,21 @@ The following evidence files were used to generate this report:
 - `task_frontier.yaml`
 - `task_frontier_index.yaml`
 - `frontier_status.yaml`
+
+## Loop Execution Controls
+- **Loop Execution mode**: bounded
+- **Runtime mode**: {loop_status.get('runtime_mode', 'fake')}
+- **Max ticks**: {loop_status.get('ticks_requested', 0)}
+- **Ticks executed**: {loop_status.get('ticks_executed', 0)}
+- **Tasks advanced**: {loop_status.get('tasks_advanced', 0)}
+- **Stop reason**: {loop_status.get('stop_reason', 'missing')}
+- **Real runtime used**: false
+- **Automatic Decision/Feynman**: disabled
+- **Manual OS**: not enabled
+- **Worker Evolution**: not enabled
+- **Auto Versioner**: not enabled
+- **Recursive task expansion**: not enabled
+- **Background daemon**: not enabled
 
 ## Task Frontier
 {frontier_md}

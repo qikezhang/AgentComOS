@@ -1,0 +1,16 @@
+# Loop Status Artifact Schema
+loop_id: LOOP-OI-TECHAI8-001
+run_id: OI-TECHAI8-001
+status: completed
+runtime_mode: fake
+ticks_requested: 3
+ticks_executed: 3
+tasks_advanced: 3
+stop_reason: max_ticks_reached
+real_runtime_used: false
+latest_tick:
+  tick_number: 3
+  result: completed
+blocked_on:
+  type: none
+  task_id: null

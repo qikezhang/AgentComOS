@@ -23,6 +23,10 @@ def get_input_fingerprint(run_id: str) -> str:
         "task_frontier.yaml",
         "task_frontier_index.yaml",
         "frontier_status.yaml",
+        "loop_plan.yaml",
+        "loop_status.yaml",
+        "loop_trace.yaml",
+        "loop_summary.md",
     ]:
         path = run_dir / filename
         if path.exists():
@@ -77,6 +81,15 @@ def finalize_evidence_packet(run_id: str) -> None:
         except Exception:
             pass
             
+    inputs_list = [
+        "run_status.yaml",
+        "events.jsonl",
+        "timeline.yaml"
+    ]
+    for lf in ["loop_plan.yaml", "loop_status.yaml", "loop_trace.yaml", "loop_summary.md"]:
+        if (run_dir / lf).exists():
+            inputs_list.append(lf)
+            
     manifest = {
         "run_id": run_id,
         "phase": "G6_EVIDENCE_DELIVERY_GM_REPORT",
@@ -84,11 +97,7 @@ def finalize_evidence_packet(run_id: str) -> None:
         "status": "completed" if val_status == "passed" else val_status,
         "created_at": created_at,
         "input_fingerprint": fingerprint,
-        "inputs": [
-            "run_status.yaml",
-            "events.jsonl",
-            "timeline.yaml"
-        ],
+        "inputs": inputs_list,
         "evidence_files": [
             "events_summary.yaml",
             "runtime_summary.yaml",
