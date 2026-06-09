@@ -857,5 +857,19 @@ def gm_discord_audit(run: str = typer.Option(..., "--run", help="Run ID")) -> No
         print(f"Audit generated: {path}")
     except ValueError as e:
         raise typer.BadParameter(str(e))
+@app.command("healthcheck")
+def healthcheck() -> None:
+    """AgentComOS healthcheck."""
+    import os
+    data = {
+        "status": "ok",
+        "component": "agentcomos",
+        "mode": "healthcheck",
+        "runtime_dir": os.environ.get("AGENTCOMOS_RUNTIME_DIR", "/app/.agentcomos/runs"),
+        "log_dir": os.environ.get("AGENTCOMOS_LOG_DIR", "/app/logs"),
+        "report_dir": os.environ.get("AGENTCOMOS_REPORT_DIR", "/app/reports")
+    }
+    print(json.dumps(data))
+
 if __name__ == "__main__":
     app()
