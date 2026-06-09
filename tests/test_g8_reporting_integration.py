@@ -157,7 +157,19 @@ def test_g8_delivery_completed_when_required_results_exist(fake_run):
     (run_dir / "evidence_packet" / "validation_summary.yaml").write_text("{}")
     build_delivery_packet(run_id)
     packet = yaml.safe_load((run_dir / "delivery_packet.yaml").read_text())
-    pass # we test what we can
+    
+    assert packet.get("status") == "completed"
+    
+    delivery_text = (run_dir / "delivery_packet.yaml").read_text()
+    assert "decision/T1/decision_result.yaml" in delivery_text
+    assert "feynman/T2/feynman_result.yaml" in delivery_text
+    assert "awaiting_decision" not in delivery_text
+    assert "awaiting_feynman" not in delivery_text
+    
+    g8 = packet.get("g8_controls", {})
+    assert g8
+    assert "decision" in g8
+    assert "feynman" in g8
 
 def test_g8_delivery_discloses_g8_blocking_issues(fake_run):
     run_id, run_dir = fake_run
@@ -232,5 +244,32 @@ def test_g8_gm_report_completed_when_required_results_exist(fake_run):
     (run_dir / "decision" / "T1" / "decision_result.yaml").write_text("status: completed\n")
     (run_dir / "feynman" / "T2").mkdir(parents=True)
     (run_dir / "feynman" / "T2" / "feynman_result.yaml").write_text("status: completed\n")
+    
+    # need evidence and delivery completed
+    (run_dir / "evidence_packet" / "artifact_index.yaml").write_text("{}")
+    (run_dir / "evidence_packet" / "validation_summary.yaml").write_text("{}")
+    build_delivery_packet(run_id)
+    
     generate_gm_report(run_id, format="yaml")
-    pass
+    generate_gm_report(run_id, format="markdown")
+    
+    gm_yaml = yaml.safe_load((run_dir / "gm_report.yaml").read_text())
+    gm_md = (run_dir / "gm_report.md").read_text()
+    
+    assert gm_yaml.get("status") == "completed"
+    
+    g8 = gm_yaml.get("g8_controls", {})
+    assert g8
+    assert g8.get("decision_controlled_mode") == "explicit"
+    assert g8.get("feynman_controlled_mode") == "explicit"
+    assert g8.get("automatic_decision_market_enabled") is False
+    assert g8.get("automatic_feynman_executor_enabled") is False
+    assert g8.get("real_runtime_used") is False
+    
+    assert "decision" in gm_md.lower()
+    assert "feynman" in gm_md.lower()
+    assert "explicit" in gm_md.lower()
+    assert "automatic" in gm_md.lower()
+    assert "not enabled" in gm_md.lower() or "disabled" in gm_md.lower()
+    assert "awaiting_decision" not in gm_md
+    assert "awaiting_feynman" not in gm_md
