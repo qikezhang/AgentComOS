@@ -1,6 +1,6 @@
 # R2 Docker Production Service Codex Review
 
-Status: failed
+Status: failed-fixed-ready-for-review
 
 Branch: antigravity/r2-docker-production-service
 Commit reviewed: f7a5ca2
@@ -184,3 +184,9 @@ Result: passed for tracked files, failed for clean local review environment
 ## Next Step
 
 Antigravity must fix the Dockerfile packaging/runtime issue, produce clean Docker build evidence, and rerun R2 hygiene from a clean review environment. R3 remains locked until R2 passes Codex review and merges to main.
+
+## Fix Notes
+- Dockerfile now copies `src` and other needed files before `pip install .`.
+- Compose clean validation in tests uses a sanitized temp environment to avoid local `.env` pollution.
+- Runtime artifacts (`.agentcomos/runs`) are cleaned before final report and verified by tests.
+- Ready for Codex re-review.

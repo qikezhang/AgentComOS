@@ -54,5 +54,7 @@ Implement Docker / Docker Compose supervised production-like service for AgentCo
 - Hygiene rules observed.
 
 ## Cleanup Notes
-- Ensure `.agentcomos/runs` is clean before committing.
-- Ensure `.env` is not tracked.
+- Before validation, clean `.agentcomos/runs` to ensure a pristine state.
+- After validation, clean `.agentcomos/runs` to avoid committing artifacts.
+- Local ignored `.env` must not be used for acceptance evidence; validations should run against sanitized temp environments.
+- Final `git status` must be clean, with no untracked runtime artifacts or locks exposed.
