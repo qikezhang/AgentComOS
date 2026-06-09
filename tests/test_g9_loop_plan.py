@@ -9,8 +9,11 @@ from agentcomos.loop.status import get_loop_status
 
 runner = CliRunner()
 
+ROOT = Path(__file__).resolve().parents[1]
+
 @pytest.fixture
-def run_dir(tmp_path: Path) -> Path:
+def run_dir(tmp_path: Path, monkeypatch) -> Path:
+    monkeypatch.chdir(tmp_path)
     run_id = "OI-TECHAI8-LOOP"
     d = Path(".agentcomos/runs") / run_id
     d.mkdir(parents=True, exist_ok=True)

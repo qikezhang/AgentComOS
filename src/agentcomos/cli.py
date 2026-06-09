@@ -869,7 +869,8 @@ def healthcheck() -> None:
         "log_dir": os.environ.get("AGENTCOMOS_LOG_DIR", "/app/logs"),
         "report_dir": os.environ.get("AGENTCOMOS_REPORT_DIR", "/app/reports")
     }
-    print(json.dumps(data))
+    import builtins
+    builtins.print(json.dumps(data))
 
 if __name__ == "__main__":
     app()

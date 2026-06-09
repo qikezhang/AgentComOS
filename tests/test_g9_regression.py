@@ -7,13 +7,16 @@ from agentcomos.program.builder import build_operating_program
 from agentcomos.frontier.builder import build_task_frontier
 from agentcomos.controller.state import write_run_status
 
+ROOT = Path(__file__).resolve().parents[1]
+
 @pytest.fixture
-def run_dir(tmp_path: Path) -> Path:
-    run_id = "OI-TECHAI8-LOOP-REG"
+def run_dir(tmp_path: Path, monkeypatch) -> Path:
+    monkeypatch.chdir(tmp_path)
+    run_id = "OI-TECHAI8-LOOP-REGRESS"
     d = Path(".agentcomos/runs") / run_id
     d.mkdir(parents=True, exist_ok=True)
     
-    src_intent = Path("examples/techai8/run/OI-TECHAI8-001/operating_intent.yaml")
+    src_intent = ROOT / "examples/techai8/run/OI-TECHAI8-001/operating_intent.yaml"
     shutil.copyfile(src_intent, d / "operating_intent.yaml")
     
     write_run_status(run_id, {"run_id": run_id, "state": "executing"})

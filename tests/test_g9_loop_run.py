@@ -12,14 +12,17 @@ from agentcomos.frontier.builder import build_task_frontier
 
 runner = CliRunner()
 
+ROOT = Path(__file__).resolve().parents[1]
+
 @pytest.fixture
-def run_dir(tmp_path: Path) -> Path:
+def run_dir(tmp_path: Path, monkeypatch) -> Path:
+    monkeypatch.chdir(tmp_path)
     run_id = "OI-TECHAI8-LOOP-RUN"
     d = Path(".agentcomos/runs") / run_id
     d.mkdir(parents=True, exist_ok=True)
     
     # Setup intent to allow frontier build
-    src_intent = Path("examples/techai8/run/OI-TECHAI8-001/operating_intent.yaml")
+    src_intent = ROOT / "examples/techai8/run/OI-TECHAI8-001/operating_intent.yaml"
     shutil.copyfile(src_intent, d / "operating_intent.yaml")
     
     # Initial status
