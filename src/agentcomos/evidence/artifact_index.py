@@ -59,6 +59,35 @@ def generate_artifact_index(run_id: str) -> None:
                     "phase": "G8_DECISION_FEYNMAN_CONTROLLED_ADOPTION"
                 })
 
+    # Scan manual_os directory
+    manual_os_dir = run_dir / "manual_os"
+    if manual_os_dir.exists() and manual_os_dir.is_dir():
+        for task_dir in manual_os_dir.iterdir():
+            if not task_dir.is_dir():
+                continue
+            task_id = task_dir.name
+            
+            checks.append({
+                "path": f"manual_os/{task_id}/manual_os_request.yaml",
+                "type": "manual_os_request",
+                "phase": "G10_MANUAL_OS_CONTROLLED_ADOPTION"
+            })
+            checks.append({
+                "path": f"manual_os/{task_id}/manual_os_approval.yaml",
+                "type": "manual_os_approval",
+                "phase": "G10_MANUAL_OS_CONTROLLED_ADOPTION"
+            })
+            checks.append({
+                "path": f"manual_os/{task_id}/manual_os_result.yaml",
+                "type": "manual_os_result",
+                "phase": "G10_MANUAL_OS_CONTROLLED_ADOPTION"
+            })
+            checks.append({
+                "path": f"manual_os/{task_id}/manual_os_audit.md",
+                "type": "manual_os_audit",
+                "phase": "G10_MANUAL_OS_CONTROLLED_ADOPTION"
+            })
+
     if (run_dir / "loop_plan.yaml").exists() or (run_dir / "loop_status.yaml").exists():
         checks.extend([
             {

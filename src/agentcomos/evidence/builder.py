@@ -47,7 +47,7 @@ def get_input_fingerprint(run_id: str) -> str:
             else:
                 hasher.update(path.read_bytes())
                 
-    for d in ["opencode_jobs", "worker_outputs"]:
+    for d in ["opencode_jobs", "worker_outputs", "manual_os"]:
         dir_path = run_dir / d
         if dir_path.exists():
             for p in sorted(dir_path.rglob("*")):

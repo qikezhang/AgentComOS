@@ -160,6 +160,9 @@ app.add_typer(decision_app, name="decision")
 feynman_app = typer.Typer(help="Feynman operations")
 app.add_typer(feynman_app, name="feynman")
 
+manual_os_app = typer.Typer(help="Manual OS Controlled Adoption operations")
+app.add_typer(manual_os_app, name="manual-os")
+
 @run_app.command("create")
 def run_create(intent: Path = typer.Option(..., help="Path to operating_intent.yaml")) -> None:
     """Create a new run from an operating intent."""
@@ -723,5 +726,77 @@ def feynman_result_cmd(
         print(yaml.dump(get_feynman_result(run, task), sort_keys=False))
     except ValueError as e:
         raise typer.BadParameter(str(e))
+@manual_os_app.command("request")
+def manual_os_request_cmd(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    task: str = typer.Option(..., "--task", help="Task ID")
+) -> None:
+    from agentcomos.manual_os.request import create_request
+    try:
+        req = create_request(run, task)
+        print(f"Manual OS request created for {task} in {run}.")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@manual_os_app.command("status")
+def manual_os_status_cmd(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    from agentcomos.manual_os.status import get_manual_os_status
+    import yaml
+    try:
+        print(yaml.dump(get_manual_os_status(run), sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@manual_os_app.command("approve")
+def manual_os_approve_cmd(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    task: str = typer.Option(..., "--task", help="Task ID"),
+    approved_by: str = typer.Option(..., "--approved-by", help="Name of approver")
+) -> None:
+    from agentcomos.manual_os.approval import approve_request
+    try:
+        approve_request(run, task, approved_by)
+        print(f"Manual OS request approved for {task} in {run}.")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@manual_os_app.command("reject")
+def manual_os_reject_cmd(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    task: str = typer.Option(..., "--task", help="Task ID"),
+    rejected_by: str = typer.Option(..., "--rejected-by", help="Name of rejector"),
+    reason: str = typer.Option(..., "--reason", help="Reason for rejection")
+) -> None:
+    from agentcomos.manual_os.approval import reject_request
+    try:
+        reject_request(run, task, rejected_by, reason)
+        print(f"Manual OS request rejected for {task} in {run}.")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@manual_os_app.command("result")
+def manual_os_result_cmd(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    task: str = typer.Option(..., "--task", help="Task ID"),
+    status: str = typer.Option(..., "--status", help="Status: completed, failed, skipped"),
+    executed_by: str = typer.Option(..., "--executed-by", help="Name of executor"),
+    summary: str = typer.Option(..., "--summary", help="Execution summary")
+) -> None:
+    from agentcomos.manual_os.result import report_result
+    try:
+        report_result(run, task, status, executed_by, summary)
+        print(f"Manual OS result reported for {task} in {run}.")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+@manual_os_app.command("audit")
+def manual_os_audit_cmd(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    from agentcomos.manual_os.audit import generate_audit
+    try:
+        generate_audit(run)
+        print(f"Manual OS audit generated for {run}.")
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
 if __name__ == "__main__":
     app()

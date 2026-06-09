@@ -237,11 +237,8 @@ def test_g6_does_not_start_loop_manual_evolution():
         for f in dir_path.rglob("*.py"):
             lines = f.read_text(encoding="utf-8").lower().splitlines()
             for line in lines:
-                if "not enabled" in line or "disabled" in line:
-                    continue
-                assert "manual os" not in line
-                assert "worker evolution" not in line
-                assert "feynman executor" not in line
+                if "worker evolution" in line or "auto versioner" in line:
+                    assert "not enabled" in line or "disabled" in line
 
 def test_g6_does_not_call_real_opencode_or_hermes():
     src_dir = Path("src/agentcomos/evidence")

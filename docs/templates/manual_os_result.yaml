@@ -1,0 +1,18 @@
+phase: G10_MANUAL_OS_CONTROLLED_ADOPTION
+run_id: ""
+task_id: ""
+status: completed
+executed_by: "operator"
+summary: ""
+commands_reported:
+  - command: ""
+    result: ""
+    exit_code: 0
+safety:
+  result_is_reported: true
+  system_execution_was_manual: true
+  agent_executed_shell: false
+  agent_executed_ssh: false
+  agent_executed_sudo: false
+  agent_executed_docker: false
+  agent_executed_systemctl: false

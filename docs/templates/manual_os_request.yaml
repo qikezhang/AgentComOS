@@ -1,0 +1,24 @@
+phase: G10_MANUAL_OS_CONTROLLED_ADOPTION
+run_id: ""
+task_id: ""
+status: requested
+manual_os_required: true
+requested_action:
+  title: "Example Title"
+  description: "Example description"
+  risk_level: low
+  proposed_commands:
+    - command: "echo hello"
+      purpose: "example"
+      requires_sudo: false
+      destructive: false
+safety:
+  auto_execute: false
+  requires_human_approval: true
+  real_runtime_used: false
+  agent_executed_shell: false
+  agent_executed_ssh: false
+  agent_executed_sudo: false
+  agent_executed_docker: false
+  agent_executed_systemctl: false
+  system_modified_by_agent: false

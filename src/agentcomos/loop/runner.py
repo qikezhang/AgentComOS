@@ -38,9 +38,12 @@ def run_loop(run_id: str, max_ticks: int, fake: bool) -> None:
         frontier = read_task_frontier(run_id)
         if _is_blocked_on_decision_or_feynman(frontier, status, run_id):
             stop_reason = status["stop_reason"]
-            append_event(run_id, "loop.tick.blocked", {"stop_reason": stop_reason})
+            if stop_reason == "awaiting_manual_os":
+                append_event(run_id, "loop.tick.blocked_manual_os", {"stop_reason": stop_reason})
+            else:
+                append_event(run_id, "loop.tick.blocked", {"stop_reason": stop_reason})
             
-            if stop_reason in ("awaiting_decision", "awaiting_feynman"):
+            if stop_reason in ("awaiting_decision", "awaiting_feynman", "awaiting_manual_os"):
                 status["ticks_executed"] += 1
                 now_str = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
                 task_id = status["blocked_on"].get("task_id")
@@ -123,7 +126,7 @@ def run_loop(run_id: str, max_ticks: int, fake: bool) -> None:
         status["status"] = "partial" if status["tasks_advanced"] > 0 else "completed"
     elif stop_reason == "no_ready_task":
         status["status"] = "completed"
-    elif stop_reason in ("awaiting_decision", "awaiting_feynman", "feynman_failed"):
+    elif stop_reason in ("awaiting_decision", "awaiting_feynman", "feynman_failed", "awaiting_manual_os"):
         status["status"] = "blocked"
     elif stop_reason == "failed_task":
         status["status"] = "failed"
@@ -207,6 +210,21 @@ def _is_blocked_on_decision_or_feynman(frontier: dict, status: dict, run_id: str
             status["stop_reason"] = "failed_task"
             return True
             
+        if task["status"] == "awaiting_decision":
+            status["blocked_on"] = {"type": "decision", "task_id": task["task_id"]}
+            status["stop_reason"] = "awaiting_decision"
+            return True
+            
+        if task["status"] == "awaiting_feynman":
+            status["blocked_on"] = {"type": "feynman", "task_id": task["task_id"]}
+            status["stop_reason"] = "awaiting_feynman"
+            return True
+            
+        if task["status"] == "awaiting_manual_os":
+            status["blocked_on"] = {"type": "manual_os", "task_id": task["task_id"]}
+            status["stop_reason"] = "awaiting_manual_os"
+            return True
+            
         if task["status"] == "blocked":
             if task.get("decision_required"):
                 status["blocked_on"] = {"type": "decision", "task_id": task["task_id"]}
@@ -215,6 +233,10 @@ def _is_blocked_on_decision_or_feynman(frontier: dict, status: dict, run_id: str
             if task.get("feynman_required"):
                 status["blocked_on"] = {"type": "feynman", "task_id": task["task_id"]}
                 status["stop_reason"] = "awaiting_feynman"
+                return True
+            if task.get("manual_os_required"):
+                status["blocked_on"] = {"type": "manual_os", "task_id": task["task_id"]}
+                status["stop_reason"] = "awaiting_manual_os"
                 return True
                 
         if task["status"] in ("ready", "executable"):
@@ -244,6 +266,18 @@ def _is_blocked_on_decision_or_feynman(frontier: dict, status: dict, run_id: str
                 if res.get("pass") is False:
                     status["blocked_on"] = {"type": "feynman", "task_id": task["task_id"]}
                     status["stop_reason"] = "feynman_failed"
+                    return True
+                    
+            if task.get("manual_os_required"):
+                manual_os_file = Path(f".agentcomos/runs/{run_id}/manual_os/{task['task_id']}/manual_os_result.yaml")
+                if not manual_os_file.exists():
+                    status["blocked_on"] = {"type": "manual_os", "task_id": task["task_id"]}
+                    status["stop_reason"] = "awaiting_manual_os"
+                    return True
+                res = yaml.safe_load(manual_os_file.read_text(encoding="utf-8")) or {}
+                if res.get("status") != "completed":
+                    status["blocked_on"] = {"type": "manual_os", "task_id": task["task_id"]}
+                    status["stop_reason"] = "awaiting_manual_os"
                     return True
                     
             # Controller will process this candidate, no need to check further ones

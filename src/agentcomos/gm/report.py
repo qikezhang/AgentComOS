@@ -54,9 +54,11 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
         frontier = read_task_frontier(run_id) or {}
         decision_tasks = []
         feynman_tasks = []
+        manual_os_tasks = []
         missing_required = False
         awaiting_d = len(frontier_status.get("awaiting_decision_tasks", [])) > 0
         awaiting_f = len(frontier_status.get("awaiting_feynman_tasks", [])) > 0
+        awaiting_m = len(frontier_status.get("awaiting_manual_os_tasks", [])) > 0
         
         loop_status_path = run_dir / "loop_status.yaml"
         loop_status = {}
@@ -107,6 +109,22 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                     ft["pass"] = f_result.get("pass", False)
                 feynman_tasks.append(ft)
                 
+            if task.get("manual_os_required") or (run_dir / "manual_os" / task_id / "manual_os_request.yaml").exists():
+                result_path = run_dir / "manual_os" / task_id / "manual_os_result.yaml"
+                status_val = "completed" if result_path.exists() else ("awaiting_manual_os" if task_id in frontier_status.get("awaiting_manual_os_tasks", []) else "missing")
+                if not result_path.exists():
+                    missing_required = True
+                mt = {
+                    "task_id": task_id,
+                    "required": True,
+                    "status": status_val,
+                    "artifact": f"manual_os/{task_id}/manual_os_result.yaml"
+                }
+                if result_path.exists():
+                    m_result = yaml.safe_load(result_path.read_text(encoding="utf-8")) or {}
+                    mt["result_status"] = m_result.get("status", "unknown")
+                manual_os_tasks.append(mt)
+                
         g8_controls = {
             "decision_controlled_mode": "explicit",
             "feynman_controlled_mode": "explicit",
@@ -114,13 +132,38 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             "automatic_feynman_executor_enabled": False,
             "real_runtime_used": False,
             "decision_tasks": decision_tasks,
-            "feynman_tasks": feynman_tasks
+            "feynman_tasks": feynman_tasks,
+            "manual_os_tasks": manual_os_tasks
+        }
+        
+        mos_status = "none"
+        mos_next_action = ""
+        if awaiting_m:
+            mos_status = "awaiting_manual_os"
+            mos_next_action = "human must approve or reject request\nhuman must report result after manual execution"
+        elif manual_os_tasks:
+            mos_status = "completed"
+
+        manual_os_info = {
+            "controlled_adoption_enabled": True,
+            "auto_execute": False,
+            "human_approval_required": True,
+            "human_result_report_required": True,
+            "agent_executed_shell": False,
+            "agent_executed_ssh": False,
+            "agent_executed_sudo": False,
+            "agent_executed_docker": False,
+            "agent_executed_systemctl": False,
+            "autonomous_os_operation": False,
+            "loop_auto_execution": False,
+            "status": mos_status,
+            "next_action": mos_next_action
         }
         
         status = "completed"
         if evidence_status in ("failed", "missing_manifest", "missing_run") or delivery_status in ("failed", "missing_packet", "missing_run"):
             status = "failed"
-        elif evidence_status == "partial" or delivery_status == "partial" or len(frontier_status.get("failed_tasks", [])) > 0 or awaiting_d or awaiting_f or missing_required or loop_status.get("status") == "blocked":
+        elif evidence_status == "partial" or delivery_status == "partial" or len(frontier_status.get("failed_tasks", [])) > 0 or awaiting_d or awaiting_f or awaiting_m or missing_required or loop_status.get("status") == "blocked":
             status = "partial"
 
         # Artifact gaps
@@ -156,6 +199,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 "evidence_status": evidence_status,
                 "summary": "GM Report generated from evidence.",
                 "g8_controls": g8_controls,
+                "manual_os": manual_os_info,
                 "runtime_usage": {
                     "fake_opencode_used": oc.get("fake_opencode_used", False),
                     "real_opencode_attempted": oc.get("real_opencode_attempted", False),
@@ -221,8 +265,24 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 "- **Real runtime used**: false",
                 "",
                 "These controls were generated deterministically for G8 controlled adoption.",
-                ""
+                "",
+                "## Manual OS Controlled Adoption",
+                f"- **Controlled adoption enabled**: {manual_os_info['controlled_adoption_enabled']}",
+                f"- **auto_execute**: {manual_os_info['auto_execute']}",
+                f"- **human approval required**: {manual_os_info['human_approval_required']}",
+                f"- **human result report required**: {manual_os_info['human_result_report_required']}",
+                f"- **agent executed shell**: {manual_os_info['agent_executed_shell']}",
+                f"- **agent executed ssh**: {manual_os_info['agent_executed_ssh']}",
+                f"- **agent executed sudo**: {manual_os_info['agent_executed_sudo']}",
+                f"- **agent executed docker**: {manual_os_info['agent_executed_docker']}",
+                f"- **agent executed systemctl**: {manual_os_info['agent_executed_systemctl']}",
+                f"- **autonomous OS operation**: {manual_os_info['autonomous_os_operation']}",
+                f"- **loop auto manual-os execution**: {manual_os_info['loop_auto_execution']}",
+                f"- **status**: {manual_os_info['status']}",
             ]
+            if manual_os_info['next_action']:
+                controls_md_lines.append(f"- **next action**:\n{manual_os_info['next_action']}")
+            controls_md_lines.append("")
             
             if decision_tasks:
                 controls_md_lines.append("**Decision Tasks:**")
@@ -256,6 +316,23 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                     controls_md_lines.append(f"- Blocked task: {task_id}")
                     controls_md_lines.append(f"  - Missing artifact: feynman/{task_id}/feynman_result.yaml")
                     controls_md_lines.append(f"  - Next action: run `agentcomos feynman check --run {run_id} --task {task_id} --mode explicit`")
+                controls_md_lines.append("")
+
+            if manual_os_tasks:
+                controls_md_lines.append("**Manual OS Tasks:**")
+                for t in manual_os_tasks:
+                    if "result_status" in t:
+                        controls_md_lines.append(f"- Task {t['task_id']}: status={t['status']}, result_status={t['result_status']}, artifact={t['artifact']}")
+                    else:
+                        controls_md_lines.append(f"- Task {t['task_id']}: status={t['status']}, artifact={t['artifact']}")
+                controls_md_lines.append("")
+                
+            if awaiting_m:
+                controls_md_lines.append("**Blocked on Manual OS:**")
+                for task_id in frontier_status.get("awaiting_manual_os_tasks", []):
+                    controls_md_lines.append(f"- Blocked task: {task_id}")
+                    controls_md_lines.append(f"  - Missing artifact: manual_os/{task_id}/manual_os_result.yaml")
+                    controls_md_lines.append(f"  - Next action: run `agentcomos manual-os request --run {run_id} --task {task_id}`")
                 controls_md_lines.append("")
 
             controls_md = "\n".join(controls_md_lines)
