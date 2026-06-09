@@ -1,0 +1,26 @@
+# Loop Plan Artifact Schema
+loop_id: LOOP-OI-TECHAI8-001
+run_id: OI-TECHAI8-001
+created_by: controller
+status: active
+runtime_mode: fake
+max_ticks: 3
+max_task_advancements: 3
+stop_conditions:
+  - no_ready_task
+  - awaiting_decision
+  - awaiting_feynman
+  - failed_task
+  - max_ticks_reached
+  - max_task_advancements_reached
+constraints:
+  fake_runtime_only: true
+  no_real_opencode: true
+  no_real_hermes: true
+  no_discord: true
+  no_recursive_task_expansion: true
+  no_worker_evolution: true
+  no_manual_os: true
+  no_auto_versioner: true
+  no_automatic_decision_market: true
+  no_automatic_feynman_executor: true

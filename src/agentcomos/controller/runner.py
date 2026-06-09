@@ -35,7 +35,7 @@ def handle_run_status(run_id: str) -> None:
         raise ValueError(f"Run {run_id} not found.")
     print(yaml.dump(status, sort_keys=False))
 
-def handle_controller_tick(run_id: str, fake: bool) -> None:
+def handle_controller_tick(run_id: str, fake: bool) -> dict | None:
     status = read_run_status(run_id)
     if not status:
         raise ValueError(f"Run {run_id} not found.")
@@ -82,6 +82,7 @@ def handle_controller_tick(run_id: str, fake: bool) -> None:
         print(f"Tick completed. Current state: {current_state_str}. Frontier: {g7_result}")
     else:
         print(f"Tick completed. Current state: {current_state_str}")
+    return g7_result
 
 
 def _handle_g7_fake_tick(run_id: str) -> dict | None:

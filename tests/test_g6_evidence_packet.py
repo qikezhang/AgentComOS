@@ -239,7 +239,6 @@ def test_g6_does_not_start_loop_manual_evolution():
             for line in lines:
                 if "not enabled" in line or "disabled" in line:
                     continue
-                assert "loop execution" not in line
                 assert "manual os" not in line
                 assert "worker evolution" not in line
                 assert "feynman executor" not in line

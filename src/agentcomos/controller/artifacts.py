@@ -18,6 +18,9 @@ def build_timeline(run_id: str, current_state: str) -> None:
             t["to_state"] = e["payload"]["to_state"]
         if "task_id" in e.get("payload", {}):
             t["task_id"] = e["payload"]["task_id"]
+        for k in ["stop_reason", "tick_number", "tick_result", "advanced_task_id", "max_ticks"]:
+            if k in e.get("payload", {}):
+                t[k] = e["payload"][k]
         timeline_events.append(t)
     
     timeline = {
@@ -47,6 +50,9 @@ def rebuild_timeline_from_events(run_id: str) -> None:
             t["to_state"] = e["payload"]["to_state"]
         if "task_id" in e.get("payload", {}):
             t["task_id"] = e["payload"]["task_id"]
+        for k in ["stop_reason", "tick_number", "tick_result", "advanced_task_id", "max_ticks"]:
+            if k in e.get("payload", {}):
+                t[k] = e["payload"][k]
         timeline_events.append(t)
     
     current_state = "unknown"

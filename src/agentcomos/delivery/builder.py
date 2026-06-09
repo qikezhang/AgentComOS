@@ -84,13 +84,20 @@ def build_delivery_packet(run_id: str) -> None:
             "operating_program.yaml",
             "task_frontier.yaml",
             "task_frontier_index.yaml",
-            "frontier_status.yaml",
+            "frontier_status.yaml"
+        ]
+        
+        for lf in ["loop_plan.yaml", "loop_status.yaml", "loop_trace.yaml", "loop_summary.md"]:
+            if (run_dir / lf).exists():
+                artifacts_list.append(lf)
+                
+        artifacts_list.extend([
             "evidence_packet/manifest.yaml",
             "evidence_packet/events_summary.yaml",
             "evidence_packet/runtime_summary.yaml",
             "evidence_packet/artifact_index.yaml",
             "evidence_packet/validation_summary.yaml",
-        ]
+        ])
         
         g8_artifacts = []
         if (run_dir / "decision").exists():

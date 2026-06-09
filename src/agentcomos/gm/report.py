@@ -58,6 +58,11 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
         awaiting_d = len(frontier_status.get("awaiting_decision_tasks", [])) > 0
         awaiting_f = len(frontier_status.get("awaiting_feynman_tasks", [])) > 0
         
+        loop_status_path = run_dir / "loop_status.yaml"
+        loop_status = {}
+        if loop_status_path.exists():
+            loop_status = yaml.safe_load(loop_status_path.read_text(encoding="utf-8")) or {}
+        
         for task in frontier.get("tasks", []):
             task_id = task.get("task_id")
             if task.get("decision_required") or (run_dir / "decision" / task_id / "decision_request.yaml").exists():
@@ -161,6 +166,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                     "failed_tasks": frontier_status.get("failed_tasks", []),
                     "next_task_id": frontier_status.get("next_task_id"),
                 },
+                "loop_execution": loop_status,
                 "failed_tasks_disclosure": failed_tasks_info,
                 "artifacts": [
                     "evidence_packet/manifest.yaml",
@@ -177,6 +183,9 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 "risks": gaps + unavailable_disclosure + failed_tasks_info,
                 "next_actions": ["Ready for Codex review."]
             }
+            for lf in ["loop_plan.yaml", "loop_status.yaml", "loop_trace.yaml", "loop_summary.md"]:
+                if (run_dir / lf).exists():
+                    report_yaml["artifacts"].append(lf)
             path.write_text(yaml.dump(report_yaml, sort_keys=False), encoding="utf-8")
         else:
             gaps_md = "\n".join(f"- {g}" for g in gaps) if gaps else "None detected."
@@ -280,6 +289,14 @@ The following evidence files were used to generate this report:
 - `task_frontier.yaml`
 - `task_frontier_index.yaml`
 - `frontier_status.yaml`
+
+## Loop Execution
+- **Loop ID**: {loop_status.get('loop_id', 'missing')}
+- **Status**: {loop_status.get('status', 'missing')}
+- **Runtime Mode**: {loop_status.get('runtime_mode', 'missing')}
+- **Ticks Executed**: {loop_status.get('ticks_executed', 0)} / {loop_status.get('ticks_requested', 0)}
+- **Tasks Advanced**: {loop_status.get('tasks_advanced', 0)}
+- **Stop Reason**: {loop_status.get('stop_reason', 'missing')}
 
 ## Task Frontier
 {frontier_md}
