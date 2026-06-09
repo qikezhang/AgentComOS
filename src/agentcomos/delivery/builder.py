@@ -121,19 +121,24 @@ def build_delivery_packet(run_id: str) -> None:
         if (run_dir / "manual_os").exists():
             for p in (run_dir / "manual_os").glob("*/*.yaml"):
                 g8_artifacts.append(str(p.relative_to(run_dir)))
+            for p in (run_dir / "manual_os").glob("*/*.md"):
+                g8_artifacts.append(str(p.relative_to(run_dir)))
         g8_artifacts.sort()
         artifacts_list.extend(g8_artifacts)
         artifacts_list.append("gm_report.md")
 
         risks = []
+        next_actions = ["Review current delivery packet and proceed to the next approved phase after Codex acceptance."]
         if awaiting_d:
             risks.append("Task frontier has tasks awaiting_decision")
         if awaiting_f:
             risks.append("Task frontier has tasks awaiting_feynman")
         if awaiting_m:
-            risks.append("Task frontier has tasks awaiting_manual_os")
+            blocking_task_ids = frontier_status.get("awaiting_manual_os_tasks", [])
+            risks.append(f"Task frontier has tasks awaiting_manual_os: {blocking_task_ids}")
+            next_actions = [f"human approval/result required for manual OS tasks: {blocking_task_ids}"]
         if missing_required:
-            risks.append("Missing required decision or feynman results")
+            risks.append("Missing required decision, feynman, or manual_os results")
 
         packet = {
             "packet_id": f"DP-{run_id}",
@@ -145,7 +150,7 @@ def build_delivery_packet(run_id: str) -> None:
             "g8_controls": g8_controls,
             "artifacts": artifacts_list,
             "risks": risks,
-            "next_actions": ["Review current delivery packet and proceed to the next approved phase after Codex acceptance."]
+            "next_actions": next_actions
         }
         
         path.write_text(yaml.dump(packet, sort_keys=False), encoding="utf-8")

@@ -23,8 +23,12 @@ def approve_request(run_id: str, task_id: str, approved_by: str) -> ManualOsAppr
     if app_file.exists():
         with open(app_file, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
-            if data and data.get("status") == "approved":
-                return ManualOsApproval(**data)
+            if data:
+                current_status = data.get("status")
+                if current_status == "approved":
+                    return ManualOsApproval(**data)
+                elif current_status == "rejected":
+                    raise ValueError("manual_os decision already rejected and cannot be changed to approved")
                 
     approval = ManualOsApproval(
         run_id=run_id,
@@ -49,8 +53,12 @@ def reject_request(run_id: str, task_id: str, rejected_by: str, reason: str) -> 
     if app_file.exists():
         with open(app_file, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
-            if data and data.get("status") == "rejected":
-                return ManualOsApproval(**data)
+            if data:
+                current_status = data.get("status")
+                if current_status == "rejected":
+                    return ManualOsApproval(**data)
+                elif current_status == "approved":
+                    raise ValueError("manual_os decision already approved and cannot be changed to rejected")
                 
     approval = ManualOsApproval(
         run_id=run_id,

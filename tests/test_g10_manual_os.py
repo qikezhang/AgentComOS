@@ -263,3 +263,103 @@ def test_loop_blocks_on_manual_os(tmp_path, monkeypatch):
         assert len(trace["ticks"]) == 1
         assert trace["ticks"][0]["result"] == "blocked"
         assert trace["ticks"][0]["stop_reason"] == "awaiting_manual_os"
+
+def test_manual_os_reject_after_approve_fails_without_overwrite(tmp_path, monkeypatch):
+    run_id = "OI-TEST"
+    task_id = "TF-001"
+    run_dir = setup_run_env(tmp_path, monkeypatch, run_id, task_id)
+    
+    runner.invoke(app, ["manual-os", "request", "--run", run_id, "--task", task_id])
+    res_approve = runner.invoke(app, ["manual-os", "approve", "--run", run_id, "--task", task_id, "--approved-by", "operator"])
+    assert res_approve.exit_code == 0
+    
+    app_file = run_dir / "manual_os" / task_id / "manual_os_approval.yaml"
+    mtime1 = app_file.stat().st_mtime
+    
+    res_reject = runner.invoke(app, ["manual-os", "reject", "--run", run_id, "--task", task_id, "--rejected-by", "operator", "--reason", "no"])
+    assert res_reject.exit_code != 0
+    assert "already approved" in res_reject.output
+    
+    mtime2 = app_file.stat().st_mtime
+    assert mtime1 == mtime2
+    
+    with open(app_file, "r") as f:
+        data = yaml.safe_load(f)
+        assert data["status"] == "approved"
+
+def test_manual_os_approve_after_reject_fails_without_overwrite(tmp_path, monkeypatch):
+    run_id = "OI-TEST"
+    task_id = "TF-001"
+    run_dir = setup_run_env(tmp_path, monkeypatch, run_id, task_id)
+    
+    runner.invoke(app, ["manual-os", "request", "--run", run_id, "--task", task_id])
+    res_reject = runner.invoke(app, ["manual-os", "reject", "--run", run_id, "--task", task_id, "--rejected-by", "operator", "--reason", "no"])
+    assert res_reject.exit_code == 0
+    
+    app_file = run_dir / "manual_os" / task_id / "manual_os_approval.yaml"
+    mtime1 = app_file.stat().st_mtime
+    
+    res_approve = runner.invoke(app, ["manual-os", "approve", "--run", run_id, "--task", task_id, "--approved-by", "operator"])
+    assert res_approve.exit_code != 0
+    assert "already rejected" in res_approve.output
+    
+    mtime2 = app_file.stat().st_mtime
+    assert mtime1 == mtime2
+    
+    with open(app_file, "r") as f:
+        data = yaml.safe_load(f)
+        assert data["status"] == "rejected"
+
+def test_manual_os_repeated_approve_is_idempotent(tmp_path, monkeypatch):
+    run_id = "OI-TEST"
+    task_id = "TF-001"
+    run_dir = setup_run_env(tmp_path, monkeypatch, run_id, task_id)
+    
+    runner.invoke(app, ["manual-os", "request", "--run", run_id, "--task", task_id])
+    runner.invoke(app, ["manual-os", "approve", "--run", run_id, "--task", task_id, "--approved-by", "operator"])
+    
+    app_file = run_dir / "manual_os" / task_id / "manual_os_approval.yaml"
+    mtime1 = app_file.stat().st_mtime
+    
+    res2 = runner.invoke(app, ["manual-os", "approve", "--run", run_id, "--task", task_id, "--approved-by", "operator"])
+    assert res2.exit_code == 0
+    
+    mtime2 = app_file.stat().st_mtime
+    assert mtime1 == mtime2
+
+def test_manual_os_repeated_reject_is_idempotent(tmp_path, monkeypatch):
+    run_id = "OI-TEST"
+    task_id = "TF-001"
+    run_dir = setup_run_env(tmp_path, monkeypatch, run_id, task_id)
+    
+    runner.invoke(app, ["manual-os", "request", "--run", run_id, "--task", task_id])
+    runner.invoke(app, ["manual-os", "reject", "--run", run_id, "--task", task_id, "--rejected-by", "operator", "--reason", "no"])
+    
+    app_file = run_dir / "manual_os" / task_id / "manual_os_approval.yaml"
+    mtime1 = app_file.stat().st_mtime
+    
+    res2 = runner.invoke(app, ["manual-os", "reject", "--run", run_id, "--task", task_id, "--rejected-by", "operator", "--reason", "no"])
+    assert res2.exit_code == 0
+    
+    mtime2 = app_file.stat().st_mtime
+    assert mtime1 == mtime2
+
+def test_manual_os_opposite_decision_does_not_append_event(tmp_path, monkeypatch):
+    run_id = "OI-TEST"
+    task_id = "TF-001"
+    run_dir = setup_run_env(tmp_path, monkeypatch, run_id, task_id)
+    
+    runner.invoke(app, ["manual-os", "request", "--run", run_id, "--task", task_id])
+    runner.invoke(app, ["manual-os", "approve", "--run", run_id, "--task", task_id, "--approved-by", "operator"])
+    
+    events_file = run_dir / "events.jsonl"
+    with open(events_file, "r") as f:
+        events1 = f.readlines()
+        
+    res = runner.invoke(app, ["manual-os", "reject", "--run", run_id, "--task", task_id, "--rejected-by", "operator", "--reason", "no"])
+    assert res.exit_code != 0
+    
+    with open(events_file, "r") as f:
+        events2 = f.readlines()
+        
+    assert len(events1) == len(events2)

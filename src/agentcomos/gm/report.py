@@ -136,6 +136,30 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             "manual_os_tasks": manual_os_tasks
         }
         
+        mos_status = "none"
+        mos_next_action = ""
+        if awaiting_m:
+            mos_status = "awaiting_manual_os"
+            mos_next_action = "human must approve or reject request\nhuman must report result after manual execution"
+        elif manual_os_tasks:
+            mos_status = "completed"
+
+        manual_os_info = {
+            "controlled_adoption_enabled": True,
+            "auto_execute": False,
+            "human_approval_required": True,
+            "human_result_report_required": True,
+            "agent_executed_shell": False,
+            "agent_executed_ssh": False,
+            "agent_executed_sudo": False,
+            "agent_executed_docker": False,
+            "agent_executed_systemctl": False,
+            "autonomous_os_operation": False,
+            "loop_auto_execution": False,
+            "status": mos_status,
+            "next_action": mos_next_action
+        }
+        
         status = "completed"
         if evidence_status in ("failed", "missing_manifest", "missing_run") or delivery_status in ("failed", "missing_packet", "missing_run"):
             status = "failed"
@@ -175,6 +199,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 "evidence_status": evidence_status,
                 "summary": "GM Report generated from evidence.",
                 "g8_controls": g8_controls,
+                "manual_os": manual_os_info,
                 "runtime_usage": {
                     "fake_opencode_used": oc.get("fake_opencode_used", False),
                     "real_opencode_attempted": oc.get("real_opencode_attempted", False),
@@ -240,8 +265,24 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 "- **Real runtime used**: false",
                 "",
                 "These controls were generated deterministically for G8 controlled adoption.",
-                ""
+                "",
+                "## Manual OS Controlled Adoption",
+                f"- **Controlled adoption enabled**: {manual_os_info['controlled_adoption_enabled']}",
+                f"- **auto_execute**: {manual_os_info['auto_execute']}",
+                f"- **human approval required**: {manual_os_info['human_approval_required']}",
+                f"- **human result report required**: {manual_os_info['human_result_report_required']}",
+                f"- **agent executed shell**: {manual_os_info['agent_executed_shell']}",
+                f"- **agent executed ssh**: {manual_os_info['agent_executed_ssh']}",
+                f"- **agent executed sudo**: {manual_os_info['agent_executed_sudo']}",
+                f"- **agent executed docker**: {manual_os_info['agent_executed_docker']}",
+                f"- **agent executed systemctl**: {manual_os_info['agent_executed_systemctl']}",
+                f"- **autonomous OS operation**: {manual_os_info['autonomous_os_operation']}",
+                f"- **loop auto manual-os execution**: {manual_os_info['loop_auto_execution']}",
+                f"- **status**: {manual_os_info['status']}",
             ]
+            if manual_os_info['next_action']:
+                controls_md_lines.append(f"- **next action**:\n{manual_os_info['next_action']}")
+            controls_md_lines.append("")
             
             if decision_tasks:
                 controls_md_lines.append("**Decision Tasks:**")

@@ -22,9 +22,7 @@ def generate_audit(run_id: str) -> None:
             continue
             
         audit_file = task_dir / "manual_os_audit.md"
-        if audit_file.exists():
-            continue
-            
+
         with open(req_file, "r", encoding="utf-8") as f:
             req_data = yaml.safe_load(f) or {}
             
@@ -84,7 +82,18 @@ def generate_audit(run_id: str) -> None:
             "- Task unblocked if result completed."
         ])
         
-        with open(audit_file, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines))
-            
-        append_event(run_id, "manual_os.audit.generated", {"task_id": task_id})
+        new_content = "\n".join(lines)
+        
+        if audit_file.exists():
+            with open(audit_file, "r", encoding="utf-8") as f:
+                old_content = f.read()
+            if old_content == new_content:
+                continue
+                
+            with open(audit_file, "w", encoding="utf-8") as f:
+                f.write(new_content)
+            append_event(run_id, "manual_os.audit.updated", {"task_id": task_id})
+        else:
+            with open(audit_file, "w", encoding="utf-8") as f:
+                f.write(new_content)
+            append_event(run_id, "manual_os.audit.generated", {"task_id": task_id})

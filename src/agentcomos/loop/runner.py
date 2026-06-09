@@ -38,7 +38,10 @@ def run_loop(run_id: str, max_ticks: int, fake: bool) -> None:
         frontier = read_task_frontier(run_id)
         if _is_blocked_on_decision_or_feynman(frontier, status, run_id):
             stop_reason = status["stop_reason"]
-            append_event(run_id, "loop.tick.blocked", {"stop_reason": stop_reason})
+            if stop_reason == "awaiting_manual_os":
+                append_event(run_id, "loop.tick.blocked_manual_os", {"stop_reason": stop_reason})
+            else:
+                append_event(run_id, "loop.tick.blocked", {"stop_reason": stop_reason})
             
             if stop_reason in ("awaiting_decision", "awaiting_feynman", "awaiting_manual_os"):
                 status["ticks_executed"] += 1
@@ -205,6 +208,21 @@ def _is_blocked_on_decision_or_feynman(frontier: dict, status: dict, run_id: str
         if task["status"] == "failed":
             status["blocked_on"] = {"type": "failed_task", "task_id": task["task_id"]}
             status["stop_reason"] = "failed_task"
+            return True
+            
+        if task["status"] == "awaiting_decision":
+            status["blocked_on"] = {"type": "decision", "task_id": task["task_id"]}
+            status["stop_reason"] = "awaiting_decision"
+            return True
+            
+        if task["status"] == "awaiting_feynman":
+            status["blocked_on"] = {"type": "feynman", "task_id": task["task_id"]}
+            status["stop_reason"] = "awaiting_feynman"
+            return True
+            
+        if task["status"] == "awaiting_manual_os":
+            status["blocked_on"] = {"type": "manual_os", "task_id": task["task_id"]}
+            status["stop_reason"] = "awaiting_manual_os"
             return True
             
         if task["status"] == "blocked":
