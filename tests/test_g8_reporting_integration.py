@@ -273,3 +273,28 @@ def test_g8_gm_report_completed_when_required_results_exist(fake_run):
     assert "not enabled" in gm_md.lower() or "disabled" in gm_md.lower()
     assert "awaiting_decision" not in gm_md
     assert "awaiting_feynman" not in gm_md
+
+def test_g8_delivery_packet_next_action_is_not_stale_g6_text(fake_run):
+    run_id, run_dir = fake_run
+    (run_dir / "decision" / "T1").mkdir(parents=True)
+    (run_dir / "decision" / "T1" / "decision_result.yaml").write_text("status: completed\n")
+    (run_dir / "feynman" / "T2").mkdir(parents=True)
+    (run_dir / "feynman" / "T2" / "feynman_result.yaml").write_text("status: completed\n")
+    
+    (run_dir / "evidence_packet" / "artifact_index.yaml").write_text("{}")
+    (run_dir / "evidence_packet" / "validation_summary.yaml").write_text("{}")
+    
+    build_delivery_packet(run_id)
+    
+    packet = yaml.safe_load((run_dir / "delivery_packet.yaml").read_text())
+    
+    # Assert it doesn't contain the stale text
+    delivery_text = (run_dir / "delivery_packet.yaml").read_text()
+    assert "Ready for Codex G6 review" not in delivery_text
+    assert "Codex G6" not in delivery_text
+    
+    # Assert next_actions has the expected updated generic or phase-aware text
+    next_actions = packet.get("next_actions", [])
+    if next_actions:
+        assert any("Codex acceptance" in action or "G8" in action for action in next_actions)
+        assert not any("G6" in action for action in next_actions)

@@ -121,7 +121,7 @@ def build_delivery_packet(run_id: str) -> None:
             "g8_controls": g8_controls,
             "artifacts": artifacts_list,
             "risks": risks,
-            "next_actions": ["Ready for Codex G6 review."]
+            "next_actions": ["Review current delivery packet and proceed to the next approved phase after Codex acceptance."]
         }
         
         path.write_text(yaml.dump(packet, sort_keys=False), encoding="utf-8")
