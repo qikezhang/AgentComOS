@@ -1,0 +1,14 @@
+phase: G10_MANUAL_OS_CONTROLLED_ADOPTION
+run_id: ""
+task_id: ""
+status: approved
+approved_by: "operator"
+approved_at: ""
+approval_scope:
+  commands_allowed: []
+  max_duration_minutes: 30
+  requires_result_report: true
+safety:
+  approval_is_explicit: true
+  auto_execute: false
+  agent_executed_shell: false

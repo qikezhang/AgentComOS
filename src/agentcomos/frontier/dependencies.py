@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
-ALLOWED_TASK_STATUSES = {"created", "ready", "blocked", "running", "completed", "failed", "skipped", "awaiting_decision", "awaiting_feynman"}
+ALLOWED_TASK_STATUSES = {"created", "ready", "blocked", "running", "completed", "failed", "skipped", "awaiting_decision", "awaiting_feynman", "awaiting_manual_os"}
 TERMINAL_READY_DEPENDENCY_STATUS = "completed"
 
 
@@ -83,6 +83,20 @@ def resolve_task_dependencies(frontier: dict[str, Any]) -> dict[str, Any]:
                 elif not data.get("pass"):
                     task["status"] = "blocked"
                     task["failure_reason"] = "feynman check failed"
+                    is_blocked = True
+                    
+        if is_blocked:
+            continue
+            
+        if task.get("manual_os_required") and run_dir:
+            res_path = run_dir / "manual_os" / str(task["task_id"]) / "manual_os_result.yaml"
+            if not res_path.exists():
+                task["status"] = "awaiting_manual_os"
+                is_blocked = True
+            else:
+                data = yaml.safe_load(res_path.read_text(encoding="utf-8")) or {}
+                if data.get("status") != "completed":
+                    task["status"] = "awaiting_manual_os"
                     is_blocked = True
                     
         if is_blocked:

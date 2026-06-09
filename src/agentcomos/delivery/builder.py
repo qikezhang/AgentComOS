@@ -44,6 +44,7 @@ def build_delivery_packet(run_id: str) -> None:
         
         awaiting_d = len(frontier_status.get("awaiting_decision_tasks", [])) > 0
         awaiting_f = len(frontier_status.get("awaiting_feynman_tasks", [])) > 0
+        awaiting_m = len(frontier_status.get("awaiting_manual_os_tasks", [])) > 0
         missing_required = False
         
         for task in frontier.get("tasks", []):
@@ -70,11 +71,22 @@ def build_delivery_packet(run_id: str) -> None:
                     "status": status_val,
                     "artifact": f"feynman/{task_id}/feynman_result.yaml"
                 })
+            if task.get("manual_os_required") or (run_dir / "manual_os" / task_id / "manual_os_request.yaml").exists():
+                result_path = run_dir / "manual_os" / task_id / "manual_os_result.yaml"
+                status_val = "completed" if result_path.exists() else ("awaiting_manual_os" if task_id in frontier_status.get("awaiting_manual_os_tasks", []) else "missing")
+                if not result_path.exists():
+                    missing_required = True
+                g8_controls.setdefault("manual_os", []).append({
+                    "task_id": task_id,
+                    "required": True,
+                    "status": status_val,
+                    "artifact": f"manual_os/{task_id}/manual_os_result.yaml"
+                })
 
         status = "completed"
         if not has_critical or evidence_status == "failed" or failed_tasks_count > 0:
             status = "failed"
-        elif evidence_status == "partial" or awaiting_d or awaiting_f or missing_required:
+        elif evidence_status == "partial" or awaiting_d or awaiting_f or awaiting_m or missing_required:
             status = "partial"
             
         artifacts_list = [
@@ -106,6 +118,9 @@ def build_delivery_packet(run_id: str) -> None:
         if (run_dir / "feynman").exists():
             for p in (run_dir / "feynman").glob("*/*.yaml"):
                 g8_artifacts.append(str(p.relative_to(run_dir)))
+        if (run_dir / "manual_os").exists():
+            for p in (run_dir / "manual_os").glob("*/*.yaml"):
+                g8_artifacts.append(str(p.relative_to(run_dir)))
         g8_artifacts.sort()
         artifacts_list.extend(g8_artifacts)
         artifacts_list.append("gm_report.md")
@@ -115,6 +130,8 @@ def build_delivery_packet(run_id: str) -> None:
             risks.append("Task frontier has tasks awaiting_decision")
         if awaiting_f:
             risks.append("Task frontier has tasks awaiting_feynman")
+        if awaiting_m:
+            risks.append("Task frontier has tasks awaiting_manual_os")
         if missing_required:
             risks.append("Missing required decision or feynman results")
 
