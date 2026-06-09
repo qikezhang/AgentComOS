@@ -254,6 +254,7 @@ def test_g6_does_not_call_real_opencode_or_hermes():
             assert "hermes chat" not in text
             assert "tmux new-session" not in text
             assert "tmux send-keys" not in text
+            assert "discord" not in text.lower()
 
 def test_no_agentcomos_runs_artifacts_committed():
     import subprocess

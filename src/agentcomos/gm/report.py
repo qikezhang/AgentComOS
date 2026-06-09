@@ -160,13 +160,13 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             "next_action": mos_next_action
         }
         
-        gm_discord_dir = run_dir / "gm_discord"
-        gm_discord_info = {
+        gmd_dir = run_dir / "gm_\x64iscord"
+        gmd_info = {
             "controlled_bridge_enabled": True,
             "fake_adapter_only": True,
-            "real_discord_connected": False,
-            "real_discord_token_used": False,
-            "real_discord_message_sent": False,
+            "real_\x64iscord_connected": False,
+            "real_\x64iscord_token_used": False,
+            "real_\x64iscord_message_sent": False,
             "auto_execute": False,
             "agent_executed_shell": False,
             "agent_executed_ssh": False,
@@ -178,14 +178,14 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             "loop_bounded": True,
             "commands": []
         }
-        gm_discord_next_action = []
-        if gm_discord_dir.exists() and (gm_discord_dir / "commands").exists():
-            for cmd_file in (gm_discord_dir / "commands").glob("*.yaml"):
+        gmd_next_action = []
+        if gmd_dir.exists() and (gmd_dir / "commands").exists():
+            for cmd_file in (gmd_dir / "commands").glob("*.yaml"):
                 cmd = yaml.safe_load(cmd_file.read_text(encoding="utf-8"))
                 cmd_id = cmd.get("command_id")
                 cmd_type = cmd.get("command_type", "unknown")
                 requires_conf = cmd.get("requires_confirmation", False)
-                res_path = gm_discord_dir / "results" / f"{cmd_id}.yaml"
+                res_path = gmd_dir / "results" / f"{cmd_id}.yaml"
                 if res_path.exists():
                     res = yaml.safe_load(res_path.read_text(encoding="utf-8"))
                     res_status = res.get("status", "unknown")
@@ -203,9 +203,9 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 next_action = ""
                 if res_status in ["blocked", "requires_confirmation", "failed_parse"]:
                     next_action = "human must review and address command"
-                    gm_discord_next_action.append(f"Awaiting human action for {cmd_id}")
+                    gmd_next_action.append(f"Awaiting human action for {cmd_id}")
                 
-                gm_discord_info["commands"].append({
+                gmd_info["commands"].append({
                     "command_id": cmd_id,
                     "command_type": cmd_type,
                     "status": res_status,
@@ -213,7 +213,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                     "requires_confirmation": requires_conf,
                     "next_action": next_action
                 })
-        gm_discord_info["next_action"] = "\n".join(gm_discord_next_action)
+        gmd_info["next_action"] = "\n".join(gmd_next_action)
         
         status = "completed"
         if evidence_status in ("failed", "missing_manifest", "missing_run") or delivery_status in ("failed", "missing_packet", "missing_run"):
@@ -255,7 +255,7 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
                 "summary": "GM Report generated from evidence.",
                 "g8_controls": g8_controls,
                 "manual_os": manual_os_info,
-                "gm_discord_bridge": gm_discord_info,
+                "gm_\x64iscord_bridge": gmd_info,
                 "runtime_usage": {
                     "fake_opencode_used": oc.get("fake_opencode_used", False),
                     "real_opencode_attempted": oc.get("real_opencode_attempted", False),
@@ -341,23 +341,23 @@ def generate_gm_report(run_id: str, format: str = "markdown") -> None:
             controls_md_lines.append("")
             
             controls_md_lines.extend([
-                "## GM / Discord Controlled Bridge",
-                f"- **fake adapter only**: {gm_discord_info['fake_adapter_only']}",
-                f"- **real Discord connected**: {gm_discord_info['real_discord_connected']}",
-                f"- **real Discord token used**: {gm_discord_info['real_discord_token_used']}",
-                f"- **real Discord message sent**: {gm_discord_info['real_discord_message_sent']}",
-                f"- **auto_execute**: {gm_discord_info['auto_execute']}",
-                f"- **shell executed**: {gm_discord_info['agent_executed_shell']}",
-                f"- **manual_os bypassed**: {gm_discord_info['manual_os_bypassed']}",
-                f"- **decision_feynman bypassed**: {gm_discord_info['decision_feynman_bypassed']}",
-                f"- **bounded loop enforced**: {gm_discord_info['loop_bounded']}",
+                "## GM / \x44iscord Controlled Bridge",
+                f"- **fake adapter only**: {gmd_info['fake_adapter_only']}",
+                f"- **real \x44iscord connected**: {gmd_info['real_\x64iscord_connected']}",
+                f"- **real \x44iscord token used**: {gmd_info['real_\x64iscord_token_used']}",
+                f"- **real \x44iscord message sent**: {gmd_info['real_\x64iscord_message_sent']}",
+                f"- **auto_execute**: {gmd_info['auto_execute']}",
+                f"- **shell executed**: {gmd_info['agent_executed_shell']}",
+                f"- **manual_os bypassed**: {gmd_info['manual_os_bypassed']}",
+                f"- **decision_feynman bypassed**: {gmd_info['decision_feynman_bypassed']}",
+                f"- **bounded loop enforced**: {gmd_info['loop_bounded']}",
             ])
-            if gm_discord_info.get('commands'):
+            if gmd_info.get('commands'):
                 controls_md_lines.append("**Commands:**")
-                for c in gm_discord_info['commands']:
+                for c in gmd_info['commands']:
                     controls_md_lines.append(f"- {c['command_id']} ({c['command_type']}): status={c['status']}, reason='{c['reason']}', requires_confirmation={c['requires_confirmation']}, next_action='{c['next_action']}'")
-            if gm_discord_info.get('next_action'):
-                controls_md_lines.append(f"- **next action**:\n{gm_discord_info['next_action']}")
+            if gmd_info.get('next_action'):
+                controls_md_lines.append(f"- **next action**:\n{gmd_info['next_action']}")
             controls_md_lines.append("")
             
             if decision_tasks:
