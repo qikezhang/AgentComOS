@@ -15,7 +15,15 @@ def get_input_fingerprint(run_id: str) -> str:
     run_dir = state.get_run_dir(run_id)
     hasher = hashlib.sha256()
     
-    for filename in ["run_status.yaml", "events.jsonl", "timeline.yaml"]:
+    for filename in [
+        "run_status.yaml",
+        "events.jsonl",
+        "timeline.yaml",
+        "operating_program.yaml",
+        "task_frontier.yaml",
+        "task_frontier_index.yaml",
+        "frontier_status.yaml",
+    ]:
         path = run_dir / filename
         if path.exists():
             if filename == "events.jsonl":

@@ -1,6 +1,7 @@
 from pathlib import Path
+import shutil
 import yaml
-from agentcomos.controller.state import RunState, read_run_status, write_run_status, get_next_fake_state
+from agentcomos.controller.state import RunState, get_run_dir, read_run_status, write_run_status, get_next_fake_state
 from agentcomos.controller.events import append_event, read_events
 from agentcomos.controller.artifacts import build_timeline, build_evidence_packet, build_delivery_packet
 
@@ -22,6 +23,8 @@ def handle_run_create(intent_path: Path) -> None:
         "state": RunState.created.value,
     }
     write_run_status(run_id, status)
+    run_dir = get_run_dir(run_id)
+    shutil.copyfile(intent_path, run_dir / "operating_intent.yaml")
     append_event(run_id, "run.created", {"intent_file": str(intent_path)})
     build_timeline(run_id, RunState.created.value)
     print(f"Run {run_id} created.")
@@ -44,6 +47,7 @@ def handle_controller_tick(run_id: str, fake: bool) -> None:
         
     append_event(run_id, "controller.tick.started", {"fake": fake})
     
+    g7_result = None
     if fake:
         next_state = get_next_fake_state(current_state)
         if next_state != current_state:
@@ -68,11 +72,41 @@ def handle_controller_tick(run_id: str, fake: bool) -> None:
             if next_state in (RunState.delivery_ready, RunState.reported, RunState.completed):
                 build_delivery_packet(run_id)
                 append_event(run_id, "delivery.built", {})
+
+        g7_result = _handle_g7_fake_tick(run_id)
     
     current_state_str = status["state"]
     build_timeline(run_id, current_state_str)
     append_event(run_id, "controller.tick.completed", {"state": current_state_str})
-    print(f"Tick completed. Current state: {current_state_str}")
+    if g7_result:
+        print(f"Tick completed. Current state: {current_state_str}. Frontier: {g7_result}")
+    else:
+        print(f"Tick completed. Current state: {current_state_str}")
+
+
+def _handle_g7_fake_tick(run_id: str) -> dict | None:
+    run_dir = get_run_dir(run_id)
+    intent_path = run_dir / "operating_intent.yaml"
+    if not intent_path.exists():
+        return None
+    try:
+        intent = yaml.safe_load(intent_path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return None
+    if not (intent.get("goal") or intent.get("objective")):
+        return None
+
+    from agentcomos.frontier.builder import build_task_frontier, read_task_frontier
+    from agentcomos.frontier.executor import advance_one_frontier_task
+    from agentcomos.frontier.status import generate_frontier_status
+    from agentcomos.program.builder import build_operating_program
+
+    build_operating_program(run_id)
+    if not read_task_frontier(run_id):
+        build_task_frontier(run_id)
+    result = advance_one_frontier_task(run_id)
+    generate_frontier_status(run_id)
+    return result
 
 def handle_controller_recover(run_id: str) -> None:
     events = read_events(run_id)

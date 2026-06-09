@@ -145,6 +145,12 @@ app.add_typer(opencode_app, name="opencode")
 worker_app = typer.Typer(help="Worker runtime operations")
 app.add_typer(worker_app, name="worker")
 
+program_app = typer.Typer(help="Operating Program operations")
+app.add_typer(program_app, name="program")
+
+frontier_app = typer.Typer(help="Task Frontier operations")
+app.add_typer(frontier_app, name="frontier")
+
 @run_app.command("create")
 def run_create(intent: Path = typer.Option(..., help="Path to operating_intent.yaml")) -> None:
     """Create a new run from an operating intent."""
@@ -178,6 +184,89 @@ def controller_recover(run: str = typer.Option(..., help="Run ID")) -> None:
     from agentcomos.controller.runner import handle_controller_recover
     try:
         handle_controller_recover(run)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@program_app.command("build")
+def program_build(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """Build operating_program.yaml for a run."""
+    from agentcomos.program.builder import build_operating_program
+    try:
+        program = build_operating_program(run)
+        print(yaml.dump(program, sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@program_app.command("status")
+def program_status(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """Show Operating Program status."""
+    from agentcomos.program.status import get_program_status
+    try:
+        print(yaml.dump(get_program_status(run), sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@frontier_app.command("build")
+def frontier_build(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """Build task_frontier.yaml for a run."""
+    from agentcomos.frontier.builder import build_task_frontier
+    from agentcomos.frontier.status import generate_frontier_status
+    try:
+        frontier = build_task_frontier(run)
+        generate_frontier_status(run)
+        print(yaml.dump(frontier, sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@frontier_app.command("status")
+def frontier_status(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """Show Task Frontier status."""
+    from agentcomos.frontier.status import generate_frontier_status
+    try:
+        print(yaml.dump(generate_frontier_status(run), sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@frontier_app.command("list")
+def frontier_list(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """List Task Frontier items."""
+    from agentcomos.frontier.status import list_frontier_tasks
+    try:
+        print(yaml.dump(list_frontier_tasks(run), sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@frontier_app.command("next")
+def frontier_next(run: str = typer.Option(..., "--run", help="Run ID")) -> None:
+    """Show the next ready Task Frontier item."""
+    from agentcomos.frontier.builder import read_task_frontier
+    from agentcomos.frontier.scheduler import next_ready_task
+    from agentcomos.program.builder import validate_run_exists
+    try:
+        validate_run_exists(run)
+        frontier = read_task_frontier(run)
+        task = next_ready_task(frontier) if frontier else None
+        print(yaml.dump({"run_id": run, "next_task": task}, sort_keys=False))
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+
+
+@frontier_app.command("update")
+def frontier_update(
+    run: str = typer.Option(..., "--run", help="Run ID"),
+    task: str = typer.Option(..., "--task", help="Task ID"),
+    status: str = typer.Option(..., "--status", help="Task status"),
+) -> None:
+    """Update a Task Frontier item status."""
+    from agentcomos.frontier.executor import update_task_status
+    try:
+        print(yaml.dump(update_task_status(run, task, status), sort_keys=False))
     except ValueError as e:
         raise typer.BadParameter(str(e))
 

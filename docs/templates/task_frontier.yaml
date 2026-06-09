@@ -1,0 +1,50 @@
+frontier_id: TF-OI-TECHAI8-001
+run_id: OI-TECHAI8-001
+created_by: controller
+status: active
+tasks:
+- task_id: TF-001
+  title: Create initial implementation plan
+  status: ready
+  priority: high
+  depends_on: []
+  runtime_hint: fake_opencode
+  invocation_type: opencode
+  acceptance:
+  - opencode_project_plan.yaml generated
+  evidence_required:
+  - opencode_outputs/opencode_project_plan.yaml
+- task_id: TF-002
+  title: Run fake Hermes worker validation
+  status: blocked
+  priority: medium
+  depends_on:
+  - TF-001
+  runtime_hint: fake_hermes
+  invocation_type: worker
+  acceptance:
+  - DONE.md generated
+  - result.yaml generated
+  - reasoning_summary.md generated
+  evidence_required:
+  - worker_outputs/TF-002/DONE.md
+  - worker_outputs/TF-002/result.yaml
+  - worker_outputs/TF-002/reasoning_summary.md
+- task_id: TF-003
+  title: Generate evidence delivery and GM report
+  status: blocked
+  priority: medium
+  depends_on:
+  - TF-001
+  - TF-002
+  runtime_hint: controller
+  invocation_type: reporting
+  acceptance:
+  - evidence_packet generated
+  - delivery_packet generated
+  - gm_report generated
+  evidence_required:
+  - evidence_packet/manifest.yaml
+  - delivery_packet.yaml
+  - gm_report.md
+
