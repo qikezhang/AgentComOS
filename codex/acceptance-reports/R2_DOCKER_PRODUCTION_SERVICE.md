@@ -1,50 +1,53 @@
-# R2 Docker Production Service Codex Review
+# R2 Docker Production Service Codex Re-Review
 
-Status: failed-fixed-ready-for-review
+Status: failed
 
 Branch: antigravity/r2-docker-production-service
-Commit reviewed: f7a5ca2
+Commit reviewed: af1e056
 Reviewer: Codex
 Review date: 2026-06-10
 
 ## Final Decision
 
-R2 is not accepted. R3 remains locked until Antigravity fixes the blocking issues in the R2 branch and Codex re-reviews the updated branch.
+R2 is not accepted. The original Dockerfile packaging blocker is fixed, but R2 still fails strict release hygiene. R3 remains locked until Antigravity removes the remaining blocking issues and Codex re-reviews the updated branch.
 
 ## Blocking Issues
 
-1. Dockerfile does not install a runnable AgentComOS package.
-   - Evidence: `Dockerfile` runs `pip install --no-cache-dir .` immediately after copying only `pyproject.toml`, before `src/` is copied.
-   - Evidence: a wheel built from the same install-time file set contains only dist-info metadata and entry points, not the `agentcomos` package.
-   - Impact: the container `CMD ["python3", "-m", "agentcomos.cli", "healthcheck"]` and compose healthcheck `agentcomos healthcheck` are expected to fail in the built image because `/app/src` is not installed and `PYTHONPATH` is not set.
+1. `.agentcomos/runs` is still tracked in the repository.
+   - Evidence: `git ls-files | rg "^\\.env$|uv\\.lock|\\.agentcomos/runs"` reports `.agentcomos/runs/.gitkeep` and `.agentcomos/runs/OI-TECHAI8-001/*`.
+   - Evidence: the clean `git archive` used for review includes `.agentcomos/runs/OI-TECHAI8-001` runtime files.
+   - Impact: this violates the R2 hygiene requirement that `.agentcomos/runs` must not be tracked. These files are inherited from `origin/main`, not newly added by R2, but the R2 release branch still cannot be marked clean while they remain tracked.
 
-2. Docker daemon was unavailable for a real image build during Codex review.
-   - Evidence: `docker build --no-cache --progress=plain -t agentcomos-r2-audit .` failed to connect to the local Docker API socket.
-   - Impact: Codex could not independently confirm a successful Docker image build. Static review and package simulation already identify a Dockerfile blocker.
+2. `make test` still dirties tracked runtime artifacts.
+   - Evidence: after `make test`, `git status --short` showed deleted tracked files under `.agentcomos/runs/OI-TECHAI8-001`.
+   - Evidence: Codex restored those files before continuing review so the final worktree would stay clean.
+   - Impact: the test suite is still coupled to tracked runtime artifacts, which conflicts with R2 production release hygiene.
 
-3. Local review environment contains ignored runtime and secret-bearing deployment files.
-   - Evidence: `git status --short --ignored` showed an ignored `.env` and many ignored `.agentcomos/runs/*` directories.
-   - Evidence: `docker compose config` exited 0 but read the local `.env` and expanded deployment values into the rendered config.
-   - Impact: tracked sources did not contain a committed `.env` or committed secret, but the R2 review environment was not clean enough for a clean production-service evidence packet.
+3. Docker image build could not be independently executed in this Codex environment.
+   - Evidence: `docker build --no-cache --progress=plain -t agentcomos-r2-audit-af1e056 /tmp/r2_codex_clean` failed because the local Docker daemon socket was unavailable.
+   - Impact: Codex verified the Dockerfile by static review and package simulation, but did not obtain a real Docker build success signal in this environment.
 
-4. Full validation dirtied tracked runtime example files until restored.
-   - Evidence: after `make test` / `make validate-examples`, `git status --short` showed deleted tracked files under `.agentcomos/runs/OI-TECHAI8-001`.
-   - Evidence: those files already exist on `origin/main`; R2 did not add them, and Codex restored them before committing this report.
-   - Impact: the current test suite still operates on tracked runtime artifacts, which conflicts with the R2 release hygiene goal that runtime data must not pollute review state.
+## Fixed Since Prior Review
+
+- Dockerfile now copies `src/` before `pip install --no-cache-dir .`.
+- A wheel built from the same source set now contains the `agentcomos` package and `agentcomos/cli.py`.
+- A clean install target provides `bin/agentcomos`, and `agentcomos healthcheck` returns exit code 0.
+- Compose config was re-run from a clean git archive with `.env.example` copied to `.env`, avoiding local `.env` secret contamination.
+- R2 targeted tests increased from 9 to 11 and pass.
 
 ## Validation Results
 
 - `git fetch origin`: passed
 - `git checkout antigravity/r2-docker-production-service`: passed
-- `git pull origin antigravity/r2-docker-production-service`: passed; already up to date
-- Current branch: passed; `antigravity/r2-docker-production-service`
-- Initial tracked worktree: passed; clean
-- Latest commit reviewed: `f7a5ca2`
-- Main ancestry: passed; `origin/main` is an ancestor of R2
+- `git pull origin antigravity/r2-docker-production-service`: passed
+- Current branch: `antigravity/r2-docker-production-service`
+- Initial tracked worktree: clean
+- Latest commit reviewed: `af1e056`
+- `origin/main` ancestry: passed
 
 ## Diff Scope
 
-R2 diff against `origin/main` is narrow and limited to:
+R2 diff against `origin/main` remains narrow:
 
 - `.dockerignore`
 - `.env.example`
@@ -53,9 +56,9 @@ R2 diff against `origin/main` is narrow and limited to:
 - `src/agentcomos/cli.py`
 - R2 tests
 - R2 Antigravity task
-- this Codex acceptance report
+- Codex R2 acceptance report
 
-No G12+ files, real Discord bot adapter, Controlled Executor implementation, operation adapter implementation, `uv.lock`, `.env`, or new `.agentcomos/runs` files were added by the R2 diff.
+No R3+ services, real Discord adapter, Controlled Executor implementation, operation adapter implementation, `.env`, `uv.lock`, or new runtime artifact additions were found in the R2 diff.
 
 ## Required Files
 
@@ -76,21 +79,25 @@ No G12+ files, real Discord bot adapter, Controlled Executor implementation, ope
 
 ## Dockerfile Review
 
-Result: failed
+Result: passed by static/package simulation; real Docker build not available
 
-- Uses `python:3.12-slim`: passed
-- Sets `/app` workdir: passed
+- Base image `python:3.12-slim`: passed
+- Workdir `/app`: passed
+- Installs dependencies/project after copying source: passed
+- Supports `agentcomos` CLI: passed by clean install simulation
 - Does not copy `.env`: passed
 - Does not copy `.agentcomos/runs`, logs, reports, or backups directly: passed
-- Does not include Discord token, docker.sock, SSH key, privileged mode, or sudoers references: passed
-- Does not start real Discord Bot or Controlled Executor: passed
-- Default command is a healthcheck command, not an arbitrary shell executor: passed
-- Package/CLI availability inside image: failed due install-before-source ordering and missing `PYTHONPATH`
-- Docker image build: not verified; Docker daemon unavailable
+- No real secret/token/private key: passed
+- No real Discord Bot startup: passed
+- No Controlled Executor startup: passed
+- No shell/ssh/sudo/docker/systemctl adapter startup: passed
+- No docker.sock or privileged requirement: passed
+- Default command is `agentcomos healthcheck`: passed
+- Dockerfile `HEALTHCHECK` calls `agentcomos healthcheck`: passed
 
 ## docker-compose.yml Review
 
-Result: failed for clean evidence, passed for static contract shape
+Result: passed
 
 - Service name `agentcomos`: passed
 - `restart: unless-stopped`: passed
@@ -102,8 +109,9 @@ Result: failed for clean evidence, passed for static contract shape
 - Healthcheck calls `agentcomos healthcheck`: passed
 - No `privileged: true`: passed
 - No `/var/run/docker.sock`: passed
-- No host root, host SSH key, systemd socket, or R3/R4/R5 service mount: passed
-- `docker compose config`: passed with obsolete `version` warning, but rendered local ignored `.env` values from the review machine
+- No host root, host SSH key, or systemd socket mount: passed
+- No R3/R4/R5 service: passed
+- `docker compose config`: passed from clean archive with sanitized `.env`, with only an obsolete `version` warning
 
 ## .env.example Review
 
@@ -114,21 +122,24 @@ Result: passed
 - `AGENTCOMOS_LOG_DIR=/app/logs`: present
 - `AGENTCOMOS_REPORT_DIR=/app/reports`: present
 - `AGENTCOMOS_BACKUP_DIR=/app/backups`: present
-- Future placeholders for Discord and Controlled Executor: present and disabled
-- Real token/password/private key/API key/VPS credential: not found in tracked `.env.example`
+- `DISCORD_BOT_TOKEN=replace-with-deployment-secret`: placeholder only
+- `DISCORD_BOT_ENABLED=false`: present
+- `CONTROLLED_EXECUTOR_ENABLED=false`: present
+- No real Discord token, password, API key, private key, or VPS credential in tracked `.env.example`
 
 ## .dockerignore Review
 
 Result: passed
 
 - Excludes `.git`, `.env`, `.agentcomos/runs`, `runtime/`, `logs/`, `reports/`, `backups/`, `__pycache__/`, `.pytest_cache/`, `.venv/`, `venv/`, `*.pem`, and `*.key`.
-- `uv.lock` is not explicitly ignored, but no `uv.lock` exists in the R2 diff or tracked files.
+- `uv.lock` is not explicitly ignored, but no `uv.lock` is tracked or added by R2.
 
 ## Healthcheck
 
-Result: passed outside Docker image
+Result: passed
 
-- Command used: `PYTHONPATH=src ./.venv/bin/python3 -m agentcomos.cli healthcheck`
+- Project CLI command: `PYTHONPATH=src ./.venv/bin/python3 -m agentcomos.cli healthcheck`
+- Clean install command: `PYTHONPATH=/tmp/r2_codex_install /tmp/r2_codex_install/bin/agentcomos healthcheck`
 - Exit code: 0
 - Output: stable JSON with `status: ok`, `component: agentcomos`, and `mode: healthcheck`
 - Read-only check: passed; `git status --short` before and after healthcheck was identical
@@ -137,9 +148,9 @@ Result: passed outside Docker image
 ## Test Results
 
 - `make compile`: passed
-- `make test`: passed, 423 passed
+- `make test`: passed, 425 passed
 - `make validate-examples`: passed
-- Targeted R2 tests: passed, 9 passed
+- Targeted R2 tests: passed, 11 passed
 
 ## Boundary Checks
 
@@ -150,7 +161,7 @@ Result: passed outside Docker image
 - sudo adapter implemented in R2: false
 - docker adapter implemented in R2: false
 - systemctl adapter implemented in R2: false
-- arbitrary command execution added by R2: false
+- arbitrary command execution added by R2 runtime: false
 - docker.sock mounted: false
 - privileged container: false
 - host SSH key mounted: false
@@ -158,35 +169,29 @@ Result: passed outside Docker image
 
 Notes:
 
-- Existing G11 controlled GM Discord bridge code and tests remain in main lineage; R2 did not add a real Discord library or network adapter.
-- Existing G3/G5 worker/runtime code still contains subprocess usage for already-accepted earlier phases; R2 did not add shell/ssh/sudo/docker/systemctl operation adapters.
+- Existing G11 controlled GM Discord bridge code remains in the main lineage; R2 did not add a real Discord network adapter or Discord client library.
+- Existing earlier-phase worker/runtime code contains subprocess usage; R2 did not add runtime shell/ssh/sudo/docker/systemctl operation adapters.
+- R2 tests call `docker compose version/config` for static validation only.
 
 ## Hygiene Checks
 
-- `.agentcomos/runs` clean in R2 diff: passed; R2 adds no new tracked runtime artifacts
-- `.agentcomos/runs` clean in overall tracked repository: failed/inherited; `origin/main` already tracks `.agentcomos/runs/OI-TECHAI8-001`
-- Ignored `.agentcomos/runs` review environment: failed; many ignored local run directories are present
+- `.agentcomos/runs` clean in R2 diff: passed; R2 does not add new runtime artifacts
+- `.agentcomos/runs` clean in tracked repository: failed; inherited tracked runtime files remain
+- `make test` leaves tracked worktree clean: failed until Codex restored `.agentcomos/runs/OI-TECHAI8-001`
 - `uv.lock` clean: passed; not tracked and not in R2 diff
 - `.env` not committed: passed
-- Local ignored `.env` absent: failed; local `.env` exists and was loaded by compose
-- Tracked secrets clean: passed; scans of tracked review paths found only placeholders or negative documentation examples
+- Local ignored `.env` absent: failed in this reviewer workspace, but clean compose evidence was produced from a sanitized archive
+- Secrets clean in tracked files: passed
 
 ## Secret Scan
 
-Result: passed for tracked files, failed for clean local review environment
+Result: passed for tracked files
 
 - No private key blocks found in tracked review paths.
-- No committed real Discord token was found in tracked review paths.
-- `.env.example` contains `DISCORD_BOT_TOKEN=replace-with-deployment-secret`, accepted as a placeholder.
+- No committed real Discord token found in tracked review paths.
+- `.env.example` contains only `DISCORD_BOT_TOKEN=replace-with-deployment-secret`, accepted as a placeholder.
 - Documentation contains safe negative references to missing tokens.
-- Local ignored `.env` exists and must not be used as acceptance evidence.
 
 ## Next Step
 
-Antigravity must fix the Dockerfile packaging/runtime issue, produce clean Docker build evidence, and rerun R2 hygiene from a clean review environment. R3 remains locked until R2 passes Codex review and merges to main.
-
-## Fix Notes
-- Dockerfile now copies `src` and other needed files before `pip install .`.
-- Compose clean validation in tests uses a sanitized temp environment to avoid local `.env` pollution.
-- Runtime artifacts (`.agentcomos/runs`) are cleaned before final report and verified by tests.
-- Ready for Codex re-review.
+Antigravity must remove or relocate tracked `.agentcomos/runs` runtime artifacts and ensure `make test` does not dirty tracked runtime files. R3 remains locked until R2 passes Codex review and merges to main.
