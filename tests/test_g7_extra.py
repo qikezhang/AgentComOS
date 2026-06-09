@@ -33,7 +33,7 @@ def test_g7_three_tick_flow_completes_tf001_tf002_tf003(g7_run, monkeypatch):
 
     handle_controller_tick(RUN_ID, fake=True)
     assert read_task_frontier(RUN_ID)["tasks"][1]["status"] == "completed"
-    assert (g7_run / "worker_outputs" / "TF-001" / "DONE.md").exists()
+    assert (g7_run / "worker_outputs" / "TF-002" / "DONE.md").exists()
 
     handle_controller_tick(RUN_ID, fake=True)
     assert read_task_frontier(RUN_ID)["tasks"][2]["status"] == "completed"
@@ -49,12 +49,12 @@ def test_g7_tf002_fake_worker_outputs_are_generated_without_real_tmux(g7_run, mo
     handle_controller_tick(RUN_ID, fake=True)
     handle_controller_tick(RUN_ID, fake=True)
     
-    assert (g7_run / "worker_outputs" / "TF-001" / "DONE.md").exists()
-    assert (g7_run / "worker_outputs" / "TF-001" / "result.yaml").exists()
-    assert (g7_run / "worker_outputs" / "TF-001" / "reasoning_summary.md").exists()
+    assert (g7_run / "worker_outputs" / "TF-002" / "DONE.md").exists()
+    assert (g7_run / "worker_outputs" / "TF-002" / "result.yaml").exists()
+    assert (g7_run / "worker_outputs" / "TF-002" / "reasoning_summary.md").exists()
     
-    job = yaml.safe_load((g7_run / "worker_jobs" / f"HWJ-{RUN_ID}-TF-001-001.yaml").read_text(encoding="utf-8"))
-    assert job["tmux_unavailable"] is True
+    job = yaml.safe_load((g7_run / "worker_jobs" / f"HWJ-{RUN_ID}-TF-002-G7.yaml").read_text(encoding="utf-8"))
+    assert job["tmux_used"] is False
     assert job["real_hermes_used"] is False
 
 def test_g7_frontier_evidence_required_matches_worker_output_paths(g7_run, monkeypatch):
@@ -84,9 +84,9 @@ def test_g7_tick3_reporting_task_runs_after_worker_completed(g7_run, monkeypatch
 
 def test_g7_failed_frontier_report_is_not_completed(g7_run, monkeypatch):
     handle_controller_tick(RUN_ID, fake=True)
-    def _fail(**kwargs):
-        return TmuxStartResult(status="failed", session_name=kwargs["session_name"], reason="fatal error")
-    monkeypatch.setattr("agentcomos.worker.fake_runtime.start_fake_worker_session", _fail)
+    def _fail(*args, **kwargs):
+        raise ValueError("fatal error")
+    monkeypatch.setattr("agentcomos.frontier.fake_worker_contract.complete_g7_fake_worker_task", _fail)
     handle_controller_tick(RUN_ID, fake=True)
     handle_controller_tick(RUN_ID, fake=True)
     

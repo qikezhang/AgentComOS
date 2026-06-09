@@ -83,9 +83,9 @@ def build_frontier_data(run_id: str) -> dict[str, Any]:
                     "reasoning_summary.md generated",
                 ],
                 "evidence_required": [
-                    "worker_outputs/TF-001/DONE.md",
-                    "worker_outputs/TF-001/result.yaml",
-                    "worker_outputs/TF-001/reasoning_summary.md",
+                    "worker_outputs/TF-002/DONE.md",
+                    "worker_outputs/TF-002/result.yaml",
+                    "worker_outputs/TF-002/reasoning_summary.md",
                 ],
             },
             {

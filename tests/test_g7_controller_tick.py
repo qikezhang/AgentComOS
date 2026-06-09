@@ -92,9 +92,9 @@ def test_controller_tick_uses_fake_worker_only(g7_run, monkeypatch):
     fake_tmux_started(monkeypatch)
     handle_controller_tick(RUN_ID, fake=True)
 
-    worker_job = yaml.safe_load((g7_run / "worker_jobs" / f"HWJ-{RUN_ID}-TF-001-001.yaml").read_text(encoding="utf-8"))
-    result = yaml.safe_load((g7_run / "worker_outputs" / "TF-001" / "result.yaml").read_text(encoding="utf-8"))
-    assert worker_job["runtime"] == "tmux_fake_hermes"
+    worker_job = yaml.safe_load((g7_run / "worker_jobs" / f"HWJ-{RUN_ID}-TF-002-G7.yaml").read_text(encoding="utf-8"))
+    result = yaml.safe_load((g7_run / "worker_outputs" / "TF-002" / "result.yaml").read_text(encoding="utf-8"))
+    assert worker_job["runtime"] == "g7_fake_worker_contract"
     assert worker_job["fake_worker"] is True
     assert worker_job["real_hermes_used"] is False
     assert result["real_hermes_used"] is False

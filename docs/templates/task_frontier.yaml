@@ -27,9 +27,9 @@ tasks:
   - result.yaml generated
   - reasoning_summary.md generated
   evidence_required:
-  - worker_outputs/TF-001/DONE.md
-  - worker_outputs/TF-001/result.yaml
-  - worker_outputs/TF-001/reasoning_summary.md
+  - worker_outputs/TF-002/DONE.md
+  - worker_outputs/TF-002/result.yaml
+  - worker_outputs/TF-002/reasoning_summary.md
 - task_id: TF-003
   title: Generate evidence delivery and GM report
   status: blocked

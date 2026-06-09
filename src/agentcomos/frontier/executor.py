@@ -42,9 +42,9 @@ def _required_evidence_exists(run_id: str, task: dict[str, Any]) -> tuple[bool, 
     return not missing, missing
 
 
-def _write_worker_invocation(run_id: str) -> str:
+def _write_worker_invocation(run_id: str, task_id: str) -> str:
     run_dir = get_run_dir(run_id)
-    invocation_id = "HWI-TF-001"
+    invocation_id = f"HWI-{task_id}-001"
     path = run_dir / "worker_invocations" / f"{invocation_id}.yaml"
     invocation = {
         "invocation_id": invocation_id,
@@ -57,12 +57,12 @@ def _write_worker_invocation(run_id: str) -> str:
         "worker_version": "0.1.0",
         "runtime": "hermes_tmux",
         "task": {
-            "task_id": "TF-001",
+            "task_id": task_id,
             "goal": "Run deterministic fake Hermes validation for the G7 frontier.",
             "task_type": "validation",
         },
         "inputs": ["task_frontier.yaml", "runtime_context_bundle.yaml"],
-        "output_dir": str(run_dir / "worker_outputs" / "TF-001"),
+        "output_dir": str(run_dir / "worker_outputs" / task_id),
         "required_outputs": ["DONE.md", "result.yaml", "reasoning_summary.md"],
         "stop_conditions": ["required_outputs_exist", "no_blocking_error"],
         "forbidden": ["call_gm", "call_user", "deploy", "merge_git", "real_hermes"],
@@ -87,12 +87,27 @@ def _execute_opencode_task(run_id: str, task: dict[str, Any]) -> dict[str, Any]:
 
 
 def _execute_worker_task(run_id: str, task: dict[str, Any]) -> dict[str, Any]:
+    task_id = str(task.get("task_id", "UNKNOWN"))
+    invocation_path = _write_worker_invocation(run_id, task_id)
+    
+    # G7 deterministic fake worker path for TF-002 or fake environments
+    runtime_hint = task.get("runtime_hint", "fake_hermes")
+    if task_id == "TF-002" or runtime_hint in ["fake_hermes", "tmux_fake_hermes"]:
+        from agentcomos.frontier.fake_worker_contract import complete_g7_fake_worker_task
+        task["runtime_used"] = "fake_hermes"
+        result = complete_g7_fake_worker_task(run_id, task, invocation_path)
+        task["invocation_id"] = result["job_id"]
+        
+        ok, missing = _required_evidence_exists(run_id, task)
+        if not ok:
+            raise ValueError("missing required evidence: " + ", ".join(missing))
+        return result
+
+    # Fallback (should not be reached in standard G7 fake tick tests)
     import time
-
     from agentcomos.worker.fake_runtime import collect_fake_worker, start_fake_worker
-
-    invocation_path = _write_worker_invocation(run_id)
-    job_id = start_fake_worker(get_run_dir(run_id) / "worker_invocations" / "HWI-TF-001.yaml", fake=True)
+    
+    job_id = start_fake_worker(get_run_dir(run_id) / "worker_invocations" / f"HWI-{task_id}-001.yaml", fake=True)
     task["invocation_id"] = job_id
     task["runtime_used"] = "fake_hermes"
     for _ in range(40):
