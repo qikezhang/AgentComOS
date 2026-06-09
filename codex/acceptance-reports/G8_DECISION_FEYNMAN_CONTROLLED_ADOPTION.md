@@ -158,7 +158,21 @@ None.
 ## Non-Blocking Notes
 
 - `origin/main` currently tracks a partial `.agentcomos/runs/OI-TECHAI8-001` baseline (`run_status.yaml`, events/timeline, delivery/manifest) without `operating_intent.yaml`. Clean run setup was used for equivalent behavioral verification. No `.agentcomos/runs` diff is introduced by this G8 branch.
-- `delivery_packet.yaml` still contains stale next-action wording: `Ready for Codex G6 review.` This is non-blocking because G8 artifacts, controls, and status semantics pass, but it should be cleaned up in a follow-up.
+
+## Quick Re-Check - Delivery Next Action
+
+- Quick re-check time: 2026-06-09 15:28:18 CST.
+- Commit reviewed: `0f2f4bbe53c3a04be61a5964a0f3a4e33688ea92`.
+- Stale G6 next-action removed: passed. `delivery_packet.yaml` no longer contains `Ready for Codex G6 review` or `Codex G6`.
+- Targeted test: passed with project venv, `tests/test_g8_reporting_integration.py::test_g8_delivery_packet_next_action_is_not_stale_g6_text`.
+- `make compile`: passed.
+- `make test`: passed, `280 passed`.
+- `make validate-examples`: passed.
+- Manual delivery packet check: passed. Generated delivery packet retained G8 decision/feynman controls and `status: completed`.
+- Runtime artifacts cleaned: passed.
+- `uv.lock` not committed: passed.
+- Final decision remains: G8 passed.
+- Next step: Merge G8 PR, then Antigravity may start G9 Loop Execution from latest `main`.
 
 ## Decision
 
