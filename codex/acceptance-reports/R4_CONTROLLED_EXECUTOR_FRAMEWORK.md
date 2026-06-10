@@ -1,6 +1,6 @@
 # R4 Controlled Executor Framework - Acceptance Report
 
-**Status:** failed
+**Status:** passed
 
 ## Codex Review
 
@@ -63,7 +63,78 @@
 
 R4 is still not accepted. Antigravity must preserve secret classification semantics while keeping artifacts redacted. R5 remains locked.
 
-## Blocking Issues
+## Codex Re-review 3
+
+- Reviewed branch: `antigravity/r4-controlled-executor-framework`
+- Reviewed commit: `70d0452 fix(executor): preserve secret semantics while redacting artifacts`
+- Review date: 2026-06-11 Asia/Shanghai
+- Current decision: passed.
+
+### Previously Blocking Issues
+
+1. Secret-bearing disabled and missing-policy artifacts persisted raw token text.
+   - Status: fixed.
+   - Verification: disabled and missing-policy secret request artifacts no longer contain raw `token=xxx`, Discord token values, password values, API key values, or private-key material.
+2. Secret request semantics regressed after early redaction.
+   - Status: fixed.
+   - Verification: enabled-policy `blocked_secret_request.yaml` now produces `risk_level: secret` and `reason: secret_request_blocked` while artifacts remain redacted.
+
+### Current Validation Evidence
+
+- Branch baseline: passed; `origin/main` is an ancestor of `HEAD`.
+- R3 acceptance report baseline: passed; R3 remains `Status: passed`.
+- Diff scope: R4 executor framework, redaction helper, tests/fixtures, CLI/Discord integration, and Codex/Antigravity reports only.
+- Forbidden file scan: passed; no `.agentcomos/runs`, `.env`, `uv.lock`, G12 files, or R5 operation adapter files in the diff.
+- Executor config: passed; defaults are disabled, default deny, high-risk approval required, and dry-run only.
+- Request model: passed; request artifacts include required identifiers/source/correlation/policy fields and persist only redacted command text.
+- Command classifier: passed; read-only, high-risk, secret, direct system, destructive, and unknown classifications are covered.
+- Policy evaluation: passed; disabled executor denies, missing policy denies, default deny holds, secret/direct/destructive requests block, and high-risk requests require approval.
+- Decision artifact: passed; generated with explicit decision/reason/risk/correlation fields.
+- Result artifact: passed; generated with `execution_mode: dry_run`, `real_execution: false`, and `adapter_invoked: false`.
+- Audit artifact: passed; generated with redacted command text, explicit reason, correlation ID, and no real execution claim.
+- Dry-run mode: passed; no real execution path found in R4 executor code.
+- CLI:
+  - `executor status`: passed; reports `real_execution_available: false` and `adapters_available: false`.
+  - `executor evaluate`: passed; writes request and decision artifacts without execution.
+  - `executor run-dry`: passed; writes request, decision, result, and audit artifacts without execution.
+- R3 GM command integration: passed; Discord path can generate executor requests/artifacts and does not directly execute system commands.
+- Safety:
+  - default deny: passed.
+  - missing policy deny: passed.
+  - secret request blocked: passed.
+  - direct system command blocked: passed.
+  - high risk requires approval: passed.
+  - real execution available: false.
+  - operation adapters implemented: false.
+  - subprocess/os.system used in R4 executor code: false.
+  - docker.sock mounted: false.
+  - privileged container: false.
+- Validation:
+  - targeted R4 tests: passed, 45 passed.
+  - R3 regression tests: passed, 72 passed.
+  - R2 regression tests: passed, 11 passed.
+  - `make compile`: passed.
+  - `make test`: passed, 542 passed.
+  - `make validate-examples`: passed.
+  - `agentcomos healthcheck`: passed.
+  - `agentcomos discord status`: passed/unavailable as expected.
+  - `agentcomos discord serve`: passed/unavailable as expected.
+  - `agentcomos executor status`: passed.
+  - `agentcomos executor evaluate`: passed.
+  - `agentcomos executor run-dry`: passed.
+  - `docker compose config`: passed with Docker's existing obsolete `version` warning.
+  - `docker build/run`: passed; image built and `agentcomos healthcheck`, `agentcomos executor status`, and `agentcomos discord status` ran successfully.
+- Hygiene:
+  - `.agentcomos/runs` clean: passed.
+  - `.env` not committed: passed.
+  - `uv.lock` clean: passed.
+  - secrets clean: passed for generated artifacts; source/test fixture secret strings are fake redaction fixtures, not real credentials.
+
+### Final Decision
+
+R4 accepted. Merge R4 to main, then begin R5 Operation Adapters. R5 remains locked until R4 is merged.
+
+## Historical Blocking Issues (superseded)
 
 1. Secret-bearing requests are persisted before redaction on disabled and missing-policy deny paths.
    - Reproduction:
@@ -77,7 +148,7 @@ R4 is still not accepted. Antigravity must preserve secret classification semant
    - These artifacts contain `command_text_redacted: show secret token=xxx`.
    - This violates the R4 acceptance requirements that secret requests are blocked without persisting token/secret material, that command text is redacted in artifacts, and that missing-policy/default-deny paths remain safe.
 
-## Validation Evidence
+## Historical Validation Evidence (superseded)
 
 - Branch baseline: passed; `origin/main` is an ancestor of `HEAD`.
 - R3 acceptance report baseline: passed; `codex/acceptance-reports/R3_REAL_DISCORD_BOT_ADAPTER.md` is `Status: passed`.
@@ -129,7 +200,7 @@ R4 is still not accepted. Antigravity must preserve secret classification semant
   - `uv.lock` clean: passed.
   - secrets clean: failed for generated executor artifacts in the blocker reproduction.
 
-## Final Decision
+## Historical Final Decision (superseded)
 
 R4 is not accepted. Antigravity must fix the blocking redaction issue before R4 can be merged. R5 remains locked.
 
