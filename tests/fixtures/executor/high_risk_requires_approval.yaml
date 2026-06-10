@@ -1,0 +1,14 @@
+executor_request_id: EXEC-REQ-F431431F
+source: discord
+source_message_id: null
+requested_by_hash: unknown
+command_type: high_risk
+command_text_redacted: rm -rf /
+target: null
+risk_level: destructive
+requires_executor: true
+requires_approval: true
+policy_ref: null
+correlation_id: EXEC-REQ-F431431F
+status: received
+created_at: '2026-06-10T15:25:34.042030+00:00'

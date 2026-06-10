@@ -1,0 +1,14 @@
+executor_request_id: EXEC-REQ-D91FE7A0
+source: discord
+source_message_id: null
+requested_by_hash: unknown
+command_type: shell
+command_text_redacted: bash -c 'echo hi'
+target: null
+risk_level: direct_system
+requires_executor: true
+requires_approval: false
+policy_ref: null
+correlation_id: EXEC-REQ-D91FE7A0
+status: received
+created_at: '2026-06-10T15:25:34.040257+00:00'

@@ -146,6 +146,30 @@ def ingest_test(message_data: Dict[str, Any], runtime_dir: Path) -> Dict[str, An
             created_at=now_str
         )
         save_artifact(runtime_dir, "gm_command.yaml", gm_cmd)
+
+        if requires_executor or parsed_cmd["risk_level"] == "read_only":
+            from agentcomos.executor_request import ExecutorRequest
+            from agentcomos.executor_framework import ExecutorFramework
+            from agentcomos.executor_config import ExecutorConfig
+            from agentcomos.executor_policy import ExecutorPolicy
+
+            exe_config = ExecutorConfig()
+            policy = ExecutorPolicy.load(exe_config.policy_path) if exe_config.policy_path else None
+            framework = ExecutorFramework(exe_config, policy)
+            
+            req = ExecutorRequest(
+                source="discord",
+                command_type=gm_cmd.command_type,
+                command_text_redacted=gm_cmd.command_text_redacted,
+                requested_by_hash=inbound_artifact.author_id_hash,
+                source_message_id=message_id,
+                target=None,
+                risk_level=gm_cmd.risk_level,
+                requires_executor=gm_cmd.requires_executor,
+                requires_approval=gm_cmd.requires_approval,
+                correlation_id=gm_cmd.gm_command_id,
+            )
+            framework.process_request(req, str(runtime_dir))
     else:
         # Blocked
         blocked_reason = permission_result.reason

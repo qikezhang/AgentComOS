@@ -1,0 +1,14 @@
+executor_request_id: EXEC-REQ-AD10B4E8
+source: discord
+source_message_id: null
+requested_by_hash: unknown
+command_type: status
+command_text_redacted: status
+target: null
+risk_level: read_only
+requires_executor: true
+requires_approval: false
+policy_ref: null
+correlation_id: EXEC-REQ-AD10B4E8
+status: received
+created_at: '2026-06-10T15:25:34.038472+00:00'
