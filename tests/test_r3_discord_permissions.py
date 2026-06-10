@@ -69,3 +69,11 @@ def test_missing_user_policy_blocks(base_config):
     res = evaluator.evaluate("m1", "g1", "c1", "u1", [], "read_only")
     assert res.decision == "blocked"
     assert res.reason == "user_policy_missing"
+
+def test_missing_role_policy_blocks(base_config):
+    base_config.user_allowlist = []
+    base_config.role_allowlist = []
+    evaluator = PermissionEvaluator(base_config)
+    res = evaluator.evaluate("m1", "g1", "c1", "u2", ["r_ops"], "read_only")
+    assert res.decision == "blocked"
+    assert res.reason == "user_policy_missing"

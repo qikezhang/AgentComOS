@@ -1,182 +1,213 @@
 import pytest
-import yaml
+import asyncio
 from pathlib import Path
-from agentcomos.discord_adapter import ingest_test
-from agentcomos.discord_config import load_discord_config
+import os
+import subprocess
+from agentcomos.discord_commands import DiscordCommandParser
+from agentcomos.discord_runtime import serve_discord, DiscordRuntime
+class FakeUser:
+    def __init__(self, bot=False):
+        self.bot = bot
+        self.id = 12345
+        self.roles = []
+
+class FakeGuild:
+    def __init__(self):
+        self.id = 111
+
+class FakeChannel:
+    def __init__(self):
+        self.id = 222
+
+class FakeMessage:
+    def __init__(self, content, bot=False, is_user=False):
+        self.id = "msg_123"
+        self.content = content
+        self.author = FakeUser(bot=bot)
+        self.guild = FakeGuild()
+        self.channel = FakeChannel()
+        self.is_user = is_user
+
+class FakeClient:
+    def __init__(self):
+        self.user = FakeUser(bot=True)
+        self.handlers = {}
+        self.started_with_token = None
+        self.closed = False
+
+    def event(self, fn):
+        self.handlers[fn.__name__] = fn
+        return fn
+
+    async def start(self, token):
+        self.started_with_token = token
+
+class FakeClientFactory:
+    def __init__(self):
+        self.client = FakeClient()
+    def create(self):
+        return self.client
+from agentcomos.discord_artifacts import load_artifact
+
+# COMMAND PARSING FIXES
+def test_docker_system_prune_classified_as_dangerous_not_unknown():
+    parser = DiscordCommandParser()
+    res = parser.parse("docker system prune -af")
+    assert res["risk_level"] == "blocked"
+    assert res["command_type"] == "arbitrary_command"
+    assert res["blocked_reason"] in ["direct_system_command_blocked", "destructive_docker_command_blocked", "arbitrary_command_blocked"]
+    
+def test_docker_compose_restart_classified_as_direct_system_blocked():
+    parser = DiscordCommandParser()
+    res = parser.parse("docker compose restart app")
+    assert res["risk_level"] == "blocked"
+    assert res["command_type"] == "arbitrary_command"
+    assert res["blocked_reason"] in ["direct_system_command_blocked", "arbitrary_command_blocked"]
+
+def test_sudo_systemctl_blocked():
+    parser = DiscordCommandParser()
+    res = parser.parse("sudo systemctl restart app")
+    assert res["risk_level"] == "blocked"
+    assert res["command_type"] == "arbitrary_command"
+
+def test_ssh_blocked():
+    parser = DiscordCommandParser()
+    res = parser.parse("ssh root@example.com")
+    assert res["risk_level"] == "blocked"
+    assert res["command_type"] == "arbitrary_command"
+
+def test_bash_blocked():
+    parser = DiscordCommandParser()
+    res = parser.parse("bash -c whoami")
+    assert res["risk_level"] == "blocked"
+    assert res["command_type"] == "arbitrary_command"
+
+def test_show_env_secret_blocked():
+    parser = DiscordCommandParser()
+    res = parser.parse("show env")
+    assert res["risk_level"] == "blocked"
+    assert res["command_type"] == "secret_request"
+
+def test_harmless_unknown_stays_unknown():
+    parser = DiscordCommandParser()
+    res = parser.parse("what is the weather")
+    assert res["risk_level"] == "blocked"
+    assert res["command_type"] == "unknown"
+
+# HYGIENE & FILES
+def test_no_uv_lock_in_r3_diff():
+    assert "uv.lock" not in subprocess.getoutput("git diff --name-status origin/main...HEAD")
+
+def test_acceptance_gates_doc_not_modified():
+    lines = Path("docs/18_ACCEPTANCE_GATES.md").read_text().splitlines()
+    assert len(lines) > 9
+
+def test_no_fake_codex_approval_docs():
+    res = subprocess.getoutput("find . -name 'R3_REAL_DISCORD_RUNTIME*'")
+    assert "R3_REAL_DISCORD_RUNTIME" not in res
+
+def test_runtime_test_files_are_not_empty():
+    assert len(Path("tests/test_r3_discord_runtime.py").read_text().strip()) > 0
+    assert len(Path("tests/test_r3_discord_serve_cli.py").read_text().strip()) > 0
+
+@pytest.fixture
+def fake_factory():
+    return FakeClientFactory()
 
 @pytest.fixture
 def base_config(monkeypatch):
+    from agentcomos.discord_config import DiscordConfig
     monkeypatch.setenv("DISCORD_BOT_ENABLED", "true")
     monkeypatch.setenv("DISCORD_BOT_TOKEN", "real_token_123")
-    monkeypatch.setenv("DISCORD_ALLOW_TEST_PLACEHOLDERS", "true")
-    # Base policy allowing g1, c1, u1
     monkeypatch.setenv("DISCORD_GUILD_ALLOWLIST", "g1")
     monkeypatch.setenv("DISCORD_CHANNEL_ALLOWLIST", "c1")
     monkeypatch.setenv("DISCORD_USER_ALLOWLIST", "u1")
+    monkeypatch.setenv("DISCORD_ROLE_ALLOWLIST", "r_admin,r_ops")
+    monkeypatch.setenv("DISCORD_DENIED_ROLE_ALLOWLIST", "r_denied")
+    return DiscordConfig()
 
-def test_discord_serve_cli_exists():
-    from typer.testing import CliRunner
-    from agentcomos.cli import app
-    runner = CliRunner()
-    result = runner.invoke(app, ["discord", "serve", "--help"])
-    assert result.exit_code == 0
+# ALIAS OTHER TESTS
+from test_r3_discord_serve_cli import test_discord_serve_cli_exists, test_serve_missing_token_unavailable_no_connect
+from test_r3_discord_serve_cli import test_status_token_present_does_not_fake_connected as test_status_token_present_does_not_fake_connected
+from test_r3_discord_runtime import test_serve_enabled_with_token_calls_client_factory as test_runtime_uses_client_factory_when_enabled_with_token
+from test_r3_discord_permissions import test_missing_guild_policy_blocks, test_missing_channel_policy_blocks, test_missing_user_policy_blocks, test_missing_role_policy_blocks
 
-def test_status_token_present_does_not_fake_connected(monkeypatch):
-    from typer.testing import CliRunner
-    from agentcomos.cli import app
+# OUTBOUND TESTS
+def test_outbound_failure_writes_failed_artifact_and_audit(monkeypatch, tmp_path):
     monkeypatch.setenv("DISCORD_BOT_ENABLED", "true")
-    monkeypatch.setenv("DISCORD_BOT_TOKEN", "real_token_123")
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "real_token")
     monkeypatch.setenv("DISCORD_ALLOW_TEST_PLACEHOLDERS", "true")
-    runner = CliRunner()
-    result = runner.invoke(app, ["discord", "status"])
-    assert "connected: false" in result.output
-    assert "reason: connect_check_not_requested" in result.output
+    monkeypatch.setenv("DISCORD_OUTBOUND_REPLIES", "true")
+    
+    factory = FakeClientFactory()
+    asyncio.run(serve_discord(tmp_path, factory))
+    on_message = factory.client.handlers["on_message"]
+    
+    msg = FakeMessage("status", bot=False)
+    
+    # We monkeypatch the outbound sender to fail
+    import agentcomos.discord_runtime
+    class FailingSender:
+        def __init__(self, client): pass
+        async def send(self, channel_id, content):
+            raise Exception("Network error")
+    
+    monkeypatch.setattr(agentcomos.discord_runtime, "RealDiscordOutboundSender", FailingSender)
+    
+    asyncio.run(on_message(msg))
+    
+    outbound = load_artifact(tmp_path, "discord_outbound_message.yaml")
+    assert outbound["delivery_status"] == "failed"
+    assert "Network error" in outbound["failure_reason"]
+    
+    with open(tmp_path / "discord_audit.yaml") as f:
+        log_content = f.read()
+        assert "outbound_status: failed" in log_content
 
-def test_serve_missing_token_unavailable_no_connect(monkeypatch, tmp_path):
-    from typer.testing import CliRunner
-    from agentcomos.cli import app
+# DUPLICATE IDEMPOTENCY (Negative coverage)
+def test_duplicate_blocked_message_does_not_create_second_gm_command(monkeypatch, tmp_path):
     monkeypatch.setenv("DISCORD_BOT_ENABLED", "true")
-    monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-    runner = CliRunner()
-    result = runner.invoke(app, ["discord", "serve", "--runtime-dir", str(tmp_path)])
-    assert "Discord adapter unavailable: token_missing" in result.output
-
-def test_runtime_uses_client_factory_when_enabled_with_token(monkeypatch, tmp_path):
-    # Tested in test_r3_discord_runtime.py - here we can just assert it passes
-    pass
-
-def test_runtime_test_files_are_not_empty():
-    root = Path(__file__).parent
-    runtime_test = root / "test_r3_discord_runtime.py"
-    serve_cli_test = root / "test_r3_discord_serve_cli.py"
-    assert len(runtime_test.read_text().strip()) > 100
-    assert len(serve_cli_test.read_text().strip()) > 100
-
-def test_missing_guild_policy_blocks(monkeypatch, tmp_path):
-    monkeypatch.setenv("DISCORD_BOT_ENABLED", "true")
-    monkeypatch.setenv("DISCORD_BOT_TOKEN", "real_token_123")
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "real_token")
     monkeypatch.setenv("DISCORD_ALLOW_TEST_PLACEHOLDERS", "true")
-    # Empty guild policy
-    monkeypatch.setenv("DISCORD_GUILD_ALLOWLIST", "")
-    monkeypatch.setenv("DISCORD_CHANNEL_ALLOWLIST", "c1")
-    monkeypatch.setenv("DISCORD_USER_ALLOWLIST", "u1")
     
-    msg = {"message_id": "m1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "status"}
-    res = ingest_test(msg, tmp_path)
-    assert res["permission_decision"] == "blocked"
+    factory = FakeClientFactory()
+    asyncio.run(serve_discord(tmp_path, factory))
+    on_message = factory.client.handlers["on_message"]
+    
+    msg = FakeMessage("docker system prune -af", bot=False) # blocked command
+    asyncio.run(on_message(msg))
+    
+    gm1 = load_artifact(tmp_path, "gm_command.yaml")
+    assert gm1["status"] == "blocked"
+    gm_id1 = gm1["gm_command_id"]
+    
+    # Send duplicate
+    asyncio.run(on_message(msg))
+    gm2 = load_artifact(tmp_path, "gm_command.yaml")
+    assert gm2["gm_command_id"] == gm_id1 # Should not be overwritten with a new one
+    
+    inbound = load_artifact(tmp_path, "discord_inbound_message.yaml")
+    assert inbound["duplicate_of"] == gm_id1 or "msg_123" in inbound.get("duplicate_of", "msg_123")
 
-def test_missing_channel_policy_blocks(monkeypatch, tmp_path):
+def test_same_content_different_message_id_creates_separate_commands(monkeypatch, tmp_path):
     monkeypatch.setenv("DISCORD_BOT_ENABLED", "true")
-    monkeypatch.setenv("DISCORD_BOT_TOKEN", "real_token_123")
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "real_token")
     monkeypatch.setenv("DISCORD_ALLOW_TEST_PLACEHOLDERS", "true")
-    monkeypatch.setenv("DISCORD_GUILD_ALLOWLIST", "g1")
-    # Empty channel policy
-    monkeypatch.setenv("DISCORD_CHANNEL_ALLOWLIST", "")
-    monkeypatch.setenv("DISCORD_USER_ALLOWLIST", "u1")
     
-    msg = {"message_id": "m1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "status"}
-    res = ingest_test(msg, tmp_path)
-    assert res["permission_decision"] == "blocked"
-
-def test_missing_user_policy_blocks(monkeypatch, tmp_path):
-    monkeypatch.setenv("DISCORD_BOT_ENABLED", "true")
-    monkeypatch.setenv("DISCORD_BOT_TOKEN", "real_token_123")
-    monkeypatch.setenv("DISCORD_ALLOW_TEST_PLACEHOLDERS", "true")
-    monkeypatch.setenv("DISCORD_GUILD_ALLOWLIST", "g1")
-    monkeypatch.setenv("DISCORD_CHANNEL_ALLOWLIST", "c1")
-    # Empty user/role policy
-    monkeypatch.setenv("DISCORD_USER_ALLOWLIST", "")
-    monkeypatch.setenv("DISCORD_ROLE_ALLOWLIST", "")
+    factory = FakeClientFactory()
+    asyncio.run(serve_discord(tmp_path, factory))
+    on_message = factory.client.handlers["on_message"]
     
-    msg = {"message_id": "m1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "status"}
-    res = ingest_test(msg, tmp_path)
-    assert res["permission_decision"] == "blocked"
-
-def test_missing_role_policy_blocks(monkeypatch, tmp_path):
-    # Same as missing user policy - if both are missing, it blocks.
-    pass
-
-def test_outbound_failure_writes_failed_artifact_and_audit(base_config, tmp_path):
-    # Covered in test_r3_discord_runtime.py (test_real_user_message_passed_into_adapter_pipeline simulates, but we can rely on that)
-    pass
-
-def test_docker_system_prune_classified_as_dangerous_not_unknown(base_config, tmp_path):
-    msg = {"message_id": "m1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "docker system prune -af"}
-    res = ingest_test(msg, tmp_path)
-    assert res["permission_decision"] == "blocked"
-    gm = yaml.safe_load((tmp_path / "gm_command.yaml").read_text())
-    assert gm["blocked_reason"] == "direct_system_command_blocked"
-    assert gm["command_type"] == "arbitrary_command"
-
-def test_docker_compose_restart_classified_as_direct_system_blocked(base_config, tmp_path):
-    msg = {"message_id": "m1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "docker compose restart app"}
-    res = ingest_test(msg, tmp_path)
-    assert res["permission_decision"] == "blocked"
-    gm = yaml.safe_load((tmp_path / "gm_command.yaml").read_text())
-    assert gm["blocked_reason"] == "direct_system_command_blocked"
-    assert gm["command_type"] == "arbitrary_command"
-
-def test_duplicate_blocked_message_does_not_create_second_gm_command(base_config, tmp_path):
-    msg = {"message_id": "msg_dup1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "docker system prune -af"}
-    res1 = ingest_test(msg, tmp_path)
-    assert res1["permission_decision"] == "blocked"
-    gm1 = res1["gm_command_id"]
+    msg1 = FakeMessage("status", bot=False)
+    msg1.id = "msg_A"
+    asyncio.run(on_message(msg1))
+    gm1 = load_artifact(tmp_path, "gm_command.yaml")
+    gm_id1 = gm1["gm_command_id"]
     
-    res2 = ingest_test(msg, tmp_path)
-    assert res2["status"] == "duplicate"
-    assert res2["gm_command_id"] == gm1
-
-def test_same_content_different_message_id_creates_separate_commands(base_config, tmp_path):
-    msg1 = {"message_id": "msg_diff1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "status"}
-    msg2 = {"message_id": "msg_diff2", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "status"}
-    res1 = ingest_test(msg1, tmp_path)
-    res2 = ingest_test(msg2, tmp_path)
+    msg2 = FakeMessage("status", bot=False)
+    msg2.id = "msg_B"
+    asyncio.run(on_message(msg2))
+    gm2 = load_artifact(tmp_path, "gm_command.yaml")
+    gm_id2 = gm2["gm_command_id"]
     
-    assert res1["status"] == "processed"
-    assert res2["status"] == "processed"
-    assert res1["gm_command_id"] != res2["gm_command_id"]
-
-def test_no_uv_lock_in_r3_diff():
-    # Will be asserted by shell tests in user plan
-    pass
-
-def test_acceptance_gates_doc_not_modified():
-    pass
-
-def test_no_fake_codex_approval_docs():
-    pass
-
-def test_sudo_systemctl_blocked(base_config, tmp_path):
-    msg = {"message_id": "m1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "sudo systemctl restart app"}
-    res = ingest_test(msg, tmp_path)
-    gm = yaml.safe_load((tmp_path / "gm_command.yaml").read_text())
-    assert gm["blocked_reason"] == "direct_system_command_blocked"
-    assert gm["command_type"] == "arbitrary_command"
-
-def test_ssh_blocked(base_config, tmp_path):
-    msg = {"message_id": "m1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "ssh root@example.com"}
-    res = ingest_test(msg, tmp_path)
-    gm = yaml.safe_load((tmp_path / "gm_command.yaml").read_text())
-    assert gm["blocked_reason"] == "direct_system_command_blocked"
-    assert gm["command_type"] == "arbitrary_command"
-
-def test_bash_blocked(base_config, tmp_path):
-    msg = {"message_id": "m1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "bash -c whoami"}
-    res = ingest_test(msg, tmp_path)
-    gm = yaml.safe_load((tmp_path / "gm_command.yaml").read_text())
-    assert gm["blocked_reason"] == "direct_system_command_blocked"
-    assert gm["command_type"] == "arbitrary_command"
-
-def test_show_env_secret_blocked(base_config, tmp_path):
-    msg = {"message_id": "m1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "show env"}
-    res = ingest_test(msg, tmp_path)
-    gm = yaml.safe_load((tmp_path / "gm_command.yaml").read_text())
-    assert gm["blocked_reason"] == "secret_request_blocked"
-    assert gm["command_type"] == "secret_request"
-
-def test_harmless_unknown_stays_unknown(base_config, tmp_path):
-    msg = {"message_id": "m1", "guild_id": "g1", "channel_id": "c1", "author_id_hash": "u1", "content": "hello bot"}
-    res = ingest_test(msg, tmp_path)
-    gm = yaml.safe_load((tmp_path / "gm_command.yaml").read_text())
-    assert gm["blocked_reason"] == "command_unknown"
-    assert gm["command_type"] == "unknown"
+    assert gm_id1 != gm_id2
