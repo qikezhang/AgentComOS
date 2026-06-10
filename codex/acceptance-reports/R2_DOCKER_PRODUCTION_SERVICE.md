@@ -1,43 +1,15 @@
 # R2 Docker Production Service Codex Re-Review
 
-Status: failed
+Status: passed
 
 Branch: antigravity/r2-docker-production-service
-Commit reviewed: 0fad517
+Commit reviewed: aa424bf
 Reviewer: Codex
 Review date: 2026-06-10
 
 ## Final Decision
 
-R2 is not accepted. The prior Dockerfile and tracked-runtime-artifact blockers are materially improved, but the full release test gate fails on the current branch. R3 remains locked until Antigravity fixes the failing tests and Codex re-reviews the updated branch.
-
-## Blocking Issues
-
-1. `make test` fails.
-   - Evidence: `make test` returned non-zero with 3 failed and 422 passed.
-   - Failed tests:
-     - `tests/test_g6_evidence_packet.py::test_no_agentcomos_runs_artifacts_committed`
-     - `tests/test_g7_cli.py::test_no_agentcomos_runs_artifacts_committed`
-     - `tests/test_worker_g5_real_hermes.py::test_no_agentcomos_runs_artifacts_committed`
-   - Root cause: R2 untracks inherited `.agentcomos/runs` artifacts by deleting them from the branch, but existing hygiene tests reject any `origin/main...HEAD` diff path containing `.agentcomos/runs`, including deletions.
-   - Impact: the required full test suite does not pass, so R2 cannot be accepted.
-
-2. `.agentcomos/runs` still appears in the branch diff as deletions.
-   - Evidence: `git diff --name-status origin/main...HEAD` reports deleted paths under `.agentcomos/runs/`.
-   - Impact: this resolves tracked artifacts in the branch snapshot, but conflicts with existing release hygiene tests and the review expectation that R2 diff should not contain runtime artifact paths.
-
-3. Docker image build could not be independently executed in this Codex environment.
-   - Evidence: `docker build --no-cache --progress=plain -t agentcomos-r2-audit-0fad517 /tmp/r2_codex_clean` failed because the local Docker daemon socket was unavailable.
-   - Impact: Codex verified Dockerfile behavior by static review and clean package simulation, but did not obtain a real Docker build success signal in this environment.
-
-## Fixed Since Prior Review
-
-- `git ls-files` no longer reports `.agentcomos/runs`, `.env`, or `uv.lock`.
-- A clean `git archive` no longer contains `.agentcomos/runs`, `.env`, or `uv.lock`.
-- Loop/G6 tests that previously wrote into the repository now use `tmp_path` and `monkeypatch.chdir`.
-- `make test` no longer dirties the tracked worktree before failing.
-- Dockerfile still copies `src/` before `pip install --no-cache-dir .`.
-- Clean package simulation still provides `bin/agentcomos`, and `agentcomos healthcheck` returns exit code 0.
+R2 is accepted. The Docker production service baseline, healthcheck, runtime volume contract, hygiene checks, full test suite, and boundary scans pass. R3 may start only after R2 merges to main.
 
 ## Validation Results
 
@@ -46,14 +18,14 @@ R2 is not accepted. The prior Dockerfile and tracked-runtime-artifact blockers a
 - `git pull origin antigravity/r2-docker-production-service`: passed
 - Current branch: `antigravity/r2-docker-production-service`
 - Initial tracked worktree: clean
-- Latest commit reviewed: `0fad517`
+- Latest commit reviewed: `aa424bf`
 - `origin/main` ancestry: passed
+- Runtime artifact baseline cleanup: passed; `origin/main` now contains the baseline cleanup and R2 diff no longer contains `.agentcomos/runs`
 
 ## Diff Scope
 
 R2 diff against `origin/main` includes:
 
-- deleted inherited `.agentcomos/runs` artifacts
 - `.dockerignore`
 - `.env.example`
 - `Dockerfile`
@@ -64,7 +36,7 @@ R2 diff against `origin/main` includes:
 - R2 Antigravity task
 - Codex R2 acceptance report
 
-No R3+ services, real Discord adapter, Controlled Executor implementation, operation adapter implementation, `.env`, `uv.lock`, or new runtime artifact additions were found.
+No R3+ services, real Discord adapter, Controlled Executor implementation, operation adapter implementation, `.env`, `uv.lock`, `.agentcomos/runs`, or runtime artifact additions were found.
 
 ## Required Files
 
@@ -85,12 +57,12 @@ No R3+ services, real Discord adapter, Controlled Executor implementation, opera
 
 ## Dockerfile Review
 
-Result: passed by static/package simulation; real Docker build unavailable
+Result: passed
 
 - Base image `python:3.12-slim`: passed
 - Workdir `/app`: passed
 - Installs dependencies/project after copying source: passed
-- Supports `agentcomos` CLI: passed by clean install simulation
+- Supports `agentcomos` CLI: passed
 - Does not copy `.env`: passed
 - Does not copy `.agentcomos/runs`, logs, reports, or backups directly: passed
 - No real secret/token/private key: passed
@@ -100,6 +72,8 @@ Result: passed by static/package simulation; real Docker build unavailable
 - No docker.sock or privileged requirement: passed
 - Default command is `agentcomos healthcheck`: passed
 - Dockerfile `HEALTHCHECK` calls `agentcomos healthcheck`: passed
+- `docker build --no-cache --progress=plain -t agentcomos-r2-audit-aa424bf /tmp/r2_codex_clean`: passed
+- `docker run --rm agentcomos-r2-audit-aa424bf agentcomos healthcheck`: passed
 
 ## docker-compose.yml Review
 
@@ -146,15 +120,16 @@ Result: passed
 
 - Project CLI command: `PYTHONPATH=src ./.venv/bin/python3 -m agentcomos.cli healthcheck`
 - Clean install command: `PYTHONPATH=/tmp/r2_codex_install /tmp/r2_codex_install/bin/agentcomos healthcheck`
+- Container command: `docker run --rm agentcomos-r2-audit-aa424bf agentcomos healthcheck`
 - Exit code: 0
 - Output: stable single-line JSON with `status: ok`, `component: agentcomos`, and `mode: healthcheck`
 - Read-only check: passed; `git status --short` before and after healthcheck was identical
-- Does not require Discord, Controlled Executor, docker.sock, network, shell, ssh, sudo, docker, or systemctl
+- Does not require Discord, Controlled Executor, docker.sock, network beyond build-time dependency installation, shell, ssh, sudo, docker, or systemctl
 
 ## Test Results
 
 - `make compile`: passed
-- `make test`: failed, 3 failed and 422 passed
+- `make test`: passed, 425 passed
 - `make validate-examples`: passed
 - Targeted R2 tests: passed, 11 passed
 
@@ -183,10 +158,11 @@ Notes:
 
 - `.agentcomos/runs` tracked files: passed; none reported by `git ls-files`
 - `.agentcomos/runs` clean archive: passed; no `.agentcomos/runs` paths found
-- `.agentcomos/runs` clean branch diff: failed; deletion paths remain in `origin/main...HEAD`
-- `make test` leaves tracked worktree clean: passed in this run
+- `.agentcomos/runs` clean branch diff: passed
+- `make test` leaves tracked worktree clean: passed
 - `uv.lock` clean: passed; not tracked and not in R2 diff
 - `.env` not committed: passed
+- Runtime/log/report/backup artifacts not committed: passed
 - Secrets clean in tracked files: passed
 
 ## Secret Scan
@@ -198,15 +174,6 @@ Result: passed for tracked files
 - `.env.example` contains only `DISCORD_BOT_TOKEN=replace-with-deployment-secret`, accepted as a placeholder.
 - Documentation contains safe negative references to missing tokens.
 
-## Antigravity follow-up fix: runtime artifact baseline conflict
-
-- Runtime artifact deletion was moved out of R2 into a baseline hygiene cleanup.
-- R2 was rebased/merged onto clean main.
-- git ls-files .agentcomos/runs returns empty.
-- git diff origin/main...HEAD no longer contains .agentcomos/runs.
-- make test passes and leaves no tracked runtime files dirty.
-- R2 remains ready for Codex re-review.
-
 ## Next Step
 
-Antigravity must resolve the hygiene-test conflict around removing inherited `.agentcomos/runs` artifacts so that `make test` passes and the R2 diff policy is satisfied. R3 remains locked until R2 passes Codex review and merges to main.
+Merge R2 into main. R3 Real Discord Bot Adapter may start only after R2 is merged to main.
