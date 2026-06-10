@@ -8,6 +8,61 @@
 - Reviewed commit: `9363846 feat(executor): implement R4 controlled executor framework`
 - Review date: 2026-06-11 Asia/Shanghai
 
+## Codex Re-review 2
+
+- Reviewed branch: `antigravity/r4-controlled-executor-framework`
+- Reviewed commit: `f07e2dc fix(r4): redact secret data from executor artifacts and CLI`
+- Review date: 2026-06-11 Asia/Shanghai
+- Previous blocker status: fixed; disabled and missing-policy secret requests no longer persist raw `token=xxx` text in generated artifacts.
+
+### Blocking Issues
+
+1. Secret request semantics regress after early redaction.
+   - Reproduction:
+     - Create a policy with `allowed_sources: [discord]`.
+     - Run `CONTROLLED_EXECUTOR_ENABLED=true CONTROLLED_EXECUTOR_POLICY_PATH=/tmp/agentcomos-r4-codex-policy-smoke/policy.yaml PYTHONPATH=src ./.venv/bin/python3 -m agentcomos.cli executor run-dry --request-file tests/fixtures/executor/blocked_secret_request.yaml --runtime-dir /tmp/agentcomos-r4-codex-policy-smoke/secret`
+   - Observed decision artifact:
+     - `decision: blocked`
+     - `reason: command_unknown`
+     - `risk_level: unknown`
+   - Expected:
+     - `reason: secret_request_blocked`
+     - `risk_level: secret`
+   - Root cause from review: `ExecutorRequest.from_dict()` / construction redacts `token=xxx` before `ExecutorClassifier.classify_command()` runs, so the classifier no longer sees the token pattern and downgrades the request to unknown. R4 requires token/secret/private-key requests to remain explicitly blocked as secret requests, not harmless unknowns.
+
+### Re-review Validation Evidence
+
+- Diff scope from `88a3d47..f07e2dc`: redaction helper, request/decision/result/audit/CLI redaction wiring, R4 redaction tests, and report notes only.
+- Forbidden file scan: passed; no `.agentcomos/runs`, `.env`, `uv.lock`, G12 files, or operation adapter implementations in the diff.
+- R5 boundary: passed; no shell/ssh/sudo/docker/systemctl adapter implementation, no `subprocess`/`os.system` path in R4 executor code, no `paramiko`, no docker.sock, no privileged container.
+- Previous artifact leak reproduction:
+  - disabled executor path: passed; no raw `token=xxx` persisted.
+  - missing-policy path: passed; no raw `token=xxx` persisted.
+- Enabled policy smoke:
+  - read-only status: `allowed_dry_run`, `real_execution: false`, `adapter_invoked: false`.
+  - restart service: `requires_approval`, `real_execution: false`, `adapter_invoked: false`.
+  - shell command: `blocked`, `reason: direct_system_command_blocked`.
+  - secret request: failed; blocked as `command_unknown` instead of `secret_request_blocked`.
+- Targeted R4 tests: passed, 35 passed.
+- R3 regression tests: passed, 72 passed.
+- R2 regression tests: passed, 11 passed.
+- `make compile`: passed.
+- `make test`: passed, 532 passed.
+- `make validate-examples`: passed.
+- `agentcomos healthcheck`: passed.
+- `agentcomos discord status`: passed/unavailable as expected.
+- `agentcomos discord serve`: passed/unavailable as expected.
+- `agentcomos executor status`: passed.
+- `agentcomos executor evaluate`: passed.
+- `agentcomos executor run-dry`: functionally dry-run only, but failed acceptance because secret request reason semantics regressed.
+- `docker compose config`: passed with Docker's existing obsolete `version` warning.
+- `docker build/run`: unavailable; Docker Hub `python:3.12-slim` metadata fetch failed with EOF.
+- Generated artifact secret scan: passed for raw token/private-key patterns.
+
+### Re-review Final Decision
+
+R4 is still not accepted. Antigravity must preserve secret classification semantics while keeping artifacts redacted. R5 remains locked.
+
 ## Blocking Issues
 
 1. Secret-bearing requests are persisted before redaction on disabled and missing-policy deny paths.
