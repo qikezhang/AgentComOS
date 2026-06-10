@@ -1,8 +1,42 @@
 import datetime
 import uuid
 import yaml
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 from .executor_redaction import redact_executor_data, redact_executor_text
+from .executor_classifier import ExecutorClassifier
+
+class ExecutorClassification:
+    """Safe semantic result of classification."""
+    def __init__(self, risk_level: str, status: str, reason: Optional[str]):
+        self.risk_level = risk_level
+        self.status = status
+        self.reason = reason
+
+class ExecutorRawRequest:
+    """In-memory model representing a raw request before redaction."""
+    def __init__(self, data: Dict[str, Any]):
+        self.data = data
+        self.command_text = data.get("command_text", "")
+        self.source = data.get("source", "unknown")
+
+    def classify(self) -> ExecutorClassification:
+        risk_level, status, reason = ExecutorClassifier.classify_command(self.command_text)
+        return ExecutorClassification(risk_level, status, reason)
+
+    def to_redacted_request(self, classification: Optional[ExecutorClassification] = None) -> "ExecutorRequest":
+        if not classification:
+            classification = self.classify()
+            
+        data = self.data.copy()
+        data["risk_level"] = classification.risk_level
+        data["status"] = classification.status
+        if classification.reason:
+            data["reason"] = classification.reason
+            
+        if classification.reason == "secret_request_blocked":
+            data["command_type"] = "secret_request"
+            
+        return ExecutorRequest.from_dict(data)
 
 class ExecutorRequest:
     """Model representing a requested controlled execution command."""
@@ -23,6 +57,7 @@ class ExecutorRequest:
         executor_request_id: Optional[str] = None,
         created_at: Optional[str] = None,
         raw_command_present: bool = False,
+        reason: Optional[str] = None,
         **kwargs
     ):
         self.executor_request_id = executor_request_id or f"EXEC-REQ-{uuid.uuid4().hex[:8].upper()}"
@@ -38,6 +73,7 @@ class ExecutorRequest:
         self.policy_ref = policy_ref
         self.correlation_id = correlation_id or self.executor_request_id
         self.status = status
+        self.reason = reason
         self.created_at = created_at or datetime.datetime.now(datetime.timezone.utc).isoformat()
         self.raw_command_present = raw_command_present
         self.metadata = redact_executor_data(kwargs) if kwargs else {}
@@ -59,6 +95,8 @@ class ExecutorRequest:
             "status": self.status,
             "created_at": self.created_at,
         }
+        if self.reason:
+            data["reason"] = self.reason
         if self.raw_command_present:
             data["raw_command_present"] = True
         if self.metadata:
@@ -93,6 +131,7 @@ class ExecutorRequest:
             status=redacted_data.get("status", "received"),
             created_at=redacted_data.get("created_at"),
             raw_command_present=raw_command_present,
+            reason=data.get("reason") or redacted_data.get("reason"), # Use original or redacted reason
             **(redacted_data.get("metadata", {}))
         )
 
@@ -104,4 +143,10 @@ class ExecutorRequest:
     def load_artifact(cls, file_path: str) -> "ExecutorRequest":
         with open(file_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
+            
+            # If the artifact contains raw command text, classify it first before creating redacted request
+            if "command_text" in data and "risk_level" not in data:
+                raw_request = ExecutorRawRequest(data)
+                return raw_request.to_redacted_request()
+                
             return cls.from_dict(data)

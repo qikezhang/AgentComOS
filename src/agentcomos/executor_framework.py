@@ -22,6 +22,7 @@ class ExecutorFramework:
                 executor_request_id=request.executor_request_id,
                 decision="blocked",
                 reason="executor_disabled",
+                risk_level=request.risk_level,
                 requires_adapter=False,
                 correlation_id=request.correlation_id,
                 source=request.source
@@ -32,15 +33,24 @@ class ExecutorFramework:
                 executor_request_id=request.executor_request_id,
                 decision="blocked",
                 reason="policy_missing",
+                risk_level=request.risk_level,
                 requires_adapter=False,
                 correlation_id=request.correlation_id,
                 source=request.source
             )
 
-        # 1. Classify the command text
-        risk_level, initial_status, reason = ExecutorClassifier.classify_command(request.command_text_redacted)
-        request.risk_level = risk_level
-        request.status = initial_status
+        # 1. Use the pre-classified risk_level and reason from the request.
+        # If it's unknown, we fallback to classifying the redacted text.
+        if request.risk_level == "unknown" or request.risk_level is None:
+            risk_level, initial_status, reason = ExecutorClassifier.classify_command(request.command_text_redacted)
+            request.risk_level = risk_level
+            request.status = initial_status
+            if reason:
+                request.reason = reason
+        else:
+            risk_level = request.risk_level
+            initial_status = request.status
+            reason = getattr(request, 'reason', None)
 
         request.command_text_redacted = ExecutorClassifier.redact(request.command_text_redacted)
         redaction_applied = "REDACTED" in request.command_text_redacted

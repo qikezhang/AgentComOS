@@ -186,3 +186,18 @@ Fixed:
 - Redacted run-dry result and audit.
 - Added regression tests for generated artifact secret scan.
 - Verified blocker reproduction no longer leaks raw secret text.
+
+## Antigravity follow-up fix
+
+Status: ready for Codex re-review
+
+Fixed:
+- Secret request classification now survives redaction.
+- blocked_secret_request.yaml now produces risk_level: secret.
+- blocked_secret_request.yaml now produces reason: secret_request_blocked.
+- Secret request no longer falls back to command_unknown.
+- Redaction still prevents raw token/password/api_key leakage.
+- Classification uses raw semantic signal in memory.
+- Artifacts/audit/CLI use redacted data only.
+- Added regression tests for semantic-preserving redaction.
+- Verified exact Codex reproduction.
