@@ -165,6 +165,10 @@ app.add_typer(manual_os_app, name="manual-os")
 
 gm_discord_app = typer.Typer(help="GM Discord Controlled Bridge operations")
 app.add_typer(gm_discord_app, name="gm-discord")
+
+discord_app = typer.Typer(help="Real Discord Bot Adapter operations")
+app.add_typer(discord_app, name="discord")
+
 @run_app.command("create")
 def run_create(intent: Path = typer.Option(..., help="Path to operating_intent.yaml")) -> None:
     """Create a new run from an operating intent."""
@@ -857,6 +861,29 @@ def gm_discord_audit(run: str = typer.Option(..., "--run", help="Run ID")) -> No
         print(f"Audit generated: {path}")
     except ValueError as e:
         raise typer.BadParameter(str(e))
+
+@discord_app.command("status")
+def discord_status() -> None:
+    """Show the status of the Discord adapter."""
+    from agentcomos.discord_adapter import status_check
+    import yaml
+    print(yaml.dump(status_check(), sort_keys=False))
+
+@discord_app.command("ingest-test")
+def discord_ingest_test(
+    message_file: Path = typer.Option(..., "--message-file", help="Path to inbound message file"),
+    runtime_dir: Path = typer.Option(..., "--runtime-dir", help="Path to runtime dir")
+) -> None:
+    """Ingest a message for testing the Discord adapter."""
+    from agentcomos.discord_adapter import ingest_test
+    import yaml
+    try:
+        data = yaml.safe_load(message_file.read_text(encoding="utf-8"))
+        result = ingest_test(data, runtime_dir)
+        print(yaml.dump(result, sort_keys=False))
+    except Exception as e:
+        raise typer.BadParameter(str(e))
+
 @app.command("healthcheck")
 def healthcheck() -> None:
     """AgentComOS healthcheck."""
