@@ -1,0 +1,13 @@
+.git
+.env
+.agentcomos/runs
+runtime/
+logs/
+reports/
+backups/
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+*.pem
+*.key

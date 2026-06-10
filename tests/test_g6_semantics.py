@@ -8,21 +8,23 @@ from agentcomos.cli import app
 
 runner = CliRunner()
 
+ROOT = Path(__file__).resolve().parents[1]
+
 @pytest.fixture
-def setup_run(tmp_path):
+def setup_run(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     run_id = "OI-TECHAI8-001"
     run_dir = Path(".agentcomos/runs") / run_id
-    if run_dir.exists():
-        import shutil
-        shutil.rmtree(run_dir)
         
-    res = runner.invoke(app, ["run", "create", "--intent", "examples/techai8/run/OI-TECHAI8-001/operating_intent.yaml"])
+    intent_path = ROOT / "examples/techai8/run/OI-TECHAI8-001/operating_intent.yaml"
+    res = runner.invoke(app, ["run", "create", "--intent", str(intent_path)])
     assert res.exit_code == 0
     res = runner.invoke(app, ["opencode", "submit", "--run", run_id, "--fake"])
     assert res.exit_code == 0
     res = runner.invoke(app, ["opencode", "collect", "--job", f"OCJ-{run_id}-001"])
     assert res.exit_code == 0
     
+
     yield run_id, run_dir
     
     if run_dir.exists():
