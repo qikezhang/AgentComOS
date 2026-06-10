@@ -165,6 +165,10 @@ app.add_typer(manual_os_app, name="manual-os")
 
 gm_discord_app = typer.Typer(help="GM Discord Controlled Bridge operations")
 app.add_typer(gm_discord_app, name="gm-discord")
+
+discord_app = typer.Typer(help="Real Discord Bot Adapter operations")
+app.add_typer(discord_app, name="discord")
+
 @run_app.command("create")
 def run_create(intent: Path = typer.Option(..., help="Path to operating_intent.yaml")) -> None:
     """Create a new run from an operating intent."""
@@ -857,6 +861,48 @@ def gm_discord_audit(run: str = typer.Option(..., "--run", help="Run ID")) -> No
         print(f"Audit generated: {path}")
     except ValueError as e:
         raise typer.BadParameter(str(e))
+
+@discord_app.command("status")
+def discord_status(connect_check: bool = typer.Option(False, "--connect-check", help="Check gateway connection")) -> None:
+    """Show the status of the Discord adapter."""
+    from agentcomos.discord_adapter import status_check
+    import yaml
+    import asyncio
+    print(yaml.dump(asyncio.run(status_check(connect_check)), sort_keys=False))
+
+@discord_app.command("ingest-test")
+def discord_ingest_test(
+    message_file: Path = typer.Option(..., "--message-file", help="Path to inbound message file"),
+    runtime_dir: Path = typer.Option(..., "--runtime-dir", help="Path to runtime dir")
+) -> None:
+    """Ingest a message for testing the Discord adapter."""
+    from agentcomos.discord_adapter import ingest_test
+    import yaml
+    try:
+        data = yaml.safe_load(message_file.read_text(encoding="utf-8"))
+        result = ingest_test(data, runtime_dir)
+        print(yaml.dump(result, sort_keys=False))
+    except Exception as e:
+        raise typer.BadParameter(str(e))
+
+@discord_app.command("serve")
+def discord_serve(
+    runtime_dir: Path = typer.Option(Path(".agentcomos/runs/discord_runtime"), "--runtime-dir", help="Path to runtime dir"),
+) -> None:
+    """Serve the real Discord bot runtime."""
+    import asyncio
+    from agentcomos.discord_runtime import serve_discord
+    
+    try:
+        result = asyncio.run(serve_discord(runtime_dir))
+        if result.get("status") == "unavailable":
+            print(f"Discord adapter unavailable: {result.get('reason')}")
+            # Exit 0 because being disabled or lacking token shouldn't crash the deploy loop
+            import sys
+            sys.exit(0)
+    except Exception as e:
+        raise typer.BadParameter(str(e))
+
 @app.command("healthcheck")
 def healthcheck() -> None:
     """AgentComOS healthcheck."""

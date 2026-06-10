@@ -1,0 +1,6 @@
+message_id: msg_conflict_1
+guild_id: GUILD_PLACEHOLDER
+channel_id: CH_ALLOWED_PLACEHOLDER
+author_id_hash: USER_HASH_PLACEHOLDER
+roles: ["ops", "denied-role-example"]
+content: "status"

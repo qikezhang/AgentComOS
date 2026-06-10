@@ -1,0 +1,6 @@
+message_id: msg_restart_1
+guild_id: GUILD_PLACEHOLDER
+channel_id: CH_ALLOWED_PLACEHOLDER
+author_id_hash: USER_HASH_PLACEHOLDER
+roles: ["ops"]
+content: "restart service agentcomos-app"
