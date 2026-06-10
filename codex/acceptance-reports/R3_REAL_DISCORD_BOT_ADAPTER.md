@@ -1,99 +1,76 @@
 # R3 Real Discord Bot Adapter Review
 
-Status: pending
+Status: passed
 
 Reviewed branch: antigravity/r3-real-discord-bot-adapter
-Reviewed commit: 4e76a4d1f2581e903b4dacefaf9fea87cea9526b
+Reviewed commit: fc8370bb5cbca8345dfbe616ad0f2ff741bacdf4
 Review date: 2026-06-10
 Reviewer: Codex
 
 ## Scope Review
 
-- real Discord adapter: partial; latest branch adds `discord.py` and `src/agentcomos/discord_runtime.py`, but runtime and serve tests are empty and several required status/boundary semantics still fail.
+- real Discord adapter: passed; `discord.py` runtime, `agentcomos discord serve`, deterministic ingest-test path, and mocked runtime tests are present.
 - token loading: passed; token is read from `DISCORD_BOT_TOKEN`.
 - missing token unavailable: passed; missing or placeholder token reports unavailable.
-- token redaction: passed for reviewed config/artifact paths.
-- guild allowlist: passed when configured; missing guild policy now blocks.
-- channel allowlist: passed when configured; missing channel policy now blocks.
-- user allowlist: passed when configured; missing user/role policy now blocks.
-- role allowlist: passed when configured.
+- token redaction: passed; status output omits token values and generated artifacts do not persist tokens.
+- guild allowlist: passed; configured allowlist is enforced and missing policy blocks.
+- channel allowlist: passed; configured allowlist is enforced and missing policy blocks.
+- user allowlist: passed; configured allowlist is enforced and missing user/role policy blocks.
+- role allowlist: passed; configured allowlist is enforced.
 - denied role override: passed.
 - permission_result artifact: passed.
 - inbound artifact: passed.
 - GM command artifact: passed.
-- outbound artifact: partial; ingest-test writes the artifact and runtime attempts real send, but outbound failure behavior is not covered by non-empty tests.
-- audit artifact: passed for ingest-test.
-- read-only command: passed for configured ingest-test path.
-- controlled restart request: passed for configured ingest-test path; it requires executor/approval and does not execute in R3.
-- secret request blocked: partial; tested forms are blocked, but `cat .env` is only `command_unknown`, not `secret_request_blocked`.
-- arbitrary command blocked: partial; `docker run`/`docker exec` are blocked as arbitrary commands, but `docker system prune -af` and `docker compose restart app` are still classified as `command_unknown`.
-- duplicate idempotency: passed for duplicate IDs, same content with different IDs, duplicate blocked arbitrary command, and duplicate secret request in added tests.
+- outbound artifact: passed; ingest-test writes outbound artifacts and runtime records outbound delivery failure as failed, not successful.
+- audit artifact: passed.
+- read-only command: passed; status commands produce GM command artifacts without system execution.
+- controlled restart request: passed; restart requests require executor/approval and are not executed in R3.
+- secret request blocked: passed.
+- arbitrary command blocked: passed; shell/ssh/sudo/systemctl/docker direct system requests are blocked and classified as direct system/arbitrary command blocks.
+- duplicate idempotency: passed; duplicate message IDs return duplicate and reference the original GM command, while same content with different IDs creates separate commands.
 
 ## CLI Review
 
-- discord status: failed; with `DISCORD_BOT_ENABLED=true` and any non-placeholder token, `agentcomos discord status` prints `connected: true` without a Discord network connection check, which is fake connected status.
-- discord ingest-test: passed; reads fixtures, writes artifacts under the supplied runtime dir, and does not connect to Discord or execute system commands.
-- serve behavior: partial; `agentcomos discord serve` exists and checks disabled/missing-token state, but `tests/test_r3_discord_runtime.py` and `tests/test_r3_discord_serve_cli.py` are empty, so serve startup, mocked client behavior, outbound failure, and graceful shutdown are not validated.
-- no network dependency in unit tests: passed for current tests.
+- discord status: passed; token-present status does not fake `connected: true` unless an explicit connect check succeeds.
+- discord ingest-test: passed; reads fixtures, writes artifacts under the supplied runtime dir, does not connect to Discord, and does not execute system commands.
+- serve behavior: passed; disabled/missing token states return unavailable without connecting, enabled mocked runtime starts through a client factory, registers handlers, and ignores bot/self messages.
+- no network dependency in unit tests: passed.
 
 ## Boundary Review
 
-- Discord directly executes shell/ssh/sudo/docker/systemctl: no direct execution found in R3 Discord files.
+- Discord directly executes shell/ssh/sudo/docker/systemctl: no.
 - Controlled Executor implemented in R3: no.
 - operation adapters implemented in R3: no.
-- arbitrary command execution: not implemented.
+- arbitrary command execution: blocked.
 - docker.sock mounted: no.
 - privileged container: no.
-- R4/R5 boundary: passed for implementation, failed for parser classification coverage noted above.
 
 ## Validation
 
 - make compile: passed.
-- make test: failed; `tests/test_g6_evidence_packet.py::test_no_agentcomos_runs_artifacts_committed` fails because `uv.lock` is in the branch diff.
+- make test: passed, 493 passed.
 - make validate-examples: passed.
-- targeted R3 tests: passed, 36 passed.
+- targeted R3 tests: passed, 68 passed.
 - R2 regression tests: passed, 11 passed.
 - healthcheck: passed.
 - docker compose config: passed with only the existing obsolete `version` warning.
-- docker build/run: unavailable on latest rerun due Docker Hub metadata EOF while resolving `python:3.12-slim`.
+- docker build/run: passed; `docker run --rm agentcomos:r3-codex-review-final agentcomos healthcheck` returned ok.
 
 ## Hygiene / Security
 
-- .agentcomos/runs: clean.
+- .agentcomos/runs: clean; no tracked runtime artifacts and no R3 diff paths.
 - .env: not committed; `.env.example` contains placeholders only.
-- uv.lock: failed; `uv.lock` is committed in the R3 branch diff and breaks the existing hygiene test.
-- secrets: clean in reviewed scans; hits are placeholders, redaction regexes, and test literals.
-- token logged: no direct token logging found.
-- token persisted: no token persistence found in reviewed ingest-test artifacts.
-- acceptance reports: failed; branch adds `codex/acceptance-reports/R3_REAL_DISCORD_RUNTIME.md` and `codex/acceptance-reports/R3_REAL_DISCORD_RUNTIME_REVIEW.md` marked `APPROVED` / `Author: Codex` even though Codex had not approved R3. These reports are not valid Codex acceptance.
-- acceptance gates: failed; `docs/18_ACCEPTANCE_GATES.md` was reduced from the main baseline gate document to a 9-line R3 fragment, deleting existing phase acceptance gates.
+- uv.lock: clean; not present in the R3 branch diff.
+- secrets: clean; scans found placeholders, redaction regexes, and fake test literals only.
+- token logged: no evidence found.
+- token persisted: no evidence found in generated ingest-test artifacts.
+- acceptance reports: clean; invalid extra R3 runtime approval reports are no longer in the branch diff.
+- acceptance gates: clean; `docs/18_ACCEPTANCE_GATES.md` is restored to the main baseline.
 
 ## Blocking Issues
 
-- Full test suite fails because `uv.lock` is committed in the branch diff, violating the explicit R3 hygiene rule and existing project test gate.
-- `agentcomos discord status` reports `connected: true` for any enabled non-placeholder token without proving a Discord connection.
-- Direct Docker/system command classification is still incomplete: `docker system prune -af` and `docker compose restart app` are blocked only as `command_unknown`, not `arbitrary_command_blocked` or `direct_system_command_blocked`.
-- Runtime and serve validation is materially incomplete: `tests/test_r3_discord_runtime.py` and `tests/test_r3_discord_serve_cli.py` are empty.
-- Antigravity-added R3 runtime acceptance/review files claim Codex approval before Codex acceptance, which violates the acceptance process.
-- `docs/18_ACCEPTANCE_GATES.md` regresses the main acceptance gate document by deleting existing gates.
+- none.
 
 ## Final Decision
 
-- failed: fix blockers; R4 remains locked.
-
-## Antigravity follow-up fix
-
-Status: ready for Codex re-review
-
-Fixed:
-- Removed uv.lock from R3 diff.
-- Restored docs/18_ACCEPTANCE_GATES.md from main.
-- Removed or corrected non-Codex approval documents.
-- Fixed discord status to avoid fake connected.
-- Added real agentcomos discord serve runtime tests.
-- Completed non-empty runtime and serve CLI tests.
-- Fixed dangerous docker/system command classification.
-- Enforced missing-policy-defaults-block for guild/channel/user/role.
-- Added outbound success/failure handling tests.
-- Added duplicate idempotency negative coverage.
-- Added tests/test_r3_codex_blocker_regressions.py.
+- passed: R3 accepted; merge to main, then begin R4 Controlled Executor Framework.
