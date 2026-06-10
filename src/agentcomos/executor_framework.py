@@ -10,6 +10,8 @@ from .executor_decision import ExecutorDecision
 from .executor_result import ExecutorResult
 from .executor_classifier import ExecutorClassifier
 from .executor_redaction import redact_executor_data
+from .adapters import registry
+from .operation_adapter_policy import OperationAdapterPolicyResolver
 
 class ExecutorFramework:
     def __init__(self, config: ExecutorConfig, policy: Optional[ExecutorPolicy] = None):
@@ -88,15 +90,34 @@ class ExecutorFramework:
             if self.config.requires_approval_for_high_risk():
                 requires_approval = True
         
-        # Determine adapter required based on command type (naive approach for R4)
-        adapter_type = "unknown"
-        if risk_level == "direct_system" or request.command_type == "docker_compose_restart":
-            adapter_type = "docker"
+        # Determine adapter required based on metadata
+        adapter_type = request.metadata.get("adapter_type", "unknown")
+        if adapter_type == "unknown":
+            if risk_level == "direct_system" or request.command_type == "docker_compose_restart":
+                adapter_type = "docker"
 
-        # In R4, real execution is always blocked or dry-run, so we return unsupported_adapter or dry_run
-        decision_status = "allowed_dry_run"
-        if requires_approval:
+        # Check adapter policy via resolver
+        adapter_policy_resolver = None
+        if self.policy and hasattr(self.policy, "get_raw_dict"):
+            adapter_policy_resolver = OperationAdapterPolicyResolver(self.policy.get_raw_dict())
+
+        # In R5, real execution is requested via metadata or config
+        real_execution_requested = request.metadata.get("real_execution", False)
+        
+        decision_status = "allowed_dry_run" if not real_execution_requested else "allowed"
+        if requires_approval and not request.requires_approval: 
+            # If request itself did not have approval
+            # Wait, usually we pass request.requires_approval=False. Wait, request.metadata might have approval.
+            # R4: requires_approval means we set decision_status="requires_approval"
             decision_status = "requires_approval"
+
+        if adapter_policy_resolver and not adapter_policy_resolver.is_adapter_enabled(adapter_type):
+            if decision_status not in ["requires_approval"]:
+                decision_status = "adapter_disabled"
+                
+        # If policy for adapter is missing completely
+        if adapter_policy_resolver and not adapter_policy_resolver.get_adapter_config(adapter_type):
+             decision_status = "adapter_policy_missing"
 
         return ExecutorDecision(
             executor_request_id=request.executor_request_id,
@@ -121,12 +142,43 @@ class ExecutorFramework:
             status = "unsupported_adapter"
         elif decision.decision == "executor_disabled":
             status = "executor_disabled"
+        elif decision.decision == "adapter_disabled":
+            status = "blocked"
+            decision.reason = "adapter_disabled"
+        elif decision.decision == "adapter_policy_missing":
+            status = "blocked"
+            decision.reason = "adapter_policy_missing"
         else:
             status = "dry_run_completed"
+
+        adapter_invoked = False
+        adapter_result = None
+        
+        if status == "dry_run_completed":
+            adapter = registry.get_adapter(decision.adapter_type)
+            if adapter:
+                policy_dict = {}
+                if self.policy and hasattr(self.policy, "get_raw_dict"):
+                    policy_dict = OperationAdapterPolicyResolver(self.policy.get_raw_dict()).get_adapter_config(decision.adapter_type) or {}
+                adapter_result = adapter.dry_run(request, policy_dict)
+                adapter_invoked = True
+                if adapter_result.status == "blocked":
+                    status = "blocked"
+                    decision.reason = adapter_result.reason
+                else:
+                    request.command_text_redacted = adapter_result.rendered_command_redacted or request.command_text_redacted
 
         summary = f"Dry run: {request.command_text_redacted}"
         if status == "blocked":
             summary = f"Blocked: {decision.reason}"
+
+        kwargs = {}
+        if adapter_result:
+            kwargs["adapter_type"] = adapter_result.adapter_type
+            kwargs["adapter_result_id"] = adapter_result.adapter_result_id
+            kwargs["stdout_redacted"] = adapter_result.stdout_redacted
+            kwargs["stderr_redacted"] = adapter_result.stderr_redacted
+            kwargs["exit_code"] = adapter_result.exit_code
 
         return ExecutorResult(
             executor_request_id=request.executor_request_id,
@@ -134,17 +186,80 @@ class ExecutorFramework:
             status=status,
             execution_mode="dry_run",
             real_execution=False,
-            adapter_invoked=False,
+            adapter_invoked=adapter_invoked,
             summary=summary,
             timeout_seconds=self.config.get_timeout_seconds(),
             redaction_applied=decision.redaction_applied,
             correlation_id=request.correlation_id,
-            source=request.source
+            source=request.source,
+            **kwargs
+        )
+
+    def execute_real(self, request: ExecutorRequest, decision: ExecutorDecision) -> ExecutorResult:
+        if decision.decision != "allowed":
+            status = "blocked"
+            if decision.decision == "requires_approval":
+                status = "requires_approval"
+            elif decision.decision in ["executor_disabled", "adapter_disabled", "adapter_policy_missing"]:
+                status = "blocked"
+                decision.reason = decision.decision
+        else:
+            status = "completed"
+
+        adapter_invoked = False
+        adapter_result = None
+        
+        if status == "completed":
+            adapter = registry.get_adapter(decision.adapter_type)
+            if adapter:
+                policy_dict = {}
+                if self.policy and hasattr(self.policy, "get_raw_dict"):
+                    policy_dict = OperationAdapterPolicyResolver(self.policy.get_raw_dict()).get_adapter_config(decision.adapter_type) or {}
+                adapter_result = adapter.run(request, policy_dict)
+                adapter_invoked = True
+                if adapter_result.status == "blocked":
+                    status = "blocked"
+                    decision.reason = adapter_result.reason
+                else:
+                    request.command_text_redacted = adapter_result.rendered_command_redacted or request.command_text_redacted
+
+        summary = f"Executed: {request.command_text_redacted}"
+        if status == "blocked":
+            summary = f"Blocked: {decision.reason}"
+        elif status == "requires_approval":
+            summary = f"Requires approval: {decision.reason}"
+
+        kwargs = {}
+        if adapter_result:
+            kwargs["adapter_type"] = adapter_result.adapter_type
+            kwargs["adapter_result_id"] = adapter_result.adapter_result_id
+            kwargs["stdout_redacted"] = adapter_result.stdout_redacted
+            kwargs["stderr_redacted"] = adapter_result.stderr_redacted
+            kwargs["exit_code"] = adapter_result.exit_code
+
+        return ExecutorResult(
+            executor_request_id=request.executor_request_id,
+            decision_id=decision.decision_id,
+            status=status,
+            execution_mode="real",
+            real_execution=True,
+            adapter_invoked=adapter_invoked,
+            summary=summary,
+            timeout_seconds=self.config.get_timeout_seconds(),
+            redaction_applied=decision.redaction_applied,
+            correlation_id=request.correlation_id,
+            source=request.source,
+            **kwargs
         )
 
     def process_request(self, request: ExecutorRequest, runtime_dir: str) -> Tuple[ExecutorDecision, ExecutorResult]:
         decision = self.evaluate(request)
-        result = self.execute_dry_run(request, decision)
+        real_execution_requested = request.metadata.get("real_execution", False)
+        
+        if real_execution_requested:
+            result = self.execute_real(request, decision)
+        else:
+            result = self.execute_dry_run(request, decision)
 
         # Write artifacts
         os.makedirs(runtime_dir, exist_ok=True)
