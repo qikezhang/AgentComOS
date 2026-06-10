@@ -1,0 +1,14 @@
+executor_request_id: EXEC-REQ-ADE473B6
+source: discord
+source_message_id: null
+requested_by_hash: unknown
+command_type: restart
+command_text_redacted: restart service app
+target: null
+risk_level: high
+requires_executor: true
+requires_approval: false
+policy_ref: null
+correlation_id: EXEC-REQ-ADE473B6
+status: received
+created_at: '2026-06-10T15:25:34.039575+00:00'

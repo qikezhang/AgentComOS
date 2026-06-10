@@ -918,5 +918,88 @@ def healthcheck() -> None:
     import builtins
     builtins.print(json.dumps(data))
 
+executor_app = typer.Typer(help="Controlled Executor operations")
+app.add_typer(executor_app, name="executor")
+
+@executor_app.command("status")
+def executor_status_cmd() -> None:
+    from agentcomos.executor_config import ExecutorConfig
+    import yaml
+    
+    config = ExecutorConfig()
+    status = {
+        "enabled": config.is_enabled(),
+        "mode": config.get_mode(),
+        "dry_run_only": config.is_dry_run_only(),
+        "default_decision": config.get_default_decision(),
+        "real_execution_available": False,
+        "adapters_available": False,
+        "dry_run_available": config.is_enabled() or config.get_mode() == "dry_run",
+    }
+    print(yaml.dump(status, sort_keys=False))
+
+@executor_app.command("evaluate")
+def executor_evaluate_cmd(
+    request_file: Path = typer.Option(..., "--request-file", help="Path to executor request YAML"),
+    runtime_dir: Path = typer.Option(..., "--runtime-dir", help="Directory to output artifacts")
+) -> None:
+    from agentcomos.executor_config import ExecutorConfig
+    from agentcomos.executor_policy import ExecutorPolicy
+    from agentcomos.executor_request import ExecutorRequest
+    from agentcomos.executor_framework import ExecutorFramework
+    import yaml
+    
+    config = ExecutorConfig()
+    policy = ExecutorPolicy.load(config.policy_path) if config.policy_path else None
+    framework = ExecutorFramework(config, policy)
+    
+    try:
+        request = ExecutorRequest.load_artifact(str(request_file))
+        decision = framework.evaluate(request)
+        
+        import os
+        os.makedirs(str(runtime_dir), exist_ok=True)
+        request.write_artifact(str(runtime_dir / f"executor_request_{request.executor_request_id}.yaml"))
+        decision.write_artifact(str(runtime_dir / f"executor_decision_{decision.decision_id}.yaml"))
+        
+        summary = {
+            "executor_request_id": request.executor_request_id,
+            "decision": decision.decision,
+            "reason": decision.reason,
+            "risk_level": decision.risk_level,
+        }
+        print(yaml.dump(summary, sort_keys=False))
+    except Exception as e:
+        raise typer.BadParameter(str(e))
+
+@executor_app.command("run-dry")
+def executor_run_dry_cmd(
+    request_file: Path = typer.Option(..., "--request-file", help="Path to executor request YAML"),
+    runtime_dir: Path = typer.Option(..., "--runtime-dir", help="Directory to output artifacts")
+) -> None:
+    from agentcomos.executor_config import ExecutorConfig
+    from agentcomos.executor_policy import ExecutorPolicy
+    from agentcomos.executor_request import ExecutorRequest
+    from agentcomos.executor_framework import ExecutorFramework
+    import yaml
+    
+    config = ExecutorConfig()
+    policy = ExecutorPolicy.load(config.policy_path) if config.policy_path else None
+    framework = ExecutorFramework(config, policy)
+    
+    try:
+        request = ExecutorRequest.load_artifact(str(request_file))
+        decision, result = framework.process_request(request, str(runtime_dir))
+        
+        summary = {
+            "executor_request_id": request.executor_request_id,
+            "decision": decision.decision,
+            "result_status": result.status,
+            "execution_mode": result.execution_mode
+        }
+        print(yaml.dump(summary, sort_keys=False))
+    except Exception as e:
+        raise typer.BadParameter(str(e))
+
 if __name__ == "__main__":
     app()

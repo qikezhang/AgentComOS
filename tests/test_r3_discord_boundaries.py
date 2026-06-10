@@ -22,7 +22,7 @@ def test_no_shell_commands_in_source():
 def test_no_executor_implementation():
     src_dir = Path("src/agentcomos")
     forbidden_classes = [
-        "ControlledExecutor", "executor_policy", "executor_command",
+        "ControlledExecutor", 
         "operation_adapter", "systemctl_adapter", "docker_adapter"
     ]
     

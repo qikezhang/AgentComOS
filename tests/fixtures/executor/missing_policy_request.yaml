@@ -1,0 +1,14 @@
+executor_request_id: EXEC-REQ-B76DC259
+source: discord
+source_message_id: null
+requested_by_hash: unknown
+command_type: unknown
+command_text_redacted: do something
+target: null
+risk_level: unknown
+requires_executor: true
+requires_approval: false
+policy_ref: null
+correlation_id: EXEC-REQ-B76DC259
+status: received
+created_at: '2026-06-10T15:25:34.041473+00:00'
