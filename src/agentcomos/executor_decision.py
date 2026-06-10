@@ -2,6 +2,8 @@ import datetime
 import uuid
 import yaml
 from typing import Dict, Any, Optional
+from .executor_redaction import redact_executor_data
+
 
 class ExecutorDecision:
     def __init__(
@@ -37,7 +39,7 @@ class ExecutorDecision:
         self.source = source
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        return redact_executor_data({
             "decision_id": self.decision_id,
             "executor_request_id": self.executor_request_id,
             "decision": self.decision,
@@ -52,7 +54,7 @@ class ExecutorDecision:
             "evaluated_at": self.evaluated_at,
             "correlation_id": self.correlation_id,
             "source": self.source,
-        }
+        })
 
     def write_artifact(self, file_path: str) -> None:
         with open(file_path, "w", encoding="utf-8") as f:

@@ -2,6 +2,7 @@ import datetime
 import uuid
 import yaml
 from typing import Dict, Any, Optional
+from .executor_redaction import redact_executor_data, redact_executor_text
 
 class ExecutorRequest:
     """Model representing a requested controlled execution command."""
@@ -21,14 +22,16 @@ class ExecutorRequest:
         status: str = "received",
         executor_request_id: Optional[str] = None,
         created_at: Optional[str] = None,
+        raw_command_present: bool = False,
+        **kwargs
     ):
         self.executor_request_id = executor_request_id or f"EXEC-REQ-{uuid.uuid4().hex[:8].upper()}"
-        self.source = source
-        self.source_message_id = source_message_id
+        self.source = redact_executor_text(source)
+        self.source_message_id = redact_executor_text(source_message_id) if source_message_id else None
         self.requested_by_hash = requested_by_hash
         self.command_type = command_type
-        self.command_text_redacted = command_text_redacted
-        self.target = target
+        self.command_text_redacted = redact_executor_text(command_text_redacted)
+        self.target = redact_executor_text(target) if target else None
         self.risk_level = risk_level
         self.requires_executor = requires_executor
         self.requires_approval = requires_approval
@@ -36,9 +39,11 @@ class ExecutorRequest:
         self.correlation_id = correlation_id or self.executor_request_id
         self.status = status
         self.created_at = created_at or datetime.datetime.now(datetime.timezone.utc).isoformat()
+        self.raw_command_present = raw_command_present
+        self.metadata = redact_executor_data(kwargs) if kwargs else {}
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        data = {
             "executor_request_id": self.executor_request_id,
             "source": self.source,
             "source_message_id": self.source_message_id,
@@ -54,24 +59,41 @@ class ExecutorRequest:
             "status": self.status,
             "created_at": self.created_at,
         }
+        if self.raw_command_present:
+            data["raw_command_present"] = True
+        if self.metadata:
+            data.update(self.metadata)
+        return redact_executor_data(data)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ExecutorRequest":
+        redacted_data = redact_executor_data(data)
+        
+        command_text_redacted = redacted_data.get("command_text_redacted", "")
+        raw_command_present = False
+        
+        if "command_text" in data:
+            raw_command_present = True
+            if not command_text_redacted:
+                command_text_redacted = redact_executor_text(data["command_text"])
+                
         return cls(
-            executor_request_id=data.get("executor_request_id"),
-            source=data.get("source", "unknown"),
-            source_message_id=data.get("source_message_id"),
-            requested_by_hash=data.get("requested_by_hash", "unknown"),
-            command_type=data.get("command_type", "unknown"),
-            command_text_redacted=data.get("command_text_redacted", ""),
-            target=data.get("target"),
-            risk_level=data.get("risk_level", "unknown"),
-            requires_executor=data.get("requires_executor", True),
-            requires_approval=data.get("requires_approval", False),
-            policy_ref=data.get("policy_ref"),
-            correlation_id=data.get("correlation_id"),
-            status=data.get("status", "received"),
-            created_at=data.get("created_at"),
+            executor_request_id=redacted_data.get("executor_request_id"),
+            source=redacted_data.get("source", "unknown"),
+            source_message_id=redacted_data.get("source_message_id"),
+            requested_by_hash=redacted_data.get("requested_by_hash", "unknown"),
+            command_type=redacted_data.get("command_type", "unknown"),
+            command_text_redacted=command_text_redacted,
+            target=redacted_data.get("target"),
+            risk_level=redacted_data.get("risk_level", "unknown"),
+            requires_executor=redacted_data.get("requires_executor", True),
+            requires_approval=redacted_data.get("requires_approval", False),
+            policy_ref=redacted_data.get("policy_ref"),
+            correlation_id=redacted_data.get("correlation_id"),
+            status=redacted_data.get("status", "received"),
+            created_at=redacted_data.get("created_at"),
+            raw_command_present=raw_command_present,
+            **(redacted_data.get("metadata", {}))
         )
 
     def write_artifact(self, file_path: str) -> None:

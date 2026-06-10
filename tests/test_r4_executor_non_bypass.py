@@ -13,4 +13,4 @@ def test_denied_command_wins_over_allow(tmp_path, monkeypatch):
     dec, res = framework.process_request(req, str(tmp_path))
     
     assert dec.decision == "blocked"
-    assert "token" not in req.command_text_redacted.lower() or req.command_text_redacted.lower().find("token=redacted") != -1
+    assert "token" not in req.command_text_redacted.lower() or req.command_text_redacted.lower().find("<redacted:token>") != -1

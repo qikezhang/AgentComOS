@@ -117,3 +117,17 @@ R4 is not accepted. Antigravity must fix the blocking redaction issue before R4 
 
 ## Review Notes
 The framework implements the strict request-decision-result architecture required by the Phase R4 specification. The executor defaults to `dry_run` mode and has no access to real adapters. It correctly interfaces with the Discord GM command artifacts and applies risk classifications. Real operation execution is deferred to Phase R5.
+
+## Antigravity follow-up fix
+
+Status: ready for Codex re-review
+
+Fixed:
+- Added executor-wide recursive redaction.
+- Redacted request ingestion before artifact serialization.
+- Redacted disabled executor deny path.
+- Redacted missing policy deny path.
+- Redacted secret request blocked path.
+- Redacted run-dry result and audit.
+- Added regression tests for generated artifact secret scan.
+- Verified blocker reproduction no longer leaks raw secret text.

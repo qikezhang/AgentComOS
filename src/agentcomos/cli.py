@@ -947,6 +947,7 @@ def executor_evaluate_cmd(
     from agentcomos.executor_policy import ExecutorPolicy
     from agentcomos.executor_request import ExecutorRequest
     from agentcomos.executor_framework import ExecutorFramework
+    from agentcomos.executor_redaction import redact_executor_data
     import yaml
     
     config = ExecutorConfig()
@@ -962,12 +963,12 @@ def executor_evaluate_cmd(
         request.write_artifact(str(runtime_dir / f"executor_request_{request.executor_request_id}.yaml"))
         decision.write_artifact(str(runtime_dir / f"executor_decision_{decision.decision_id}.yaml"))
         
-        summary = {
+        summary = redact_executor_data({
             "executor_request_id": request.executor_request_id,
             "decision": decision.decision,
             "reason": decision.reason,
             "risk_level": decision.risk_level,
-        }
+        })
         print(yaml.dump(summary, sort_keys=False))
     except Exception as e:
         raise typer.BadParameter(str(e))
@@ -981,6 +982,7 @@ def executor_run_dry_cmd(
     from agentcomos.executor_policy import ExecutorPolicy
     from agentcomos.executor_request import ExecutorRequest
     from agentcomos.executor_framework import ExecutorFramework
+    from agentcomos.executor_redaction import redact_executor_data
     import yaml
     
     config = ExecutorConfig()
@@ -991,12 +993,12 @@ def executor_run_dry_cmd(
         request = ExecutorRequest.load_artifact(str(request_file))
         decision, result = framework.process_request(request, str(runtime_dir))
         
-        summary = {
+        summary = redact_executor_data({
             "executor_request_id": request.executor_request_id,
             "decision": decision.decision,
             "result_status": result.status,
             "execution_mode": result.execution_mode
-        }
+        })
         print(yaml.dump(summary, sort_keys=False))
     except Exception as e:
         raise typer.BadParameter(str(e))

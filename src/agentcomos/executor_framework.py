@@ -9,6 +9,7 @@ from .executor_request import ExecutorRequest
 from .executor_decision import ExecutorDecision
 from .executor_result import ExecutorResult
 from .executor_classifier import ExecutorClassifier
+from .executor_redaction import redact_executor_data
 
 class ExecutorFramework:
     def __init__(self, config: ExecutorConfig, policy: Optional[ExecutorPolicy] = None):
@@ -148,7 +149,7 @@ class ExecutorFramework:
 
     def write_audit(self, request: ExecutorRequest, decision: ExecutorDecision, result: ExecutorResult, runtime_dir: str):
         audit_file = os.path.join(runtime_dir, "executor_audit.yaml")
-        audit_record = {
+        audit_record = redact_executor_data({
             "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "correlation_id": request.correlation_id,
             "source": request.source,
@@ -156,7 +157,7 @@ class ExecutorFramework:
             "decision": decision.decision,
             "reason": decision.reason,
             "result_status": result.status
-        }
+        })
         mode = "a" if os.path.exists(audit_file) else "w"
         with open(audit_file, mode, encoding="utf-8") as f:
             yaml.dump([audit_record], f, default_flow_style=False, sort_keys=False)
