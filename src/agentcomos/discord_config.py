@@ -20,6 +20,7 @@ class DiscordConfig:
         self.outbound_replies: bool = os.environ.get("DISCORD_OUTBOUND_REPLIES", "true").lower() == "true"
         self.audit_all_messages: bool = os.environ.get("DISCORD_AUDIT_ALL_MESSAGES", "true").lower() == "true"
         self.default_command_mode: str = os.environ.get("DISCORD_DEFAULT_COMMAND_MODE", "controlled")
+        self.allow_test_placeholders: bool = os.environ.get("DISCORD_ALLOW_TEST_PLACEHOLDERS", "false").lower() == "true"
 
     def _parse_list(self, val: str) -> List[str]:
         if not val:
@@ -29,8 +30,9 @@ class DiscordConfig:
     def is_token_available(self) -> bool:
         if not self.token:
             return False
-        if "replace-with" in self.token or "PLACEHOLDER" in self.token:
-            return False
+        if not self.allow_test_placeholders:
+            if "replace-with" in self.token or "PLACEHOLDER" in self.token:
+                return False
         return True
 
     def dump_safe(self) -> Dict[str, Any]:

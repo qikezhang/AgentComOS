@@ -884,6 +884,24 @@ def discord_ingest_test(
     except Exception as e:
         raise typer.BadParameter(str(e))
 
+@discord_app.command("serve")
+def discord_serve(
+    runtime_dir: Path = typer.Option(Path(".agentcomos/runs/discord_runtime"), "--runtime-dir", help="Path to runtime dir"),
+) -> None:
+    """Serve the real Discord bot runtime."""
+    import asyncio
+    from agentcomos.discord_runtime import serve_discord
+    
+    try:
+        result = asyncio.run(serve_discord(runtime_dir))
+        if result.get("status") == "unavailable":
+            print(f"Discord adapter unavailable: {result.get('reason')}")
+            # Exit 0 because being disabled or lacking token shouldn't crash the deploy loop
+            import sys
+            sys.exit(0)
+    except Exception as e:
+        raise typer.BadParameter(str(e))
+
 @app.command("healthcheck")
 def healthcheck() -> None:
     """AgentComOS healthcheck."""

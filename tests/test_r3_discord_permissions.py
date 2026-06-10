@@ -47,3 +47,25 @@ def test_arbitrary_command_blocked(base_config):
     res = evaluator.evaluate("m1", "g1", "c1", "u1", ["r_ops"], "arbitrary_command")
     assert res.decision == "blocked"
     assert res.reason == "arbitrary_command_blocked"
+
+def test_missing_guild_policy_blocks(base_config):
+    base_config.guild_allowlist = []
+    evaluator = PermissionEvaluator(base_config)
+    res = evaluator.evaluate("m1", "g1", "c1", "u1", ["r_ops"], "read_only")
+    assert res.decision == "blocked"
+    assert res.reason == "guild_policy_missing"
+
+def test_missing_channel_policy_blocks(base_config):
+    base_config.channel_allowlist = []
+    evaluator = PermissionEvaluator(base_config)
+    res = evaluator.evaluate("m1", "g1", "c1", "u1", ["r_ops"], "read_only")
+    assert res.decision == "blocked"
+    assert res.reason == "channel_policy_missing"
+
+def test_missing_user_policy_blocks(base_config):
+    base_config.user_allowlist = []
+    base_config.role_allowlist = []
+    evaluator = PermissionEvaluator(base_config)
+    res = evaluator.evaluate("m1", "g1", "c1", "u1", [], "read_only")
+    assert res.decision == "blocked"
+    assert res.reason == "user_policy_missing"

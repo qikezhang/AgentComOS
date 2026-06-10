@@ -71,7 +71,7 @@ class DiscordCommandParser:
             }
 
         # Controlled writes
-        if lower_text.startswith("restart service ") or lower_text.startswith("restart "):
+        if lower_text.startswith("restart service ") or lower_text == "restart" or lower_text.startswith("restart "):
             return {
                 "command_type": "service_restart",
                 "risk_level": "high"

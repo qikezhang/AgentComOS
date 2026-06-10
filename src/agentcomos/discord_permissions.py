@@ -59,14 +59,21 @@ class PermissionEvaluator:
         if not self.config.is_token_available():
             return block("token_missing")
 
-        if self.config.guild_allowlist and guild_id not in self.config.guild_allowlist:
+        if not self.config.guild_allowlist:
+            return block("guild_policy_missing")
+        if guild_id not in self.config.guild_allowlist:
             return block("guild_not_allowed")
 
-        if self.config.channel_allowlist and channel_id not in self.config.channel_allowlist:
+        if not self.config.channel_allowlist:
+            return block("channel_policy_missing")
+        if channel_id not in self.config.channel_allowlist:
             return block("channel_not_allowed")
 
         # user allowed?
         user_is_allowed = False
+        if not self.config.user_allowlist and not self.config.role_allowlist:
+            return block("user_policy_missing")
+
         if self.config.user_allowlist and user_hash in self.config.user_allowlist:
             user_is_allowed = True
 
@@ -84,11 +91,11 @@ class PermissionEvaluator:
                     role_is_allowed = True
 
         if not user_is_allowed and not role_is_allowed:
-            if self.config.user_allowlist and not self.config.role_allowlist:
+            if not self.config.role_allowlist:
                 return block("user_not_allowed")
-            elif self.config.role_allowlist and not self.config.user_allowlist:
+            elif not self.config.user_allowlist:
                 return block("role_not_allowed")
-            elif self.config.user_allowlist and self.config.role_allowlist:
+            else:
                 return block("user_not_allowed") # simple fallback
 
         # Risk classification checks
