@@ -34,6 +34,6 @@ def test_shell_adapter():
     
     # No real execution
     res2 = adapter.run(req, {"allow": [{"id": "cmd1", "template": "echo hello"}]})
-    assert res2.status == "completed"
-    assert res2.real_execution
-    assert "MOCK-RUN" in res2.stdout_redacted
+    assert res2.status == "mock_completed"
+    assert not res2.real_execution
+    assert "[MOCK-RUN]" in res2.stdout_redacted

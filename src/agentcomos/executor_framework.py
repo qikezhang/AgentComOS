@@ -104,20 +104,65 @@ class ExecutorFramework:
         # In R5, real execution is requested via metadata or config
         real_execution_requested = request.metadata.get("real_execution", False)
         
-        decision_status = "allowed_dry_run" if not real_execution_requested else "allowed"
+        # New logic: resolve real execution
+        real_execution_allowed = real_execution_requested
+        reason_for_block = None
+
+        if real_execution_requested:
+            if self.config.is_dry_run_only():
+                real_execution_allowed = False
+                reason_for_block = "dry_run_only"
+            elif self.config.get_mode() == "dry_run":
+                real_execution_allowed = False
+                reason_for_block = "real_execution_disabled"
+
+        if real_execution_requested and not real_execution_allowed:
+            # metadata asked for real, but config denies -> block
+            decision_status = "blocked"
+            reason = reason_for_block or "real_execution_disabled"
+        else:
+            decision_status = "allowed_dry_run" if not real_execution_allowed else "allowed"
+
         if requires_approval and not request.requires_approval: 
-            # If request itself did not have approval
-            # Wait, usually we pass request.requires_approval=False. Wait, request.metadata might have approval.
-            # R4: requires_approval means we set decision_status="requires_approval"
-            decision_status = "requires_approval"
+            if decision_status != "blocked":
+                decision_status = "requires_approval"
 
         if adapter_policy_resolver and not adapter_policy_resolver.is_adapter_enabled(adapter_type):
-            if decision_status not in ["requires_approval"]:
+            if decision_status not in ["blocked", "requires_approval"]:
                 decision_status = "adapter_disabled"
                 
         # If policy for adapter is missing completely
         if adapter_policy_resolver and not adapter_policy_resolver.get_adapter_config(adapter_type):
-             decision_status = "adapter_policy_missing"
+             if decision_status != "blocked":
+                 decision_status = "adapter_policy_missing"
+                 
+        # Check raw command gate (PART D)
+        # 1. Requests without command_ref must be blocked.
+        # 2. Requests containing raw_command or freeform command must be blocked.
+        if decision_status not in ["adapter_disabled", "adapter_policy_missing", "requires_approval", "blocked"]:
+            if getattr(request, "raw_command_present", False):
+                 decision_status = "blocked"
+                 reason = "raw_command_blocked"
+            elif not getattr(request, "command_ref", None) and not request.metadata.get("command_ref"):
+                 decision_status = "blocked"
+                 reason = "command_ref_missing"
+                 
+        # Command Ref Policy Gate & Timeout Gate
+        if decision_status not in ["adapter_disabled", "adapter_policy_missing", "requires_approval", "blocked"]:
+            cmd_ref = getattr(request, "command_ref", None) or request.metadata.get("command_ref")
+            cmd_config = adapter_policy_resolver.get_command_config(adapter_type, cmd_ref) if adapter_policy_resolver else None
+            if not cmd_config:
+                 decision_status = "blocked"
+                 reason = "command_ref_not_allowed"
+            elif "timeout_seconds" not in cmd_config:
+                 decision_status = "blocked"
+                 reason = "timeout_required"
+
+        # Additional gate: secrets
+        if decision_status not in ["adapter_disabled", "adapter_policy_missing", "requires_approval", "blocked"]:
+            if request.command_type == "secret_request" or request.risk_level == "secret":
+                 decision_status = "blocked"
+                 reason = "secret_request_blocked"
 
         return ExecutorDecision(
             executor_request_id=request.executor_request_id,
@@ -230,19 +275,24 @@ class ExecutorFramework:
             summary = f"Requires approval: {decision.reason}"
 
         kwargs = {}
+        real_exec = False
+        exec_mode = "blocked" if status == "blocked" else "dry_run"
+        
         if adapter_result:
             kwargs["adapter_type"] = adapter_result.adapter_type
             kwargs["adapter_result_id"] = adapter_result.adapter_result_id
             kwargs["stdout_redacted"] = adapter_result.stdout_redacted
             kwargs["stderr_redacted"] = adapter_result.stderr_redacted
             kwargs["exit_code"] = adapter_result.exit_code
+            real_exec = adapter_result.real_execution
+            exec_mode = adapter_result.execution_mode
 
         return ExecutorResult(
             executor_request_id=request.executor_request_id,
             decision_id=decision.decision_id,
             status=status,
-            execution_mode="real",
-            real_execution=True,
+            execution_mode=exec_mode,
+            real_execution=real_exec,
             adapter_invoked=adapter_invoked,
             summary=summary,
             timeout_seconds=self.config.get_timeout_seconds(),
@@ -253,6 +303,12 @@ class ExecutorFramework:
         )
 
     def process_request(self, request: ExecutorRequest, runtime_dir: str) -> Tuple[ExecutorDecision, ExecutorResult]:
+        # Enforce global real execution config before anything else
+        real_execution_requested = request.metadata.get("real_execution", False)
+        if real_execution_requested:
+            if self.config.is_dry_run_only() or self.config.get_mode() == "dry_run":
+                request.metadata["real_execution"] = False
+                
         decision = self.evaluate(request)
         real_execution_requested = request.metadata.get("real_execution", False)
         

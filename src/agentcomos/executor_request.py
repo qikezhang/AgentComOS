@@ -58,6 +58,7 @@ class ExecutorRequest:
         created_at: Optional[str] = None,
         raw_command_present: bool = False,
         reason: Optional[str] = None,
+        command_ref: Optional[str] = None,
         **kwargs
     ):
         self.executor_request_id = executor_request_id or f"EXEC-REQ-{uuid.uuid4().hex[:8].upper()}"
@@ -76,6 +77,7 @@ class ExecutorRequest:
         self.reason = reason
         self.created_at = created_at or datetime.datetime.now(datetime.timezone.utc).isoformat()
         self.raw_command_present = raw_command_present
+        self.command_ref = redact_executor_text(command_ref) if command_ref else None
         self.metadata = redact_executor_data(kwargs) if kwargs else {}
 
     def to_dict(self) -> Dict[str, Any]:
@@ -95,6 +97,8 @@ class ExecutorRequest:
             "status": self.status,
             "created_at": self.created_at,
         }
+        if self.command_ref:
+            data["command_ref"] = self.command_ref
         if self.reason:
             data["reason"] = self.reason
         if self.raw_command_present:
@@ -132,6 +136,7 @@ class ExecutorRequest:
             created_at=redacted_data.get("created_at"),
             raw_command_present=raw_command_present,
             reason=data.get("reason") or redacted_data.get("reason"), # Use original or redacted reason
+            command_ref=redacted_data.get("command_ref"),
             **(redacted_data.get("metadata", {}))
         )
 

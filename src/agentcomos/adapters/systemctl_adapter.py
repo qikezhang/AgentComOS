@@ -38,6 +38,7 @@ class SystemctlAdapter(OperationAdapterBase):
                 adapter_type=self.adapter_type,
                 command_ref=request.metadata.get("command_ref"),
                 status="blocked",
+                execution_mode="blocked",
                 reason=reason
             )
             
@@ -60,8 +61,9 @@ class SystemctlAdapter(OperationAdapterBase):
                 adapter_type=self.adapter_type,
                 command_ref=request.metadata.get("command_ref"),
                 status="blocked",
+                execution_mode="blocked",
                 reason=reason,
-                real_execution=True
+                real_execution=False
             )
             
         return OperationAdapterResult(
@@ -69,9 +71,9 @@ class SystemctlAdapter(OperationAdapterBase):
             adapter_type=self.adapter_type,
             command_ref=request.metadata.get("command_ref"),
             rendered_command_redacted=rendered,
-            status="completed",
-            execution_mode="real",
-            real_execution=True,
+            status="mock_completed",
+            execution_mode="mock",
+            real_execution=False,
             stdout_redacted="[MOCK-RUN] systemctl adapter execution simulated safely",
             exit_code=0
         )

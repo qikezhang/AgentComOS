@@ -19,6 +19,17 @@ class OperationAdapterPolicyResolver:
         if not config:
             return None
             
+        # Check deny list first
+        denied_commands = config.get("denied_commands", [])
+        if not denied_commands:
+            denied_commands = config.get("deny", [])
+            
+        for cmd in denied_commands:
+            cmd_id = cmd.get("id") or cmd.get("command_ref")
+            if cmd_id == command_id:
+                # Denied explicitly, override allow
+                return None
+                
         allowed_commands = config.get("allowed_commands", [])
         if not allowed_commands:
             allowed_commands = config.get("allow", [])

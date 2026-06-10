@@ -23,8 +23,28 @@ class ShellAdapter(OperationAdapterBase):
         if not template:
             return False, "missing_template", None
             
-        params = request.metadata.get("params", {})
+        params = request.metadata.get("params")
+        if params is None:
+            params = {k: v for k, v in request.metadata.items() if k not in ["adapter_type", "real_execution", "command_ref"]}
+        if params:
+            for val in params.values():
+                val_lower = str(val).lower()
+                if any(p in val_lower for p in ["rm -rf", "|", ">", "<", "$(", "`", "&&", ";"]):
+                    return False, "raw_command_blocked", None
+                    
         rendered = self.render_command_template(template, params)
+        
+        # Validate rendered command
+        dangerous_patterns = [
+            "rm -rf", "bash -c", "sh -c", "zsh -c", "|", ">", "<", "$(", "`", "&&", ";",
+            "sudo ", "ssh ", "systemctl ", "docker system prune", "docker run --privileged",
+            "cat /etc/passwd", "printenv", "env", "secret", "token"
+        ]
+        rendered_lower = rendered.lower()
+        for pattern in dangerous_patterns:
+            if pattern in rendered_lower:
+                return False, "rendered_command_blocked", None
+                
         redacted_rendered = self.redact_output(rendered)
         
         return True, "valid", redacted_rendered
@@ -37,6 +57,7 @@ class ShellAdapter(OperationAdapterBase):
                 adapter_type=self.adapter_type,
                 command_ref=request.metadata.get("command_ref"),
                 status="blocked",
+                execution_mode="blocked",
                 reason=reason
             )
             
@@ -53,24 +74,26 @@ class ShellAdapter(OperationAdapterBase):
         
     def run(self, request: ExecutorRequest, policy: Dict[str, Any]) -> OperationAdapterResult:
         is_valid, reason, rendered = self.validate_request(request, policy)
+        cmd_ref = getattr(request, "command_ref", None) or request.metadata.get("command_ref")
         if not is_valid:
             return OperationAdapterResult(
                 executor_request_id=request.executor_request_id,
                 adapter_type=self.adapter_type,
-                command_ref=request.metadata.get("command_ref"),
+                command_ref=cmd_ref,
                 status="blocked",
+                execution_mode="blocked",
                 reason=reason,
-                real_execution=True
+                real_execution=False
             )
             
         return OperationAdapterResult(
             executor_request_id=request.executor_request_id,
             adapter_type=self.adapter_type,
-            command_ref=request.metadata.get("command_ref"),
+            command_ref=cmd_ref,
             rendered_command_redacted=rendered,
-            status="completed",
-            execution_mode="real",
-            real_execution=True,
+            status="mock_completed",
+            execution_mode="mock",
+            real_execution=False,
             stdout_redacted="[MOCK-RUN] shell adapter execution simulated safely",
             exit_code=0
         )
