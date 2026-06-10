@@ -32,6 +32,13 @@ class DiscordCommandParser:
         lower_text = clean_text.lower()
         
         # Block Secret requests
+        if lower_text == "printenv" or lower_text == "env":
+            return {
+                "command_type": "secret_request",
+                "risk_level": "blocked",
+                "blocked_reason": "secret_request_blocked"
+            }
+            
         secret_keywords = ["token", "secret", "password", "env", "key"]
         for kw in secret_keywords:
             if re.search(rf'\bshow\s+.*{kw}\b', lower_text) or re.search(rf'\bprint\s+.*{kw}\b', lower_text) or re.search(rf'\breveal\s+.*{kw}\b', lower_text):
@@ -41,14 +48,14 @@ class DiscordCommandParser:
                     "blocked_reason": "secret_request_blocked"
                 }
 
-        # Block Arbitrary Shell commands
-        arbitrary_commands = ["bash", "sh", "s" + "sh", "s" + "udo", "docker" + " run", "docker" + " exec", "rm -rf", "systemctl", "eval", "exec"]
-        for cmd in arbitrary_commands:
-            if lower_text.startswith(cmd) or f" {cmd} " in lower_text or f" {cmd}" in lower_text:
+        # Block Arbitrary Shell commands / Direct System commands
+        direct_system_commands = ["bash", "sh", "s" + "sh", "s" + "udo", "systemctl", "docker" + " compose", "docker-compose", "rm -rf", "eval", "exec", "cat ", "docker" + " run", "docker" + " exec", "docker system"]
+        for cmd in direct_system_commands:
+            if lower_text.startswith(cmd) or f" {cmd} " in lower_text or lower_text.endswith(f" {cmd}"):
                 return {
                     "command_type": "arbitrary_command",
                     "risk_level": "blocked",
-                    "blocked_reason": "arbitrary_command_blocked"
+                    "blocked_reason": "direct_system_command_blocked"
                 }
         if lower_text.startswith("run shell"):
             return {

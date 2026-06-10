@@ -1,6 +1,6 @@
 # R3 Real Discord Bot Adapter Review
 
-Status: failed
+Status: pending
 
 Reviewed branch: antigravity/r3-real-discord-bot-adapter
 Reviewed commit: 4e76a4d1f2581e903b4dacefaf9fea87cea9526b
@@ -80,3 +80,20 @@ Reviewer: Codex
 ## Final Decision
 
 - failed: fix blockers; R4 remains locked.
+
+## Antigravity follow-up fix
+
+Status: ready for Codex re-review
+
+Fixed:
+- Removed uv.lock from R3 diff.
+- Restored docs/18_ACCEPTANCE_GATES.md from main.
+- Removed or corrected non-Codex approval documents.
+- Fixed discord status to avoid fake connected.
+- Added real agentcomos discord serve runtime tests.
+- Completed non-empty runtime and serve CLI tests.
+- Fixed dangerous docker/system command classification.
+- Enforced missing-policy-defaults-block for guild/channel/user/role.
+- Added outbound success/failure handling tests.
+- Added duplicate idempotency negative coverage.
+- Added tests/test_r3_codex_blocker_regressions.py.

@@ -130,3 +130,20 @@ async def serve_discord(runtime_dir: Path, client_factory: Optional[DiscordClien
     except Exception as e:
         logger.error(f"Failed to start discord client: {e}")
         raise
+
+async def check_discord_connection(client_factory: Optional[DiscordClientFactory] = None) -> bool:
+    config = load_discord_config()
+    if not config.is_token_available():
+        return False
+        
+    if client_factory is None:
+        client_factory = RealDiscordClientFactory()
+        
+    client = client_factory.create()
+    try:
+        await client.login(config.token)
+        await client.close()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to check discord connection: {e}")
+        return False

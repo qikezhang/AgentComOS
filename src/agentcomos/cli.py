@@ -863,11 +863,12 @@ def gm_discord_audit(run: str = typer.Option(..., "--run", help="Run ID")) -> No
         raise typer.BadParameter(str(e))
 
 @discord_app.command("status")
-def discord_status() -> None:
+def discord_status(connect_check: bool = typer.Option(False, "--connect-check", help="Check gateway connection")) -> None:
     """Show the status of the Discord adapter."""
     from agentcomos.discord_adapter import status_check
     import yaml
-    print(yaml.dump(status_check(), sort_keys=False))
+    import asyncio
+    print(yaml.dump(asyncio.run(status_check(connect_check)), sort_keys=False))
 
 @discord_app.command("ingest-test")
 def discord_ingest_test(

@@ -17,19 +17,35 @@ from agentcomos.discord_artifacts import (
     DiscordAudit
 )
 
-def status_check() -> Dict[str, Any]:
+async def status_check(connect_check: bool = False) -> Dict[str, Any]:
     """Returns the adapter status."""
     config = load_discord_config()
+    token_present = config.is_token_available()
+    
     status_data = {
-        "connected": config.is_token_available() and config.enabled,
         "config_loaded": True,
         "enabled": config.enabled,
+        "token_present": token_present,
+        "connected": False,
+        "connection_checked": False,
     }
     
-    if not config.is_token_available():
-        status_data["connected"] = False
+    if not token_present:
         status_data["reason"] = "token_missing"
-        
+    elif not connect_check:
+        status_data["reason"] = "connect_check_not_requested"
+    else:
+        status_data["connection_checked"] = True
+        try:
+            from agentcomos.discord_runtime import check_discord_connection
+            is_connected = await check_discord_connection()
+            status_data["connected"] = is_connected
+            if not is_connected:
+                status_data["reason"] = "connect_check_failed"
+        except Exception as e:
+            status_data["connected"] = False
+            status_data["reason"] = f"connect_check_error: {str(e)}"
+            
     return status_data
 
 def ingest_test(message_data: Dict[str, Any], runtime_dir: Path) -> Dict[str, Any]:
@@ -132,7 +148,11 @@ def ingest_test(message_data: Dict[str, Any], runtime_dir: Path) -> Dict[str, An
         save_artifact(runtime_dir, "gm_command.yaml", gm_cmd)
     else:
         # Blocked
-        outbound_reply_content = f"Request blocked. Reason: {permission_result.reason}"
+        blocked_reason = permission_result.reason
+        if permission_result.reason == "command_unknown" and "blocked_reason" in parsed_cmd:
+            blocked_reason = parsed_cmd["blocked_reason"]
+            
+        outbound_reply_content = f"Request blocked. Reason: {blocked_reason}"
         outbound_status = "sent_blocked_notice"
 
         gm_command_id = f"gmc_{uuid.uuid4().hex[:12]}"
@@ -146,7 +166,7 @@ def ingest_test(message_data: Dict[str, Any], runtime_dir: Path) -> Dict[str, An
             requires_approval=False,
             status="blocked",
             created_at=now_str,
-            blocked_reason=permission_result.reason
+            blocked_reason=blocked_reason
         )
         save_artifact(runtime_dir, "gm_command.yaml", gm_cmd)
 

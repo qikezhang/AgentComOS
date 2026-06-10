@@ -99,9 +99,13 @@ class PermissionEvaluator:
                 return block("user_not_allowed") # simple fallback
 
         # Risk classification checks
-        if command_risk == "blocked" or command_risk == "unknown":
+        # Risk classification checks
+        if command_risk == "blocked":
+            return block("command_unknown") # This will be overridden in the adapter if blocked_reason is provided
+            
+        if command_risk == "unknown":
             return block("command_unknown")
-        
+            
         if command_risk == "secret_request":
             return block("secret_request_blocked")
 
