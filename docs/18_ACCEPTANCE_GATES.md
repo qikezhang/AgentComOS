@@ -422,3 +422,13 @@ Codex report：`codex/acceptance-reports/G11_INDUSTRIAL_AUTO_GOVERNANCE.md`
 ## Gate Reporting Rule
 
 Codex 必须为 G0-G11 全部维护验收报告。G7-G11 可以在当前阶段保持 pending，但进入对应 Phase 前必须补齐细则，合并前必须执行并更新状态。详见 `docs/25_PHASE_ACCEPTANCE_REPORTING.md`。
+
+* R6 Production Smoke and Release Readiness accepted only when:
+    * release readiness requires complete evidence
+    * go/no-go rejects shallow evidence
+    * production smoke covers health/status/executor/adapter/docker/boundary/secret checks
+    * evidence bundle includes required refs/summaries/regression/rollback/operator/docker availability
+    * no os.popen/raw shell in R6
+    * R2-R5 regressions pass
+    * no secrets/runtime artifacts
+    * no R7/R8/G12 scope

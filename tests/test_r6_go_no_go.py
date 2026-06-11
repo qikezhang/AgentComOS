@@ -41,11 +41,11 @@ def test_go_no_go_failed_smoke_is_no_go():
     assert "Smoke report failed" in res["blockers"]
 
 def test_go_no_go_all_hard_gates_pass_go():
-    rr = {"status": "pass", "evidence_refs": {"R2": "1", "R3": "2", "R4": "3", "R5": "4"}, "command_summaries": {"h": "pass"}, "boundary_summary": "pass", "secret_scan_summary": "pass", "rollback_readiness": "pass", "operator_runbook_readiness": "pass", "docker_availability": "pass"}
+    rr = {"status": "pass", "evidence_refs": {"R2": "1", "R3": "2", "R4": "3", "R5": "4"}, "command_summaries": {"h": {"status": "pass", "source": "test"}}, "boundary_summary": "pass", "secret_scan_summary": "pass", "rollback_readiness": "pass", "operator_runbook_readiness": "pass", "docker_availability": "pass"}
     res = evaluate_go_no_go(rr, {"status": "pass"})
     assert res["status"] == "go"
 
 def test_go_no_go_docker_unavailable_conditional_only_when_recorded():
-    rr = {"status": "pass", "evidence_refs": {"R2": "1", "R3": "2", "R4": "3", "R5": "4"}, "command_summaries": {"h": "pass"}, "boundary_summary": "pass", "secret_scan_summary": "pass", "rollback_readiness": "pass", "operator_runbook_readiness": "pass", "docker_availability": "unavailable"}
+    rr = {"status": "pass", "evidence_refs": {"R2": "1", "R3": "2", "R4": "3", "R5": "4"}, "command_summaries": {"h": {"status": "pass", "source": "test"}}, "boundary_summary": "pass", "secret_scan_summary": "pass", "rollback_readiness": "pass", "operator_runbook_readiness": "pass", "docker_availability": "unavailable"}
     res = evaluate_go_no_go(rr, {"status": "pass"})
     assert res["status"] == "conditional_go"

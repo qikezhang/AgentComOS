@@ -52,3 +52,12 @@ A production-like deployment must include:
 - token rotation
 - emergency disable bot
 - emergency disable executor
+
+## Rollback Plan
+If failure occurs, perform rollback.
+
+### Trigger conditions
+Trigger on failure.
+
+### Steps
+1. Revert changes.

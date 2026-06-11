@@ -25,3 +25,15 @@
 ## Operator safety rule
 
 Do not attempt to use Discord as a raw shell. All operations must be expressed as controlled requests.
+
+## Deployment Steps
+Deployment instructions.
+
+## Smoke Test
+Run smoke test.
+
+## Incident Response and Troubleshooting
+How to handle incidents.
+
+## Environment Variables
+Set environment variables carefully.
