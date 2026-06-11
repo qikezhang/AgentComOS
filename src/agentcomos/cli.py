@@ -1100,10 +1100,14 @@ smoke_app = typer.Typer(help="Smoke testing operations")
 app.add_typer(smoke_app, name="smoke")
 
 @release_app.command("readiness")
-def release_readiness():
+def release_readiness(runtime_dir: Path = typer.Option(None, "--runtime-dir"), evidence_dir: Path = typer.Option(None, "--evidence-dir")):
     from agentcomos.release_readiness import check_release_readiness
     import yaml
-    print(yaml.dump(check_release_readiness(), sort_keys=False))
+    res = check_release_readiness(evidence_dir=evidence_dir)
+    print(yaml.dump(res, sort_keys=False))
+    if runtime_dir:
+        runtime_dir.mkdir(parents=True, exist_ok=True)
+        (runtime_dir / "readiness_report.yaml").write_text(yaml.dump(res))
 
 @release_app.command("go-no-go")
 def release_go_no_go(readiness_report: Path = typer.Option(None), runtime_dir: Path = typer.Option(None)):
@@ -1123,6 +1127,9 @@ def release_go_no_go(readiness_report: Path = typer.Option(None), runtime_dir: P
         
     res = evaluate_go_no_go(rr, sr)
     print(yaml.dump(res, sort_keys=False))
+    if runtime_dir:
+        runtime_dir.mkdir(parents=True, exist_ok=True)
+        (runtime_dir / "go_no_go_report.yaml").write_text(yaml.dump(res))
 
 @smoke_app.command("production")
 def smoke_production(runtime_dir: Path = typer.Option(None)):

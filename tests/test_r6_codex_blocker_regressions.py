@@ -10,7 +10,7 @@ def test_r6_preserves_r4_redaction_semantics():
 
 def test_r6_smoke_reports_no_real_execution(tmp_path):
     res = run_production_smoke(tmp_path)
-    assert res["results"]["real_execution_check"] == "pass"
+    assert res["results"]["real_execution_scan"] == "pass"
 
 def test_r6_no_discord_adapter_bypass():
     pass
