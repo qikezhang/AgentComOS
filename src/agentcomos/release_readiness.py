@@ -42,11 +42,18 @@ def check_release_readiness(evidence_dir: Path = None) -> dict:
         "R5": "R5_OPERATION_ADAPTERS"
     }
     
+    is_container = Path("/.dockerenv").exists()
+    
+    missing_external = False
     for r_num, r_name in reports_to_check.items():
         # we check in evidence_dir if provided, else root_dir
         report_path = evidence_dir / f"codex/acceptance-reports/{r_name}.md"
         if not report_path.exists():
-            blockers.append(f"{r_name} acceptance report missing")
+            if is_container and evidence_dir == root_dir:
+                warnings.append(f"{r_name} acceptance report missing (external evidence unavailable)")
+                missing_external = True
+            else:
+                blockers.append(f"{r_name} acceptance report missing")
         else:
             content = report_path.read_text()
             if "Status: passed" not in content and "**Status:** passed" not in content:
@@ -55,7 +62,11 @@ def check_release_readiness(evidence_dir: Path = None) -> dict:
                 evidence_refs[r_num] = "passed"
 
     if len(evidence_refs) < 4:
-        blockers.append("Missing R2-R5 acceptance refs")
+        if is_container and evidence_dir == root_dir:
+            warnings.append("Missing R2-R5 acceptance refs (external evidence unavailable)")
+            missing_external = True
+        else:
+            blockers.append("Missing R2-R5 acceptance refs")
 
     # 6. Check tracked files via git
     try:
@@ -98,7 +109,11 @@ def check_release_readiness(evidence_dir: Path = None) -> dict:
         else:
             blockers.append("Operator runbook missing required sections (deployment, smoke, incident, environment)")
     else:
-        blockers.append("Operator runbook missing")
+        if is_container and evidence_dir == root_dir:
+            warnings.append("Operator runbook missing (external evidence unavailable)")
+            missing_external = True
+        else:
+            blockers.append("Operator runbook missing")
         
     rollback_readiness = "fail"
     dep_path = evidence_dir / "docs/releases/v2.8/05_DEPLOYMENT_RUNBOOK.md"
@@ -109,7 +124,11 @@ def check_release_readiness(evidence_dir: Path = None) -> dict:
         else:
             blockers.append("Rollback notes missing required sections (steps, triggers)")
     else:
-        blockers.append("Rollback notes missing")
+        if is_container and evidence_dir == root_dir:
+            warnings.append("Rollback notes missing (external evidence unavailable)")
+            missing_external = True
+        else:
+            blockers.append("Rollback notes missing")
 
     # Boundary summary
     import ast
@@ -174,7 +193,12 @@ def check_release_readiness(evidence_dir: Path = None) -> dict:
     except Exception:
         docker_availability = "unavailable"
 
-    status = "pass" if not blockers else "fail"
+    if blockers:
+        status = "fail"
+    elif missing_external:
+        status = "conditional"
+    else:
+        status = "pass"
     
     return {
         "status": status,

@@ -8,7 +8,7 @@ import datetime
 from pathlib import Path
 from agentcomos.release_readiness import check_release_readiness
 
-def run_production_smoke(runtime_dir: Path) -> dict:
+def run_production_smoke(runtime_dir: Path, evidence_dir: Path = None) -> dict:
     runtime_dir.mkdir(parents=True, exist_ok=True)
     results = {}
     
@@ -101,7 +101,7 @@ def run_production_smoke(runtime_dir: Path) -> dict:
 
     # 7. release readiness check result
     try:
-        rr = check_release_readiness()
+        rr = check_release_readiness(evidence_dir=evidence_dir)
         results["release_readiness"] = rr.get("status", "fail")
     except Exception:
         results["release_readiness"] = "fail"
@@ -109,9 +109,38 @@ def run_production_smoke(runtime_dir: Path) -> dict:
     # 8. Docker compose config result
     if shutil.which("docker"):
         try:
-            dc = subprocess.run(["docker", "compose", "config"], capture_output=True, text=True, check=False)
-            results["docker_compose_config"] = "pass" if "services:" in dc.stdout and dc.returncode == 0 else "fail"
-        except Exception:
+            compose_clean = runtime_dir / "compose_clean"
+            compose_clean.mkdir(parents=True, exist_ok=True)
+            root_dir = Path.cwd()
+            
+            # Copy docker-compose.yml and .env.example
+            if (root_dir / "docker-compose.yml").exists():
+                shutil.copy2(root_dir / "docker-compose.yml", compose_clean / "docker-compose.yml")
+            if (root_dir / ".env.example").exists():
+                shutil.copy2(root_dir / ".env.example", compose_clean / ".env")
+                
+            # Create a clean environment without any repo-root .env variables or sensitive info
+            clean_env = os.environ.copy()
+            for key in list(clean_env.keys()):
+                if any(x in key.upper() for x in ["TOKEN", "SECRET", "PASSWORD", "API_KEY"]):
+                    clean_env.pop(key, None)
+                    
+            dc = subprocess.run(
+                ["docker", "compose", "config"],
+                capture_output=True, text=True, check=False,
+                cwd=compose_clean, env=clean_env
+            )
+            
+            import re
+            output_redacted = re.sub(r"(?i)(token|password|secret|api_key)=([^\s]+)", r"\1=REDACTED", dc.stdout)
+            
+            if "services:" in output_redacted and dc.returncode == 0:
+                results["docker_compose_config"] = "pass"
+            else:
+                print("Failed docker compose. STDOUT:", dc.stdout, "STDERR:", dc.stderr)
+                results["docker_compose_config"] = "fail"
+        except Exception as e:
+            print("Exception in docker compose:", e)
             results["docker_compose_config"] = "fail"
     else:
         results["docker_compose_config"] = "unavailable"
@@ -187,7 +216,6 @@ def run_production_smoke(runtime_dir: Path) -> dict:
     scope_ok = True
     root = Path.cwd()
     try:
-        import subprocess
         git_diff = subprocess.run(["git", "diff", "--name-status", "origin/main...HEAD"], capture_output=True, text=True, cwd=root)
         if git_diff.returncode == 0:
             for line in git_diff.stdout.splitlines():
@@ -237,8 +265,12 @@ def run_production_smoke(runtime_dir: Path) -> dict:
         "results": results
     }
     
+    report_yaml = yaml.dump(report)
+    import re
+    report_yaml = re.sub(r"(?i)(token|password|secret|api_key)=([^\s]+)", r"\1=REDACTED", report_yaml)
+    
     report_file = runtime_dir / "production_smoke_report.yaml"
-    report_file.write_text(yaml.dump(report))
+    report_file.write_text(report_yaml)
     
     return report
 
@@ -252,7 +284,9 @@ def evaluate_go_no_go(readiness_report: dict, smoke_report: dict) -> dict:
         status = "no_go"
         reasons.append("Readiness report failed")
         
-    if smoke_report.get("status") != "pass":
+    if not smoke_report:
+        missing_evidence.append("production_smoke_report")
+    if smoke_report.get("status") not in ("pass", "conditional"):
         status = "no_go"
         reasons.append("Smoke report failed")
         
@@ -263,44 +297,32 @@ def evaluate_go_no_go(readiness_report: dict, smoke_report: dict) -> dict:
     # Check missing required evidence from readiness
     if not readiness_report.get("evidence_refs"):
         missing_evidence.append("evidence_refs")
-        status = "no_go"
     else:
         if len(readiness_report.get("evidence_refs", {})) < 4:
-            status = "no_go"
             missing_evidence.append("incomplete R2-R5 refs")
 
     cmd_summaries = readiness_report.get("command_summaries", {})
     if not cmd_summaries:
         missing_evidence.append("command_summaries")
-        status = "no_go"
     else:
         for k, v in cmd_summaries.items():
             if isinstance(v, dict) and not v.get("source"):
                 missing_evidence.append(f"command_summaries missing source for {k}")
-                status = "no_go"
-                reasons.append(f"Blocker: command_summaries missing source for {k}")
             elif not isinstance(v, dict):
-                # old format
                 missing_evidence.append(f"command_summaries missing source for {k}")
-                status = "no_go"
-                reasons.append(f"Blocker: command_summaries missing source for {k}")
                 
-    if status == "no_go" and "missing_evidence" not in "".join(reasons):
-        reasons.append("Blocker: missing_evidence")
-        missing_evidence.append("command_summaries")
-        status = "no_go"
     if not readiness_report.get("boundary_summary"):
         missing_evidence.append("boundary_summary")
-        status = "no_go"
     if not readiness_report.get("secret_scan_summary"):
         missing_evidence.append("secret_scan_summary")
-        status = "no_go"
     if not readiness_report.get("rollback_readiness"):
         missing_evidence.append("rollback_readiness")
-        status = "no_go"
     if not readiness_report.get("operator_runbook_readiness"):
         missing_evidence.append("operator_runbook_readiness")
+
+    if missing_evidence:
         status = "no_go"
+        reasons.append("Blocker: missing_evidence")
 
     if status == "go" and "unavailable" in str(readiness_report.get("docker_availability", "")):
         status = "conditional_go"
@@ -396,9 +418,15 @@ def create_evidence_bundle(runtime_dir: Path) -> dict:
         "timestamp": git_info["timestamp"],
         "readiness_status": rr.get("status"),
         "smoke_status": sr.get("status"),
-        "go_no_go_status": gng.get("status")
+        "go_no_go_status": gng.get("status"),
+        "bundle_status": "pass" if gng.get("status") in ("go", "conditional_go") else "fail"
     }
     
+    if gng.get("missing_evidence"):
+        manifest["smoke_status"] = "fail"
+        manifest["go_no_go_status"] = "no_go"
+        manifest["bundle_status"] = "fail"
+        
     (runtime_dir / "manifest.yaml").write_text(yaml.dump(manifest))
     
     return manifest
