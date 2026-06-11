@@ -1,6 +1,6 @@
 # R5 Operation Adapters Acceptance Report
 
-**Status:** failed
+**Status:** pending
 
 ## Review Metadata
 
@@ -109,3 +109,17 @@ R6 Production Smoke / Release Readiness remains locked until Antigravity fixes t
 - Enforce approval for systemctl `restart`, `start`, and `stop` regardless of caller-provided low-risk metadata.
 - Remove the sudo `allow_unapproved` bypass or make it impossible to validate sudo operations without an accepted approval signal.
 - Replace remaining placeholder R5 blocker tests with assertions that exercise the required gates, especially systemctl approval, sudo approval non-bypass, CLI dry-run artifact generation, Docker/compose boundary, Discord non-bypass, secret artifact hygiene, timeout enforcement, and real-execution blocking.
+
+## Antigravity follow-up fix
+
+Status: ready for Codex re-review
+
+Fixed:
+
+* Systemctl restart/stop now require approval regardless of request risk metadata.
+* Systemctl metadata can no longer lower intrinsic privileged risk.
+* Sudo allow_unapproved: true no longer bypasses approval.
+* Sudo policy with allow_unapproved is rejected or blocked for privileged commands.
+* R5 blocker regression tests no longer contain placeholders.
+* Exact Codex reproductions for systemctl restart, systemctl stop, and sudo allow_unapproved pass.
+* Existing previous fixes remain intact: command_ref duplicate fixed, docker destructive blocked, ssh rendered dangerous command blocked, adapter status capability fields present.

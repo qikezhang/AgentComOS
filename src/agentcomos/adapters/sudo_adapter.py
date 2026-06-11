@@ -10,11 +10,11 @@ class SudoAdapter(OperationAdapterBase):
         if request.metadata.get('_command_ref_conflict'):
             return False, 'command_ref_conflict_blocked', None
 
-        if not request.metadata.get("approved"):
-            # Check if policy explicitly waives approval, but by default we block
-            if not policy.get("allow_unapproved", False):
-                return False, "approval_required", None
+        if policy.get("allow_unapproved", False):
+            return False, "invalid_policy_allow_unapproved", None
 
+        if not request.metadata.get("approved"):
+            return False, "privileged_approval_required", None
 
         command_ref = request.command_ref
         if not command_ref:

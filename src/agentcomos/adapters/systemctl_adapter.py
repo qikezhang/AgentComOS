@@ -18,6 +18,12 @@ class SystemctlAdapter(OperationAdapterBase):
         if not service_ref:
             return False, "missing_service_ref", None
             
+        privileged_commands = ["systemctl_restart", "systemctl_stop", "systemctl_start", "systemctl_reload", "systemctl_enable", "systemctl_disable"]
+        if command_ref in privileged_commands:
+            if not request.metadata.get("approved"):
+                return False, "privileged_approval_required", None
+
+            
         allowed_services = policy.get("allowed_services", [])
         if service_ref not in allowed_services:
             return False, "service_not_allowed", None
