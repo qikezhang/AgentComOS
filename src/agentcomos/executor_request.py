@@ -58,6 +58,7 @@ class ExecutorRequest:
         created_at: Optional[str] = None,
         raw_command_present: bool = False,
         reason: Optional[str] = None,
+        command_ref: Optional[str] = None,
         **kwargs
     ):
         self.executor_request_id = executor_request_id or f"EXEC-REQ-{uuid.uuid4().hex[:8].upper()}"
@@ -76,6 +77,7 @@ class ExecutorRequest:
         self.reason = reason
         self.created_at = created_at or datetime.datetime.now(datetime.timezone.utc).isoformat()
         self.raw_command_present = raw_command_present
+        self.command_ref = redact_executor_text(command_ref) if command_ref else None
         self.metadata = redact_executor_data(kwargs) if kwargs else {}
 
     def to_dict(self) -> Dict[str, Any]:
@@ -95,6 +97,8 @@ class ExecutorRequest:
             "status": self.status,
             "created_at": self.created_at,
         }
+        if self.command_ref:
+            data["command_ref"] = self.command_ref
         if self.reason:
             data["reason"] = self.reason
         if self.raw_command_present:
@@ -115,6 +119,27 @@ class ExecutorRequest:
             if not command_text_redacted:
                 command_text_redacted = redact_executor_text(data["command_text"])
                 
+        metadata = redacted_data.get("metadata", {}).copy()
+        
+        # Command ref canonicalization
+        command_ref_top = redacted_data.get("command_ref")
+        command_ref_meta = metadata.pop("command_ref", None)
+        
+        conflict = False
+        if command_ref_top is not None and command_ref_meta is not None and command_ref_top != command_ref_meta:
+            conflict = True
+            
+        command_ref = command_ref_top if command_ref_top is not None else command_ref_meta
+        if conflict:
+            metadata["_command_ref_conflict"] = True
+            
+        # Avoid duplicate kwargs for other explicitly defined parameters
+        for k in ["executor_request_id", "source", "source_message_id", "requested_by_hash",
+                  "command_type", "command_text_redacted", "target", "risk_level",
+                  "requires_executor", "requires_approval", "policy_ref", "correlation_id",
+                  "status", "created_at", "raw_command_present", "reason", "command_ref"]:
+            metadata.pop(k, None)
+            
         return cls(
             executor_request_id=redacted_data.get("executor_request_id"),
             source=redacted_data.get("source", "unknown"),
@@ -132,7 +157,8 @@ class ExecutorRequest:
             created_at=redacted_data.get("created_at"),
             raw_command_present=raw_command_present,
             reason=data.get("reason") or redacted_data.get("reason"), # Use original or redacted reason
-            **(redacted_data.get("metadata", {}))
+            command_ref=command_ref,
+            **metadata
         )
 
     def write_artifact(self, file_path: str) -> None:

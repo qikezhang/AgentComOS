@@ -38,3 +38,12 @@ class ExecutorPolicy:
             pass
 
         return True  # actual policy logic would be more complex
+
+    def get_raw_dict(self) -> Dict[str, Any]:
+        return {
+            "policy_id": self.policy_id,
+            "default_action": self.default_action,
+            "allowed_sources": list(self.allowed_sources),
+            "adapters": self.adapters,
+            "redaction_patterns": self.redaction_patterns
+        }

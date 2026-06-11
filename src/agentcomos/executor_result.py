@@ -22,6 +22,7 @@ class ExecutorResult:
         finished_at: Optional[str] = None,
         correlation_id: Optional[str] = None,
         source: str = "unknown",
+        **kwargs
     ):
         self.executor_result_id = executor_result_id or f"EXEC-RES-{uuid.uuid4().hex[:8].upper()}"
         self.executor_request_id = executor_request_id
@@ -30,6 +31,12 @@ class ExecutorResult:
         self.execution_mode = execution_mode
         self.real_execution = real_execution
         self.adapter_invoked = adapter_invoked
+        self.adapter_type = kwargs.get("adapter_type")
+        self.adapter_result_id = kwargs.get("adapter_result_id")
+        self.stdout_redacted = kwargs.get("stdout_redacted")
+        self.stderr_redacted = kwargs.get("stderr_redacted")
+        self.rollback_note = kwargs.get("rollback_note")
+        self.exit_code = kwargs.get("exit_code")
         self.summary = summary
         self.timeout_seconds = timeout_seconds
         self.redaction_applied = redaction_applied
@@ -40,7 +47,7 @@ class ExecutorResult:
         self.source = source
 
     def to_dict(self) -> Dict[str, Any]:
-        return redact_executor_data({
+        data = {
             "executor_result_id": self.executor_result_id,
             "executor_request_id": self.executor_request_id,
             "decision_id": self.decision_id,
@@ -56,7 +63,21 @@ class ExecutorResult:
             "artifacts": self.artifacts,
             "correlation_id": self.correlation_id,
             "source": self.source,
-        })
+        }
+        if self.adapter_type:
+            data["adapter_type"] = self.adapter_type
+        if self.adapter_result_id:
+            data["adapter_result_id"] = self.adapter_result_id
+        if self.stdout_redacted is not None:
+            data["stdout_redacted"] = self.stdout_redacted
+        if self.stderr_redacted is not None:
+            data["stderr_redacted"] = self.stderr_redacted
+        if self.rollback_note:
+            data["rollback_note"] = self.rollback_note
+        if self.exit_code is not None:
+            data["exit_code"] = self.exit_code
+            
+        return redact_executor_data(data)
 
     def write_artifact(self, file_path: str) -> None:
         with open(file_path, "w", encoding="utf-8") as f:

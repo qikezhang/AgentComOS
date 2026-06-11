@@ -1,0 +1,7 @@
+command_text: systemctl status nginx
+source: discord
+command_type: systemctl_status
+metadata:
+  adapter_type: systemctl
+  command_ref: status
+  service_ref: nginx

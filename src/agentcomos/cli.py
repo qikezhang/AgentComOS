@@ -921,6 +921,9 @@ def healthcheck() -> None:
 executor_app = typer.Typer(help="Controlled Executor operations")
 app.add_typer(executor_app, name="executor")
 
+adapter_app = typer.Typer(help="Operation Adapter operations")
+app.add_typer(adapter_app, name="adapter")
+
 @executor_app.command("status")
 def executor_status_cmd() -> None:
     from agentcomos.executor_config import ExecutorConfig
@@ -998,6 +1001,92 @@ def executor_run_dry_cmd(
             "decision": decision.decision,
             "result_status": result.status,
             "execution_mode": result.execution_mode
+        })
+        print(yaml.dump(summary, sort_keys=False))
+    except Exception as e:
+        raise typer.BadParameter(str(e))
+
+@adapter_app.command("status")
+def adapter_status_cmd() -> None:
+    from agentcomos.adapters import registry
+    import yaml
+    
+    status = {}
+    for name, adapter in registry.list_adapters().items():
+        status[name] = {
+            "adapter_type": adapter.adapter_type,
+            "enabled": adapter.enabled,
+            "dry_run_available": True,
+            "mock_runner_available": True,
+            "real_execution_available": False,
+            "policy_required": adapter.policy_required,
+            "approval_required_for_high_risk": adapter.approval_required_for_high_risk,
+            "default_timeout_seconds": adapter.default_timeout_seconds,
+            "supports_real_run": adapter.supports_real_run,
+            "supports_dry_run": adapter.supports_dry_run,
+        }
+    print(yaml.dump({"adapters": status}, sort_keys=False))
+
+@adapter_app.command("validate-policy")
+def adapter_validate_policy_cmd(
+    policy_file: Path = typer.Option(..., "--policy-file", help="Path to policy YAML")
+) -> None:
+    from agentcomos.operation_adapter_policy import OperationAdapterPolicyResolver
+    import yaml
+    
+    try:
+        with open(policy_file, "r") as f:
+            policy_data = yaml.safe_load(f)
+        resolver = OperationAdapterPolicyResolver(policy_data)
+        
+        status = {"valid": True, "adapters": {}}
+        from agentcomos.adapters import registry
+        for name, adapter in registry.list_adapters().items():
+            if resolver.is_adapter_enabled(name):
+                status["adapters"][name] = "enabled"
+            else:
+                status["adapters"][name] = "disabled"
+                
+        print(yaml.dump(status, sort_keys=False))
+    except Exception as e:
+        raise typer.BadParameter(str(e))
+
+@adapter_app.command("dry-run")
+def adapter_dry_run_cmd(
+    request_file: Path = typer.Option(..., "--request-file", help="Path to executor request YAML"),
+    runtime_dir: Path = typer.Option(..., "--runtime-dir", help="Directory to output artifacts")
+) -> None:
+    # Just redirect to executor run-dry, since it now includes adapter dry-run
+    executor_run_dry_cmd(request_file, runtime_dir)
+
+@executor_app.command("run-real")
+def executor_run_real_cmd(
+    request_file: Path = typer.Option(..., "--request-file", help="Path to executor request YAML"),
+    runtime_dir: Path = typer.Option(..., "--runtime-dir", help="Directory to output artifacts")
+) -> None:
+    from agentcomos.executor_config import ExecutorConfig
+    from agentcomos.executor_policy import ExecutorPolicy
+    from agentcomos.executor_request import ExecutorRequest
+    from agentcomos.executor_framework import ExecutorFramework
+    from agentcomos.executor_redaction import redact_executor_data
+    import yaml
+    
+    config = ExecutorConfig()
+    policy = ExecutorPolicy.load(config.policy_path) if config.policy_path else None
+    framework = ExecutorFramework(config, policy)
+    
+    try:
+        request = ExecutorRequest.load_artifact(str(request_file))
+        request.metadata["real_execution"] = True
+        decision, result = framework.process_request(request, str(runtime_dir))
+        
+        summary = redact_executor_data({
+            "executor_request_id": request.executor_request_id,
+            "decision": decision.decision,
+            "result_status": result.status,
+            "execution_mode": result.execution_mode,
+            "adapter_invoked": result.adapter_invoked,
+            "adapter_type": result.adapter_type
         })
         print(yaml.dump(summary, sort_keys=False))
     except Exception as e:
