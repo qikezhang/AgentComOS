@@ -1092,5 +1092,51 @@ def executor_run_real_cmd(
     except Exception as e:
         raise typer.BadParameter(str(e))
 
+
+release_app = typer.Typer(help="Release readiness operations")
+app.add_typer(release_app, name="release")
+
+smoke_app = typer.Typer(help="Smoke testing operations")
+app.add_typer(smoke_app, name="smoke")
+
+@release_app.command("readiness")
+def release_readiness():
+    from agentcomos.release_readiness import check_release_readiness
+    import yaml
+    print(yaml.dump(check_release_readiness(), sort_keys=False))
+
+@release_app.command("go-no-go")
+def release_go_no_go(readiness_report: Path = typer.Option(None), runtime_dir: Path = typer.Option(None)):
+    from agentcomos.production_smoke import evaluate_go_no_go
+    import yaml
+    
+    rr = {"status": "no_go", "blockers": ["Missing readiness report"]}
+    if readiness_report and readiness_report.exists():
+        rr = yaml.safe_load(readiness_report.read_text())
+    else:
+        from agentcomos.release_readiness import check_release_readiness
+        rr = check_release_readiness()
+        
+    sr = {"status": "fail"}
+    if runtime_dir and (runtime_dir / "production_smoke_report.yaml").exists():
+        sr = yaml.safe_load((runtime_dir / "production_smoke_report.yaml").read_text())
+        
+    res = evaluate_go_no_go(rr, sr)
+    print(yaml.dump(res, sort_keys=False))
+
+@smoke_app.command("production")
+def smoke_production(runtime_dir: Path = typer.Option(None)):
+    from agentcomos.production_smoke import run_production_smoke
+    import yaml
+    res = run_production_smoke(runtime_dir or Path(".agentcomos/runs/smoke"))
+    print(yaml.dump(res, sort_keys=False))
+
+@smoke_app.command("bundle")
+def smoke_bundle(runtime_dir: Path = typer.Option(None)):
+    from agentcomos.production_smoke import create_evidence_bundle
+    import yaml
+    res = create_evidence_bundle(runtime_dir or Path(".agentcomos/runs/bundle"))
+    print(yaml.dump(res, sort_keys=False))
+
 if __name__ == "__main__":
     app()
