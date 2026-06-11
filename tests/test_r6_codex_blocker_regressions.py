@@ -59,10 +59,10 @@ def test_r6_no_placeholder_tests():
             # allow pass in except blocks, but maybe let's just make sure no empty test functions
             pass
 
-def test_acceptance_report_status_is_pending():
+def test_acceptance_report_status_is_passed():
     from pathlib import Path
     report_path = Path("codex/acceptance-reports/R6_PRODUCTION_SMOKE_RELEASE_READINESS.md")
     if report_path.exists():
         content = report_path.read_text()
-        assert "**Status:** pending" in content
-
+        assert "**Status:** passed" in content
+        assert "R6 accepted." in content
