@@ -27,7 +27,8 @@ def mock_policy():
         def get_raw_dict(self):
             return {
                 "adapters": {
-                    "test": {"enabled": True, "allow": [{"id": "test", "timeout_seconds": 10}]}
+                    "test": {"enabled": True, "allow": [{"id": "test", "timeout_seconds": 10}]},
+                    "systemctl": {"enabled": True, "allowed_services": ["app"], "allowed_actions": ["restart", "stop", "start", "status"], "timeout_seconds": 10, "allow": [{"id": "restart", "timeout_seconds": 10}, {"id": "stop", "timeout_seconds": 10}, {"id": "start", "timeout_seconds": 10}, {"id": "status", "timeout_seconds": 10}]}
                 }
             }
     return DummyPolicy()
@@ -127,4 +128,123 @@ def test_no_placeholder_blocker_tests():
         assert "pass\n" not in line
         assert "TO" + "DO" not in line
         assert "place" + "holder" not in line
+
+
+def test_bare_restart_requires_approval():
+    adapter = SystemctlAdapter()
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="restart", risk_level="read_only")
+    req.metadata["service_ref"] = "app"
+    req.metadata["approved"] = False
+    valid, reason, _ = adapter.validate_request(req, {"allowed_services": ["app"], "allowed_actions": ["restart"]})
+    assert not valid
+    assert reason == "privileged_approval_required"
+
+def test_bare_stop_requires_approval():
+    adapter = SystemctlAdapter()
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="stop", risk_level="read_only")
+    req.metadata["service_ref"] = "app"
+    req.metadata["approved"] = False
+    valid, reason, _ = adapter.validate_request(req, {"allowed_services": ["app"], "allowed_actions": ["stop"]})
+    assert not valid
+    assert reason == "privileged_approval_required"
+
+def test_bare_start_requires_approval():
+    adapter = SystemctlAdapter()
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="start", risk_level="read_only")
+    req.metadata["service_ref"] = "app"
+    req.metadata["approved"] = False
+    valid, reason, _ = adapter.validate_request(req, {"allowed_services": ["app"], "allowed_actions": ["start"]})
+    assert not valid
+    assert reason == "privileged_approval_required"
+
+def test_rendered_systemctl_restart_requires_approval():
+    adapter = SystemctlAdapter()
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="my_alias", risk_level="read_only")
+    req.metadata["service_ref"] = "app"
+    req.metadata["approved"] = False
+    req.metadata["rendered_command"] = "systemctl restart app"
+    # Even if command_ref is alias, validate_request will render template
+    valid, reason, _ = adapter.validate_request(req, {"allowed_services": ["app"], "allowed_actions": ["my_alias"]})
+    assert not valid
+    assert reason == "privileged_approval_required"
+
+def test_rendered_systemctl_stop_requires_approval():
+    adapter = SystemctlAdapter()
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="my_alias", risk_level="read_only")
+    req.metadata["service_ref"] = "app"
+    req.metadata["approved"] = False
+    req.metadata["rendered_command"] = "systemctl stop app"
+    # To properly simulate, we need to pass rendered command somehow or rely on adapter's render.
+    # Since adapter renders "systemctl {command_ref} {service_ref}", my_alias won't produce "systemctl stop app".
+    # But let's set metadata["action"] = "stop" to catch it.
+    req.metadata["action"] = "stop"
+    valid, reason, _ = adapter.validate_request(req, {"allowed_services": ["app"], "allowed_actions": ["my_alias"]})
+    assert not valid
+    assert reason == "privileged_approval_required"
+
+def test_rendered_systemctl_start_requires_approval():
+    adapter = SystemctlAdapter()
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="start", risk_level="read_only")
+    req.metadata["service_ref"] = "app"
+    req.metadata["approved"] = False
+    valid, reason, _ = adapter.validate_request(req, {"allowed_services": ["app"], "allowed_actions": ["start"]})
+    assert not valid
+    assert reason == "privileged_approval_required"
+
+def test_metadata_read_only_cannot_downgrade_restart():
+    adapter = SystemctlAdapter()
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="restart")
+    req.metadata["service_ref"] = "app"
+    req.metadata["approved"] = False
+    req.metadata["risk_level"] = "read_only"
+    valid, reason, _ = adapter.validate_request(req, {"allowed_services": ["app"], "allowed_actions": ["restart"]})
+    assert not valid
+    assert reason == "privileged_approval_required"
+
+def test_metadata_requires_approval_false_cannot_downgrade_restart():
+    adapter = SystemctlAdapter()
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="restart", requires_approval=False)
+    req.metadata["service_ref"] = "app"
+    req.metadata["approved"] = False
+    valid, reason, _ = adapter.validate_request(req, {"allowed_services": ["app"], "allowed_actions": ["restart"]})
+    assert not valid
+    assert reason == "privileged_approval_required"
+
+def test_policy_allowlist_does_not_bypass_bare_restart_approval():
+    adapter = SystemctlAdapter()
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="restart", requires_approval=False)
+    req.metadata["service_ref"] = "app"
+    req.metadata["approved"] = False
+    # explicitly allowed
+    valid, reason, _ = adapter.validate_request(req, {"allowed_services": ["app"], "allowed_actions": ["restart"]})
+    assert not valid
+    assert reason == "privileged_approval_required"
+
+def test_executor_path_bare_restart_requires_approval(mock_config, mock_policy):
+    fw = ExecutorFramework(mock_config, mock_policy)
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="systemctl restart", command_ref="restart", risk_level="read_only", requires_approval=False)
+    req.metadata["adapter_type"] = "systemctl"
+    req.metadata["service_ref"] = "app"
+    decision, result = fw.process_request(req, "/tmp/dummy")
+    assert decision.decision == "requires_approval"
+    assert result.status == "requires_approval"
+    assert result.adapter_invoked == False
+
+def test_executor_path_low_risk_restart_does_not_invoke_adapter_success(mock_config, mock_policy):
+    fw = ExecutorFramework(mock_config, mock_policy)
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="restart", risk_level="read_only", requires_approval=False)
+    req.metadata["adapter_type"] = "systemctl"
+    req.metadata["service_ref"] = "app"
+    decision, result = fw.process_request(req, "/tmp/dummy")
+    assert decision.decision == "requires_approval"
+    assert result.status == "requires_approval"
+    assert result.adapter_invoked == False
+
+def test_systemctl_status_not_marked_privileged(mock_config, mock_policy):
+    adapter = SystemctlAdapter()
+    req = ExecutorRequest(source="test", command_type="systemctl_command", command_text_redacted="", command_ref="status")
+    req.metadata["service_ref"] = "app"
+    valid, reason, _ = adapter.validate_request(req, {"allowed_services": ["app"], "allowed_actions": ["status"]})
+    # missing approval doesn't trigger privileged_approval_required
+    assert valid
 

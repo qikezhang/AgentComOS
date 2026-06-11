@@ -164,6 +164,28 @@ class ExecutorFramework:
                  decision_status = "blocked"
                  reason = "secret_request_blocked"
 
+        # Apply privileged systemctl action detector here
+        if adapter_type == "systemctl" and decision_status not in ["adapter_disabled", "adapter_policy_missing", "blocked"]:
+            from .adapters.systemctl_adapter import is_privileged_systemctl_action
+            
+            cmd_ref = getattr(request, "command_ref", None) or request.metadata.get("command_ref")
+            rendered_command = request.metadata.get("rendered_command", "")
+            is_priv, priv_risk, priv_reason = is_privileged_systemctl_action(cmd_ref, rendered_command, request.metadata)
+            
+            if is_priv:
+                requires_approval = True
+                risk_level = priv_risk
+                if not request.requires_approval:
+                    decision_status = "requires_approval"
+                    reason = priv_reason
+                    
+                # Ensure the allowlist does not bypass approval or allow unapproved overrides for privileged commands
+                # Although allow_unapproved might be defined in policy, we strictly block it for systemctl privileged actions if missing real approval
+                if getattr(self.policy, 'is_allow_unapproved_enabled', lambda: False)():
+                    if not request.requires_approval:
+                        decision_status = "blocked"
+                        reason = priv_reason
+
         return ExecutorDecision(
             executor_request_id=request.executor_request_id,
             decision=decision_status,

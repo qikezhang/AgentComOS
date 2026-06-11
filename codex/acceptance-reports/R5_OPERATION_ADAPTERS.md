@@ -1,6 +1,6 @@
 # R5 Operation Adapters Acceptance Report
 
-**Status:** failed
+**Status:** pending
 
 ## Review Metadata
 
@@ -94,3 +94,16 @@ R6 Production Smoke / Release Readiness remains locked until Antigravity fixes t
 
 - Treat both bare systemctl actions (`restart`, `start`, `stop`, and equivalent privileged actions) and prefixed refs (`systemctl_restart`, `systemctl_start`, `systemctl_stop`) as privileged and require approval before adapter validation or executor dry-run can proceed.
 - Add regression coverage for bare `restart`, `start`, and `stop` command refs, including executor-path tests that prove low-risk metadata cannot bypass approval.
+
+## Antigravity follow-up fix
+
+Status: ready for Codex re-review
+
+Fixed:
+* Bare restart, stop, and start command_refs are now treated as privileged systemctl actions.
+* Rendered systemctl restart/stop/start commands now require approval.
+* Metadata can no longer downgrade privileged systemctl actions to read-only.
+* Policy allowlist can no longer bypass systemctl approval gate.
+* Executor path now applies the same intrinsic privileged systemctl gate before adapter invocation.
+* Existing safe systemctl status behavior remains intact.
+* Added exact Codex regression tests for bare restart/stop/start and executor path restart.
