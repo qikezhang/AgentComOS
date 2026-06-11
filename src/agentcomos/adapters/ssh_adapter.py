@@ -7,7 +7,10 @@ class SshAdapter(OperationAdapterBase):
     adapter_type = "ssh"
     
     def validate_request(self, request: ExecutorRequest, policy: Dict[str, Any]) -> Tuple[bool, str, Optional[str]]:
-        command_ref = request.metadata.get("command_ref")
+        if request.metadata.get('_command_ref_conflict'):
+            return False, 'command_ref_conflict_blocked', None
+
+        command_ref = request.command_ref
         host_ref = request.metadata.get("host_ref")
         if not command_ref:
             return False, "missing_command_ref", None
@@ -33,6 +36,17 @@ class SshAdapter(OperationAdapterBase):
             
         params = request.metadata.get("params", {})
         rendered = self.render_command_template(template, params)
+        
+        dangerous_patterns = [
+            "rm -rf", ";", "&&", "|", ">", "<", "$(", "`", "bash -c", "sh -c",
+            "sudo", "systemctl", "docker", "cat /etc/passwd", "printenv", "env"
+        ]
+        
+        # also the prompt mentions "rendered_command_blocked|destructive_command_blocked|raw_command_blocked"
+        for p in dangerous_patterns:
+            if p in rendered:
+                return False, "rendered_command_blocked", None
+                
         redacted_rendered = self.redact_output(rendered)
         
         return True, "valid", f"ssh {host_config.get('user', 'root')}@{host_ref} '{redacted_rendered}'"
@@ -43,7 +57,7 @@ class SshAdapter(OperationAdapterBase):
             return OperationAdapterResult(
                 executor_request_id=request.executor_request_id,
                 adapter_type=self.adapter_type,
-                command_ref=request.metadata.get("command_ref"),
+                command_ref=request.command_ref,
                 status="blocked",
                 execution_mode="blocked",
                 reason=reason
@@ -52,7 +66,7 @@ class SshAdapter(OperationAdapterBase):
         return OperationAdapterResult(
             executor_request_id=request.executor_request_id,
             adapter_type=self.adapter_type,
-            command_ref=request.metadata.get("command_ref"),
+            command_ref=request.command_ref,
             rendered_command_redacted=rendered,
             status="dry_run_completed",
             execution_mode="dry_run",
@@ -66,7 +80,7 @@ class SshAdapter(OperationAdapterBase):
             return OperationAdapterResult(
                 executor_request_id=request.executor_request_id,
                 adapter_type=self.adapter_type,
-                command_ref=request.metadata.get("command_ref"),
+                command_ref=request.command_ref,
                 status="blocked",
                 execution_mode="blocked",
                 reason=reason,
@@ -76,7 +90,7 @@ class SshAdapter(OperationAdapterBase):
         return OperationAdapterResult(
             executor_request_id=request.executor_request_id,
             adapter_type=self.adapter_type,
-            command_ref=request.metadata.get("command_ref"),
+            command_ref=request.command_ref,
             rendered_command_redacted=rendered,
             status="mock_completed",
             execution_mode="mock",

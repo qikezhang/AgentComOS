@@ -7,7 +7,10 @@ class ShellAdapter(OperationAdapterBase):
     adapter_type = "shell"
     
     def validate_request(self, request: ExecutorRequest, policy: Dict[str, Any]) -> Tuple[bool, str, Optional[str]]:
-        command_ref = request.metadata.get("command_ref")
+        if request.metadata.get('_command_ref_conflict'):
+            return False, 'command_ref_conflict_blocked', None
+
+        command_ref = request.command_ref
         if not command_ref:
             return False, "missing_command_ref", None
             
@@ -55,7 +58,7 @@ class ShellAdapter(OperationAdapterBase):
             return OperationAdapterResult(
                 executor_request_id=request.executor_request_id,
                 adapter_type=self.adapter_type,
-                command_ref=request.metadata.get("command_ref"),
+                command_ref=request.command_ref,
                 status="blocked",
                 execution_mode="blocked",
                 reason=reason
@@ -64,7 +67,7 @@ class ShellAdapter(OperationAdapterBase):
         return OperationAdapterResult(
             executor_request_id=request.executor_request_id,
             adapter_type=self.adapter_type,
-            command_ref=request.metadata.get("command_ref"),
+            command_ref=request.command_ref,
             rendered_command_redacted=rendered,
             status="dry_run_completed",
             execution_mode="dry_run",
@@ -74,7 +77,7 @@ class ShellAdapter(OperationAdapterBase):
         
     def run(self, request: ExecutorRequest, policy: Dict[str, Any]) -> OperationAdapterResult:
         is_valid, reason, rendered = self.validate_request(request, policy)
-        cmd_ref = getattr(request, "command_ref", None) or request.metadata.get("command_ref")
+        cmd_ref = getattr(request, "command_ref", None) or request.command_ref
         if not is_valid:
             return OperationAdapterResult(
                 executor_request_id=request.executor_request_id,

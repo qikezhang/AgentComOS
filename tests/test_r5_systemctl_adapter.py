@@ -8,7 +8,7 @@ def test_systemctl_adapter():
     assert not is_valid
     assert reason == "missing_command_ref"
     
-    req.metadata["command_ref"] = "status"
+    req.command_ref = "status"
     is_valid, reason, _ = adapter.validate_request(req, {})
     assert not is_valid
     assert reason == "missing_service_ref"

@@ -1014,9 +1014,16 @@ def adapter_status_cmd() -> None:
     status = {}
     for name, adapter in registry.list_adapters().items():
         status[name] = {
-            "type": adapter.adapter_type,
-            "supports_dry_run": adapter.supports_dry_run,
+            "adapter_type": adapter.adapter_type,
+            "enabled": adapter.enabled,
+            "dry_run_available": True,
+            "mock_runner_available": True,
+            "real_execution_available": False,
+            "policy_required": adapter.policy_required,
+            "approval_required_for_high_risk": adapter.approval_required_for_high_risk,
+            "default_timeout_seconds": adapter.default_timeout_seconds,
             "supports_real_run": adapter.supports_real_run,
+            "supports_dry_run": adapter.supports_dry_run,
         }
     print(yaml.dump({"adapters": status}, sort_keys=False))
 

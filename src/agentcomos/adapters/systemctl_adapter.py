@@ -7,7 +7,10 @@ class SystemctlAdapter(OperationAdapterBase):
     adapter_type = "systemctl"
     
     def validate_request(self, request: ExecutorRequest, policy: Dict[str, Any]) -> Tuple[bool, str, Optional[str]]:
-        command_ref = request.metadata.get("command_ref")
+        if request.metadata.get('_command_ref_conflict'):
+            return False, 'command_ref_conflict_blocked', None
+
+        command_ref = request.command_ref
         service_ref = request.metadata.get("service_ref")
         
         if not command_ref:
@@ -36,7 +39,7 @@ class SystemctlAdapter(OperationAdapterBase):
             return OperationAdapterResult(
                 executor_request_id=request.executor_request_id,
                 adapter_type=self.adapter_type,
-                command_ref=request.metadata.get("command_ref"),
+                command_ref=request.command_ref,
                 status="blocked",
                 execution_mode="blocked",
                 reason=reason
@@ -45,7 +48,7 @@ class SystemctlAdapter(OperationAdapterBase):
         return OperationAdapterResult(
             executor_request_id=request.executor_request_id,
             adapter_type=self.adapter_type,
-            command_ref=request.metadata.get("command_ref"),
+            command_ref=request.command_ref,
             rendered_command_redacted=rendered,
             status="dry_run_completed",
             execution_mode="dry_run",
@@ -59,7 +62,7 @@ class SystemctlAdapter(OperationAdapterBase):
             return OperationAdapterResult(
                 executor_request_id=request.executor_request_id,
                 adapter_type=self.adapter_type,
-                command_ref=request.metadata.get("command_ref"),
+                command_ref=request.command_ref,
                 status="blocked",
                 execution_mode="blocked",
                 reason=reason,
@@ -69,7 +72,7 @@ class SystemctlAdapter(OperationAdapterBase):
         return OperationAdapterResult(
             executor_request_id=request.executor_request_id,
             adapter_type=self.adapter_type,
-            command_ref=request.metadata.get("command_ref"),
+            command_ref=request.command_ref,
             rendered_command_redacted=rendered,
             status="mock_completed",
             execution_mode="mock",

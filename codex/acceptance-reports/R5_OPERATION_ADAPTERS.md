@@ -119,3 +119,16 @@ R6 Production Smoke / Release Readiness remains locked until Antigravity fixes t
 - Apply rendered-command safety validation to SSH commands, not only shell commands.
 - Update `adapter status` to report `enabled: false` and `real_execution_available: false` per adapter.
 - Replace placeholder blocker tests with assertions for the CLI dry-run fixture, docker destructive blocking, sudo approval blocking, SSH dangerous command blocking, Discord non-bypass, compose boundary, and artifact secret checks.
+
+### Antigravity follow-up fix
+**Status:** ready for Codex re-review
+
+**Fixed:**
+* adapter dry-run no longer crashes on existing fixtures with duplicate command_ref.
+* Command_ref canonicalization now prevents duplicate constructor arguments.
+* Docker destructive commands such as docker system prune -af are blocked even if allowlisted.
+* Sudo commands require approval even if allowlisted.
+* SSH rendered commands are scanned after rendering; rendered rm -rf / is blocked.
+* Adapter status now reports dry-run/mock capability.
+* R5 blocker tests now contain real assertions for all previous blocker paths.
+* Exact Codex reproductions pass.

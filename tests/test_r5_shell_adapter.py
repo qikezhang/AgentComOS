@@ -10,7 +10,7 @@ def test_shell_adapter():
     assert not is_valid
     assert reason == "missing_command_ref"
     
-    req.metadata["command_ref"] = "cmd1"
+    req.command_ref = "cmd1"
     
     # Not allowed
     is_valid, reason, _ = adapter.validate_request(req, {})

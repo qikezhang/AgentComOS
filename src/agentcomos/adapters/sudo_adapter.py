@@ -7,7 +7,16 @@ class SudoAdapter(OperationAdapterBase):
     adapter_type = "sudo"
     
     def validate_request(self, request: ExecutorRequest, policy: Dict[str, Any]) -> Tuple[bool, str, Optional[str]]:
-        command_ref = request.metadata.get("command_ref")
+        if request.metadata.get('_command_ref_conflict'):
+            return False, 'command_ref_conflict_blocked', None
+
+        if not request.metadata.get("approved"):
+            # Check if policy explicitly waives approval, but by default we block
+            if not policy.get("allow_unapproved", False):
+                return False, "approval_required", None
+
+
+        command_ref = request.command_ref
         if not command_ref:
             return False, "missing_command_ref", None
             
@@ -35,7 +44,7 @@ class SudoAdapter(OperationAdapterBase):
             return OperationAdapterResult(
                 executor_request_id=request.executor_request_id,
                 adapter_type=self.adapter_type,
-                command_ref=request.metadata.get("command_ref"),
+                command_ref=request.command_ref,
                 status="blocked",
                 execution_mode="blocked",
                 reason=reason
@@ -44,7 +53,7 @@ class SudoAdapter(OperationAdapterBase):
         return OperationAdapterResult(
             executor_request_id=request.executor_request_id,
             adapter_type=self.adapter_type,
-            command_ref=request.metadata.get("command_ref"),
+            command_ref=request.command_ref,
             rendered_command_redacted=rendered,
             status="dry_run_completed",
             execution_mode="dry_run",
@@ -58,7 +67,7 @@ class SudoAdapter(OperationAdapterBase):
             return OperationAdapterResult(
                 executor_request_id=request.executor_request_id,
                 adapter_type=self.adapter_type,
-                command_ref=request.metadata.get("command_ref"),
+                command_ref=request.command_ref,
                 status="blocked",
                 execution_mode="blocked",
                 reason=reason,
@@ -68,7 +77,7 @@ class SudoAdapter(OperationAdapterBase):
         return OperationAdapterResult(
             executor_request_id=request.executor_request_id,
             adapter_type=self.adapter_type,
-            command_ref=request.metadata.get("command_ref"),
+            command_ref=request.command_ref,
             rendered_command_redacted=rendered,
             status="mock_completed",
             execution_mode="mock",
