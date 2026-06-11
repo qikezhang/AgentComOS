@@ -44,3 +44,18 @@ def test_bundle_missing_required_content_fails_validation(tmp_path):
     # This just ensures we output all of them
     bundle = create_evidence_bundle(tmp_path)
     assert bundle["readiness_status"] in ["pass", "fail"]
+
+def test_evidence_bundle_does_not_include_nested_env_file(tmp_path):
+    from agentcomos.production_smoke import create_evidence_bundle
+    manifest = create_evidence_bundle(tmp_path)
+    env_files = list(tmp_path.rglob(".env"))
+    assert not env_files, f"Found .env files: {env_files}"
+
+def test_bundle_manifest_excludes_env_at_any_depth(tmp_path):
+    from agentcomos.production_smoke import create_evidence_bundle
+    manifest = create_evidence_bundle(tmp_path)
+    files = manifest.get("files", [])
+    for f in files:
+        assert f != ".env"
+        assert not f.endswith("/.env")
+

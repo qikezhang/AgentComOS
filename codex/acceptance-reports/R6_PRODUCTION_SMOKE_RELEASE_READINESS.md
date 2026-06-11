@@ -1,6 +1,6 @@
 # R6 Production Smoke and Release Readiness
 
-**Status:** failed
+**Status:** pending
 
 ## Review Metadata
 
@@ -83,3 +83,18 @@
 R6 failed Codex re-review.
 
 Antigravity must fix the blocking issues and resubmit R6. R7 v2.8.0 Release Candidate remains locked until R6 passes and is merged to main.
+
+### Antigravity follow-up fix
+
+Status: ready for Codex re-review
+
+Fixed:
+
+* Smoke production no longer writes .env under runtime artifacts.
+* Evidence bundle no longer includes nested .env.
+* Compose config uses an external temporary workspace and deletes placeholder .env after use.
+* Recursive artifact guard now fails if any generated artifact contains .env.
+* Bundle manifest excludes .env at every depth.
+* Tests now recursively check for .env under smoke and bundle outputs.
+* Acceptance report status reset to pending.
+* Fresh Docker build/run unavailable is reported as unavailable only; old local images are not used as current evidence.

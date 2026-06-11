@@ -61,3 +61,12 @@ def test_smoke_does_not_dirty_repo(tmp_path):
     res = run_production_smoke(tmp_path)
     # The output should only go to runtime_dir
     assert "status" in res
+
+def test_smoke_production_does_not_generate_any_env_file_recursively(tmp_path):
+    from agentcomos.production_smoke import run_production_smoke
+    report = run_production_smoke(tmp_path)
+    env_files = list(tmp_path.rglob(".env"))
+    assert not env_files, f"Found .env files: {env_files}"
+    assert report.get("status") in ("pass", "fail")
+    assert report["results"].get("env_artifact_guard") == "pass"
+

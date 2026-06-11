@@ -58,3 +58,11 @@ def test_r6_no_placeholder_tests():
         if "pass" + "\n" in text and py_file.name != "test_r6_codex_blocker_regressions.py":
             # allow pass in except blocks, but maybe let's just make sure no empty test functions
             pass
+
+def test_acceptance_report_status_is_pending():
+    from pathlib import Path
+    report_path = Path("codex/acceptance-reports/R6_PRODUCTION_SMOKE_RELEASE_READINESS.md")
+    if report_path.exists():
+        content = report_path.read_text()
+        assert "**Status:** pending" in content
+

@@ -8,6 +8,13 @@ import datetime
 from pathlib import Path
 from agentcomos.release_readiness import check_release_readiness
 
+def assert_no_raw_env_files(runtime_dir: Path):
+    violations = []
+    for f in runtime_dir.rglob("*"):
+        if f.is_file() and f.name == ".env":
+            violations.append(str(f))
+    return violations
+
 def run_production_smoke(runtime_dir: Path, evidence_dir: Path = None) -> dict:
     runtime_dir.mkdir(parents=True, exist_ok=True)
     results = {}
@@ -108,42 +115,62 @@ def run_production_smoke(runtime_dir: Path, evidence_dir: Path = None) -> dict:
 
     # 8. Docker compose config result
     if shutil.which("docker"):
+        import tempfile
         try:
-            compose_clean = runtime_dir / "compose_clean"
-            compose_clean.mkdir(parents=True, exist_ok=True)
-            root_dir = Path.cwd()
-            
-            # Copy docker-compose.yml and .env.example
-            if (root_dir / "docker-compose.yml").exists():
-                shutil.copy2(root_dir / "docker-compose.yml", compose_clean / "docker-compose.yml")
-            if (root_dir / ".env.example").exists():
-                shutil.copy2(root_dir / ".env.example", compose_clean / ".env")
+            with tempfile.TemporaryDirectory(prefix="agentcomos-compose-") as temp_dir:
+                compose_clean = Path(temp_dir)
+                root_dir = Path.cwd()
                 
-            # Create a clean environment without any repo-root .env variables or sensitive info
-            clean_env = os.environ.copy()
-            for key in list(clean_env.keys()):
-                if any(x in key.upper() for x in ["TOKEN", "SECRET", "PASSWORD", "API_KEY"]):
-                    clean_env.pop(key, None)
+                # Copy docker-compose.yml and .env.example
+                if (root_dir / "docker-compose.yml").exists():
+                    shutil.copy2(root_dir / "docker-compose.yml", compose_clean / "docker-compose.yml")
+                if (root_dir / ".env.example").exists():
+                    shutil.copy2(root_dir / ".env.example", compose_clean / ".env")
                     
-            dc = subprocess.run(
-                ["docker", "compose", "config"],
-                capture_output=True, text=True, check=False,
-                cwd=compose_clean, env=clean_env
-            )
-            
-            import re
-            output_redacted = re.sub(r"(?i)(token|password|secret|api_key)=([^\s]+)", r"\1=REDACTED", dc.stdout)
-            
-            if "services:" in output_redacted and dc.returncode == 0:
-                results["docker_compose_config"] = "pass"
-            else:
-                print("Failed docker compose. STDOUT:", dc.stdout, "STDERR:", dc.stderr)
-                results["docker_compose_config"] = "fail"
+                # Create a clean environment without any repo-root .env variables or sensitive info
+                clean_env = os.environ.copy()
+                for key in list(clean_env.keys()):
+                    if any(x in key.upper() for x in ["TOKEN", "SECRET", "PASSWORD", "API_KEY"]):
+                        clean_env.pop(key, None)
+                        
+                dc = subprocess.run(
+                    ["docker", "compose", "config"],
+                    capture_output=True, text=True, check=False,
+                    cwd=compose_clean, env=clean_env
+                )
+                
+                import re
+                output_redacted = re.sub(r"(?i)(token|password|secret|api_key)=([^\s]+)", r"\1=REDACTED", dc.stdout)
+                
+                if "services:" in output_redacted and dc.returncode == 0:
+                    results["docker_compose_config"] = "pass"
+                    results["docker_compose_config_summary"] = {
+                        "status": "pass",
+                        "command": "docker compose config",
+                        "temp_workspace_used": True,
+                        "env_source": ".env.example",
+                        "persisted_env_file": False,
+                        "output_redacted": True
+                    }
+                else:
+                    results["docker_compose_config"] = "fail"
+                    results["docker_compose_config_summary"] = {
+                        "status": "fail",
+                        "command": "docker compose config",
+                        "temp_workspace_used": True,
+                        "env_source": ".env.example",
+                        "persisted_env_file": False,
+                        "output_redacted": True
+                    }
         except Exception as e:
-            print("Exception in docker compose:", e)
             results["docker_compose_config"] = "fail"
     else:
         results["docker_compose_config"] = "unavailable"
+        results["docker_compose_config_summary"] = {
+            "status": "unavailable",
+            "unavailable_reason": "docker not found in PATH",
+            "persisted_env_file": False
+        }
 
     # 9. Docker build/run availability
     if shutil.which("docker"):
@@ -254,17 +281,34 @@ def run_production_smoke(runtime_dir: Path, evidence_dir: Path = None) -> dict:
         results["git_branch"] = "unknown"
         results["git_commit"] = "unknown"
 
+    # 17. env artifact guard
+    env_violations = assert_no_raw_env_files(runtime_dir)
+    if env_violations:
+        results["env_artifact_guard"] = "fail"
+        results["env_violations"] = env_violations
+    else:
+        results["env_artifact_guard"] = "pass"
+
     overall_status = "pass"
     for k, v in results.items():
         if v == "fail":
             overall_status = "fail"
             break
             
-    report = {
-        "status": overall_status,
-        "results": results
-    }
-    
+    if env_violations:
+        overall_status = "fail"
+        # The prompt says: "If .env is found: smoke/evidence status fail, blocker: raw_env_artifact_found, path list included, but content not read or printed"
+        report = {
+            "status": "fail",
+            "blocker": "raw_env_artifact_found",
+            "env_violations": env_violations,
+            "results": results
+        }
+    else:
+        report = {
+            "status": overall_status,
+            "results": results
+        }            
     report_yaml = yaml.dump(report)
     import re
     report_yaml = re.sub(r"(?i)(token|password|secret|api_key)=([^\s]+)", r"\1=REDACTED", report_yaml)
@@ -426,6 +470,38 @@ def create_evidence_bundle(runtime_dir: Path) -> dict:
         manifest["smoke_status"] = "fail"
         manifest["go_no_go_status"] = "no_go"
         manifest["bundle_status"] = "fail"
+
+    allowed_files = [
+        "release_readiness_report.yaml",
+        "production_smoke_report.yaml",
+        "go_no_go_report.yaml",
+        "acceptance_refs.yaml",
+        "command_summaries.yaml",
+        "boundary_scan_summary.yaml",
+        "secret_scan_summary.yaml",
+        "regression_summary.yaml",
+        "rollback_readiness.yaml",
+        "operator_runbook_readiness.yaml",
+        "docker_availability.yaml",
+        "git_info.yaml",
+        "manifest.yaml"
+    ]
+    manifest_files = []
+    for f in runtime_dir.rglob("*"):
+        if f.is_file():
+            if f.name == ".env" or str(f).endswith("/.env"):
+                continue
+            if f.name in allowed_files:
+                manifest_files.append(str(f.relative_to(runtime_dir)))
+
+    # Apply guard
+    env_violations = assert_no_raw_env_files(runtime_dir)
+    if env_violations:
+        manifest["bundle_status"] = "fail"
+        manifest["blocker"] = "raw_env_artifact_found"
+        manifest["env_violations"] = env_violations
+
+    manifest["files"] = manifest_files
         
     (runtime_dir / "manifest.yaml").write_text(yaml.dump(manifest))
     
