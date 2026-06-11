@@ -1,15 +1,16 @@
 # R6 Production Smoke and Release Readiness
 
-**Status:** Ready for Codex re-review
+**Status:** failed
 
 ## Review Metadata
 
 - Reviewed by: Codex
 - Reviewed branch: `antigravity/r6-production-smoke-release-readiness`
-- Commit reviewed: `6d14944bcb48be75f87f0d46b521c64e74eefb47`
-- Prior failed review commit: `8ee2fc9`
+- Commit reviewed: `20d36bb511dbd0ca275dd1c6e31f0e8d27b46942`
+- Implementation fix commit reviewed: `a479d7ee954503185372a8afc7509490039bc8e4`
+- Prior failed review commit: `432e104`
 - Owner: Antigravity
-- Review result: Ready for Codex re-review. R7 remains locked.
+- Review result: R6 is not accepted. R7 remains locked.
 
 ## Baseline and Scope
 
@@ -18,27 +19,26 @@
 - R6 contains latest `origin/main` baseline: passed
 - R5 merged into main: passed
 - R5 acceptance report: `Status: passed`
-- R6 report before Codex update: `Status: pending`; no fake `passed`, `APPROVED`, or `Author: Codex` found
+- R6 report before Codex update: `Status: Ready for Codex re-review`; no fake `passed`, `APPROVED`, or `Author: Codex` found
 - R6 diff scope: R6 release readiness/smoke code, CLI wiring, R6 tests, R6 fixtures, R6 docs/templates, R6 runbook/acceptance-gate updates, and R6 acceptance report
 - Forbidden diff scan: no committed `.agentcomos/runs`, `.env`, `uv.lock`, R7, R8, G12, rc, or final-release files found
 
-## Resolved Blocking Issues
+## Blocking Issues
 
-1. Production smoke fails on the reviewed branch. (RESOLVED)
-   - `docker_compose_config` now properly runs in an isolated workspace without picking up local untracked `.env` files.
-   - It outputs status successfully.
+1. Evidence/smoke artifacts still include raw `.env` files.
+   - `agentcomos smoke production --runtime-dir /tmp/agentcomos-r6-codex-smoke` generated `/tmp/agentcomos-r6-codex-smoke/compose_clean/.env`.
+   - `agentcomos smoke bundle --runtime-dir /tmp/agentcomos-r6-codex-bundle` generated `/tmp/agentcomos-r6-codex-bundle/compose_clean/.env`.
+   - The values were placeholders, not real committed secrets, but R6 explicitly requires evidence bundles to exclude raw `.env` files.
+   - R6 tests only check that `.env` is absent at the bundle root and miss nested `.env` files under `compose_clean/`.
 
-2. Evidence bundle still reports a failed smoke and no-go decision. (RESOLVED)
-   - The bundle now reports `smoke_status: pass` and `go_no_go_status: go`.
+2. Fresh Docker build/run could not be verified in this re-review.
+   - `docker build -t agentcomos:r6-codex-review .` failed while resolving `python:3.12-slim` from Docker Hub with EOF.
+   - Later `docker run` commands used an existing local image and are not accepted as fresh evidence for this reviewed commit.
+   - This is not the primary blocker because clean compose validation and local smoke ran, but it remains recorded as unavailable external evidence for this pass.
 
-3. Container release readiness fails after successful Docker build. (RESOLVED)
-   - Container readiness check has been refactored to conditionally check for missing evidence (like Codex acceptance reports) without failing if it runs inside the docker environment, verifying structural checks securely.
-
-4. Docker compose smoke is not isolated from local operator `.env`. (RESOLVED)
-   - The `.env.example` file is properly copied, and the runtime `.env` is isolated to avoid loading local host tokens. All secrets in output are automatically redacted.
-
-5. Go/no-go evidence handling still has inconsistent missing-evidence behavior. (RESOLVED)
-   - Redundant missing evidence reporting (such as `command_summaries`) has been unified across go-no-go, release readiness, and the evidence bundle.
+3. R6 acceptance report status was not reset to `pending` before Codex review.
+   - Antigravity changed the report to `Status: Ready for Codex re-review`.
+   - It did not mark `passed`, but the requested workflow says the pre-Codex status should remain pending.
 
 ## Validation Results
 
@@ -56,10 +56,10 @@
 - `agentcomos adapter status`: passed; adapters disabled and real execution unavailable
 - `agentcomos release readiness`: passed locally
 - `agentcomos release go-no-go`: no_go without smoke report, conservative
-- `agentcomos smoke production --runtime-dir /tmp/agentcomos-r6-codex-smoke`: failed
-- `agentcomos smoke bundle --runtime-dir /tmp/agentcomos-r6-codex-bundle`: generated bundle, but manifest reported smoke failed and go/no-go no_go
+- `agentcomos smoke production --runtime-dir /tmp/agentcomos-r6-codex-smoke`: passed, but generated nested `.env`
+- `agentcomos smoke bundle --runtime-dir /tmp/agentcomos-r6-codex-bundle`: generated bundle with `smoke_status: pass`, `go_no_go_status: go`, and `bundle_status: pass`, but generated nested `.env`
 - `docker compose config`: passed in clean temp dir using `.env.example`
-- `docker build/run`: build passed; container healthcheck/executor/adapter status passed; container release readiness failed
+- `docker build/run`: unavailable for fresh build due Docker Hub EOF; stale local image output not accepted as reviewed evidence
 
 ## Security and Hygiene
 
@@ -72,15 +72,14 @@
 - Docker compose privileged container: no
 - Docker compose host root / ssh key / systemd / cgroup mount: no
 - Generated smoke/bundle reports: no active `real_execution: true` or `execution_mode: real` found
-- Generated smoke/bundle reports: no unredacted token/private-key/password/api_key pattern found
+- Generated smoke/bundle reports: no unredacted real token/private-key/password/api_key pattern found; placeholder token strings were present in nested `.env`
 - Repo secret scan: no committed real secret found; hits were placeholders, redaction code, negative docs, or test fixtures
-- Local untracked `.env`: present in reviewer environment and loaded by repo-root compose config; not committed
 - R4 non-bypass: existing R4 regression tests passed
 - R5 privileged gates: existing R5 regression tests passed
 - Discord non-bypass: R6 blocker tests and existing regressions passed
 
 ## Final Decision
 
-R6 is ready for Codex re-review.
+R6 failed Codex re-review.
 
-Antigravity has resolved the blocking issues. R7 v2.8.0 Release Candidate remains locked until Codex approves and merges R6.
+Antigravity must fix the blocking issues and resubmit R6. R7 v2.8.0 Release Candidate remains locked until R6 passes and is merged to main.
